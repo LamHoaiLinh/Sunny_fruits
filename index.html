@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#ffd6e7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Sunny Fruits</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app" aria-label="Sunny Fruits">
+  <section id="splash" class="screen active">
+    <div class="sky-deco">☁️ ✨ ☁️</div>
+    <div class="logo-card">
+      <div class="logo-fruits">🍓 🍊 🍇</div>
+      <h1>SUNNY FRUITS</h1>
+      <p>Xếp trái cây thật vui!</p>
+      <button id="btnStart" class="primary big">Chơi ngay</button>
+      <button id="btnTutorial" class="soft">Hướng dẫn</button>
+    </div>
+  </section>
+
+  <section id="game" class="screen">
+    <header class="hud">
+      <div class="brand"><b>SUNNY FRUITS</b><span id="levelLabel">Cấp 1</span></div>
+      <div class="progress"><span id="winDots">○ ○ ○</span><small id="seedLabel"></small></div>
+      <div class="hud-actions">
+        <button id="btnHint" title="Gợi ý">💡<span>Gợi ý</span></button>
+        <button id="btnUndo" title="Đi lại">↶<span>Đi lại</span></button>
+        <button id="btnRestart" title="Làm lại">↻<span>Làm lại</span></button>
+        <button id="btnSound" title="Âm thanh">🔊<span>Âm thanh</span></button>
+      </div>
+    </header>
+    <div class="stats"><span id="moveLabel">Số bước: 0</span><span id="message" role="status"></span></div>
+    <main id="boardWrap">
+      <div id="rotateOverlay" class="rotate-overlay hidden"><div>📱↻</div><b>Bạn xoay ngang màn hình để chơi dễ hơn nhé!</b></div>
+      <div id="board" class="board" aria-label="Bàn xếp trái cây">
+        <div id="rail" class="rail"></div>
+        <div id="leftReserve" class="reserve left" data-pos="reserve-left"><span class="reserve-label">Để tạm</span></div>
+        <div id="columns" class="columns"></div>
+        <div id="rightReserve" class="reserve right" data-pos="reserve-right"><span class="reserve-label">Để tạm</span></div>
+        <div id="dragLayer" class="drag-layer"></div>
+      </div>
+    </main>
+    <footer class="tip">Xếp 3 trái giống nhau vào cùng một cột • Cột có 4 thẻ sẽ chặn đường</footer>
+  </section>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div id="modalIcon" class="modal-icon">🌟</div>
+      <h2 id="modalTitle"></h2>
+      <p id="modalText"></p>
+      <div id="modalActions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <div id="tutorial" class="tutorial hidden">
+    <div class="tutorial-card">
+      <div id="tutorialVisual" class="tutorial-visual">🍓 → 🍓🍓🍓</div>
+      <h2 id="tutorialTitle">Cách chơi</h2>
+      <p id="tutorialText"></p>
+      <div class="tutorial-nav">
+        <button id="tutorialSkip" class="soft">Bỏ qua</button>
+        <button id="tutorialNext" class="primary">Tiếp theo</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/sheets.js"></script>
+<script src="js/fruits.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/solver.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
