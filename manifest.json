@@ -1,9 +1,8 @@
 {
-  "name": "Sunny Fruits",
-  "short_name": "Sunny Fruits",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#fff4f8",
-  "theme_color": "#ffd6e7",
-  "orientation": "any"
+  "name":"Sunny Game Hub",
+  "short_name":"Sunny Hub",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#fff4f8",
+  "theme_color":"#ffd6e7"
 }
