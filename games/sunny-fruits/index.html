@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Sunny Fruits</title>
   <link rel="icon" href="../../assets/icons/sunny-fruits.svg">
-  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/style.css?v=20260918-2032">
 </head>
 <body><a href="../../index.html" style="position:fixed;left:12px;top:12px;z-index:9999;text-decoration:none;background:#fff;border:2px solid #ffd0df;border-radius:14px;padding:7px 10px;font-weight:800;color:#b84f78;box-shadow:0 4px 12px #0001">🏠 HUB</a>
 <div id="app" aria-label="Sunny Fruits">
@@ -42,7 +42,7 @@
         <div class="rotate-icon">📱↻</div>
         <b>Xoay ngang màn hình sẽ chơi dễ hơn</b>
         <small>Hoặc tiếp tục chơi dọc với màn hiện tại.</small>
-        <button id="btnPlayPortrait" type="button" class="primary rotate-continue">▶ Chơi dọc</button>
+        <button id="btnPlayPortrait" type="button" class="primary rotate-continue" onclick="document.getElementById('rotateOverlay').classList.add('hidden');try{localStorage.setItem('sunny_fruits_allow_portrait_v1','1')}catch(e){};setTimeout(function(){if(window.SunnyRenderer)SunnyRenderer.fitBoard()},50)">▶ Chơi dọc</button>
       </div>
       <div id="board" class="board" aria-label="Bàn xếp trái cây">
         <div id="leftReserve" class="reserve left" data-pos="reserve-left" aria-label="Ô để tạm 1"><span class="reserve-label">Để tạm 1</span></div>
@@ -85,13 +85,13 @@
 <script src="../../js/sheet_chunks/sheet2_4.js"></script>
 <script src="../../js/sheets.js"></script>
 <script src="../../js/fruits.js"></script>
-<script src="../../js/rules.js"></script>
-<script src="../../js/generator.js"></script>
-<script src="../../js/solver.js"></script>
-<script src="../../js/storage.js"></script>
-<script src="../../js/audio.js"></script>
-<script src="../../js/renderer.js"></script>
-<script src="../../js/tutorial.js"></script>
-<script src="../../js/game.js"></script>
+<script src="../../js/rules.js?v=20260918-2032"></script>
+<script src="../../js/generator.js?v=20260918-2032"></script>
+<script src="../../js/solver.js?v=20260918-2032"></script>
+<script src="../../js/storage.js?v=20260918-2032"></script>
+<script src="../../js/audio.js?v=20260918-2032"></script>
+<script src="../../js/renderer.js?v=20260918-2032"></script>
+<script src="../../js/tutorial.js?v=20260918-2032"></script>
+<script src="../../js/game.js?v=20260918-2032"></script>
 </body>
 </html>
