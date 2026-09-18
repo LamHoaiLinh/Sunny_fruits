@@ -49,8 +49,14 @@ function start(){
   }
 }
 
-function newMap(){
-  var seed = SunnyGenerator.freshSeed(save.level);
+function newMap(puzzleIndex){
+  var total = SunnyGenerator.PUZZLES_PER_LEVEL || 20;
+  if(typeof puzzleIndex === 'number'){
+    save.puzzleIndex = ((puzzleIndex % total) + total) % total;
+  }else{
+    save.puzzleIndex = Math.max(0,Math.min(total-1,Number(save.puzzleIndex)||0));
+  }
+  var seed = SunnyGenerator.presetSeed(save.level, save.puzzleIndex);
   map = SunnyGenerator.generateLevel(save.level, seed);
   state = SunnyRules.cloneState(map.initial);
   history = [];
@@ -59,6 +65,44 @@ function newMap(){
   completedCols = new Set();
   save.map = map;
   persist();
+}
+
+function nextPuzzle(){
+  var total = SunnyGenerator.PUZZLES_PER_LEVEL || 20;
+  save.puzzleIndex = (Number(save.puzzleIndex||0) + 1) % total;
+  newMap(save.puzzleIndex);
+  render();
+  showMessage('🔀 Đã đổi sang câu đố '+(save.puzzleIndex+1)+'/'+total);
+}
+
+function changePuzzle(){
+  if(moves>0){
+    modal('🔀','Đổi câu đố khác?','Tiến độ của câu đố hiện tại sẽ được thay bằng một cách xáo trộn khác trong cùng Cấp.',[
+      ['Đổi câu đố','primary',function(){closeModal();nextPuzzle();}],
+      ['Ở lại','soft',closeModal]
+    ]);
+  }else{
+    nextPuzzle();
+  }
+}
+
+function resetToLevelOne(){
+  modal('↩️','Chơi lại từ Cấp 1?','Cấp độ và số màn thắng sẽ quay về Cấp 1. Âm thanh và hướng dẫn vẫn được giữ nguyên.',[
+    ['Về Cấp 1','primary',function(){
+      save.level = 1;
+      save.wins = 0;
+      save.puzzleIndex = 0;
+      save.map = null;
+      save.state = null;
+      save.history = [];
+      save.moves = 0;
+      closeModal();
+      newMap(0);
+      render();
+      showMessage('↩️ Đã trở về Cấp 1 • Câu đố 1/20');
+    }],
+    ['Hủy','soft',closeModal]
+  ]);
 }
 
 function persist(){
@@ -76,7 +120,8 @@ function render(){
   });
   levelLabel.textContent = 'Cấp ' + save.level;
   winDots.textContent = ['○','○','○'].map(function(x,i){ return i < save.wins ? '●' : '○'; }).join(' ');
-  seedLabel.textContent = map ? 'Mã màn: ' + map.seed.split('-').pop() : '';
+  var totalPuzzles = SunnyGenerator.PUZZLES_PER_LEVEL || 20;
+  seedLabel.textContent = map ? 'Câu đố '+(Number(save.puzzleIndex||0)+1)+'/'+totalPuzzles+' • '+map.seed.split('-').pop() : '';
   moveLabel.textContent = 'Số bước: ' + moves;
   document.getElementById('btnSound').firstChild.nodeValue = save.sound ? '🔊' : '🔇';
   applySelection();
@@ -396,12 +441,13 @@ function afterMove(){
       save.wins = 0;
       if(save.level < 10){
         save.level++;
+        save.puzzleIndex = 0;
         save.map = null;
         save.state = null;
         persist();
         modal('🌟','Bạn đã lên Cấp ' + save.level + '!','Ba màn hoàn thành xuất sắc. Thử thách mới đang chờ bạn!',[[
           'Chơi tiếp','primary',function(){
-            newMap();
+            newMap(0);
             closeModal();
             render();
             SunnyAudio.play('level');
@@ -412,18 +458,16 @@ function afterMove(){
         modal('🏆','Bạn đã chinh phục Sunny Fruits!','Bạn đã hoàn thành Cấp 10. Bạn có thể tiếp tục chơi những màn mới ở độ khó cao nhất.',[[
           'Chơi vô tận','primary',function(){
             save.level = 10;
-            newMap();
+            nextPuzzle();
             closeModal();
-            render();
           }
         ]]);
       }
     }else{
       persist();
-      modal('🎉','Bạn giỏi quá!','Hoàn thành màn chơi!',[['Màn tiếp theo','primary',function(){
-        newMap();
+      modal('🎉','Bạn giỏi quá!','Hoàn thành màn chơi!',[['Câu đố tiếp theo','primary',function(){
         closeModal();
-        render();
+        nextPuzzle();
       }]]);
     }
   }else if(SunnyRules.isDeadlocked(state)){
@@ -433,15 +477,17 @@ function afterMove(){
 
 function deadlock(){
   SunnyAudio.play('bad');
-  modal('🧩','Ôi, bị kẹt rồi!','Bạn không còn nước đi hợp lệ. Cấp độ sẽ quay lại Cấp 1.',[[
-    'Chơi lại từ Cấp 1','primary',function(){
-      save.level = 1;
-      save.wins = 0;
-      newMap();
+  modal('🧩','Ôi, bị kẹt rồi!','Bạn không còn nước đi hợp lệ. Có thể đổi sang câu đố khác hoặc quay về Cấp 1.',[
+    ['🔀 Đổi câu đố','primary',function(){closeModal();nextPuzzle();}],
+    ['↩️ Về Cấp 1','soft',function(){
+      save.level=1;
+      save.wins=0;
+      save.puzzleIndex=0;
       closeModal();
+      newMap(0);
       render();
-    }
-  ]]);
+    }]
+  ]);
 }
 
 function modal(icon,title,text,buttons){
@@ -552,6 +598,8 @@ document.getElementById('btnStart').addEventListener('click',start);
 document.getElementById('btnTutorial').addEventListener('click',function(){ SunnyTutorial.open(function(){}); });
 document.getElementById('btnUndo').addEventListener('click',undo);
 document.getElementById('btnRestart').addEventListener('click',restart);
+document.getElementById('btnShuffle').addEventListener('click',changePuzzle);
+document.getElementById('btnResetLevel').addEventListener('click',resetToLevelOne);
 document.getElementById('btnHint').addEventListener('click',hint);
 document.getElementById('btnSound').addEventListener('click',function(){
   save.sound = !save.sound;
