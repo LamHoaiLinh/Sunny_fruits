@@ -1,9 +1,9 @@
 (function(){
 'use strict';var steps=[
 ['🍓 ☝️','Chọn trái cây','Bạn chỉ lấy được trái cây ở trên cùng của mỗi cột.'],
-['🍓 ➜ 🍓','Kéo trên đường ray','Bạn kéo trái cây lên đường ray rồi đưa sang cột bạn muốn.'],
-['🍊 ⇆ ⭐','Hai chỗ để tạm','Bạn có thể để tạm 1 trái cây ở mỗi bên khi cần xoay xở.'],
-['🍏🍏🍏🍓 ⛔','Cột có 4 thẻ sẽ chặn đường','Khi một cột có 4 trái cây, hai bên không thể đi xuyên qua cột đó.'],
+['☝️ 🍓  →  📍','Nhấp chọn rồi nhấp nơi đến','Chạm một lần vào trái cây để chọn, sau đó chạm vào cột hoặc ô để tạm muốn chuyển tới. Bạn vẫn có thể kéo thả như trước.'],
+['▢        ▢','Hai ô để tạm ở phía trên','Hai ô Để tạm 1 và Để tạm 2 nằm phía trên bàn chơi. Mỗi ô giữ được 1 trái cây.'],
+['🍏🍏🍏🍓 ⛔','Cột có 4 trái sẽ chặn đường','Nếu bạn cố đi xuyên qua cột có 4 trái, màn hình sẽ rung và cột đang chặn sẽ sáng lên.'],
 ['🍇🍇🍇 ✨','Xếp thành bộ 3','Mục tiêu là mỗi cột có đúng 3 trái cây giống nhau.'],
 ['🌈 🏆','Hoàn thành 3 màn để lên cấp','Có 10 cấp độ. Nếu thật sự bị kẹt và không còn nước đi, thử thách sẽ quay lại Cấp 1.']
 ];var idx=0,root=document.getElementById('tutorial'),visual=document.getElementById('tutorialVisual'),title=document.getElementById('tutorialTitle'),text=document.getElementById('tutorialText'),next=document.getElementById('tutorialNext'),skip=document.getElementById('tutorialSkip');
