@@ -111,6 +111,10 @@ function fruitName(id){
   return fruitMeta[id]?fruitMeta[id].name:id;
 }
 
+function coinHtml(value,small){
+  return '<span class="coinIcon'+(small?' small':'')+'" aria-hidden="true"></span><span class="coinValue">'+value+'</span>';
+}
+
 function makeFruit(id,extraClass){
   var meta=fruitMeta[id];
   var el=document.createElement('div');
@@ -232,18 +236,37 @@ function nextFruit(id){
 }
 
 function clickWarehouse(index){
+  var cap=state.unlockedRows*COLS;
+  if(index<0||index>=cap)return;
+
   var id=state.warehouse[index];
-  if(!id)return;
+
+  if(!id){
+    if(state.selectedWarehouse===null)return;
+    var fromEmptyMove=state.selectedWarehouse;
+    var movingId=state.warehouse[fromEmptyMove];
+    if(!movingId){state.selectedWarehouse=null;renderWarehouse();return;}
+    state.warehouse[index]=movingId;
+    state.warehouse[fromEmptyMove]=null;
+    state.selectedWarehouse=null;
+    save();
+    renderWarehouse();
+    toast('Đã chuyển '+fruitName(movingId)+' sang vị trí mới');
+    return;
+  }
+
   if(state.selectedWarehouse===null){
     state.selectedWarehouse=index;
     renderWarehouse();
     return;
   }
+
   if(state.selectedWarehouse===index){
     state.selectedWarehouse=null;
     renderWarehouse();
     return;
   }
+
   var first=state.warehouse[state.selectedWarehouse];
   if(first===id){
     var up=nextFruit(id);
@@ -379,7 +402,7 @@ function renderCustomer(){
   var c=customerById(state.order.customer);
   els.customer.title=c.name;
   els.customer.style.backgroundPosition=(c.col*25)+'% '+(c.row*100)+'%';
-  els.reward.textContent='🪙 '+state.order.reward;
+  els.reward.innerHTML=coinHtml(state.order.reward,false);
   els.orderSlots.innerHTML='';
   state.order.needs.forEach(function(id,i){
     var slot=document.createElement('button');
@@ -415,7 +438,12 @@ function renderWarehouse(){
       var id=state.warehouse[idx];
       if(id){
         cell.appendChild(makeFruit(id));
-        cell.title=fruitName(id);
+        cell.title=fruitName(id)+' • Chạm để chọn';
+      }else if(row<state.unlockedRows){
+        cell.title=state.selectedWarehouse===null?'Ô kho trống':'Chạm để chuyển trái đang chọn vào đây';
+        if(state.selectedWarehouse!==null)cell.classList.add('moveTarget');
+      }
+      if(row<state.unlockedRows){
         cell.addEventListener('click',(function(n){return function(e){e.stopPropagation();clickWarehouse(n);};})(idx));
       }
       rowEl.appendChild(cell);
@@ -424,7 +452,7 @@ function renderWarehouse(){
       var rule=ROW_UNLOCKS[row];
       var lock=document.createElement('div');
       lock.className='warehouseLock';
-      if(row===state.unlockedRows&&rule)lock.innerHTML='🔒 Lv '+rule.level+' &nbsp; 🪙 '+rule.cost;
+      if(row===state.unlockedRows&&rule)lock.innerHTML='<span class="lockLevel">🔒 Lv '+rule.level+'</span><span class="lockCost">'+coinHtml(rule.cost,true)+'</span>';
       else lock.textContent='🔒';
       rowEl.appendChild(lock);
       rowEl.addEventListener('click',(function(r){return function(){unlockRow(r);};})(row));
@@ -491,7 +519,7 @@ function renderShop(){
     var meta=document.createElement('div');meta.className='seedMeta';
     meta.innerHTML='<b>'+fruitName(f.id)+'</b><small>Lv trái '+f.level+'</small>';
     card.appendChild(meta);
-    var price=document.createElement('div');price.className='seedPrice';price.textContent='🪙 '+f.seed;card.appendChild(price);
+    var price=document.createElement('div');price.className='seedPrice';price.innerHTML=coinHtml(f.seed,true);card.appendChild(price);
     if(state.level<f.unlock){
       var lock=document.createElement('div');lock.className='seedLock';lock.textContent='🔒 Lv '+f.unlock;card.appendChild(lock);
       card.addEventListener('click',function(){toast('Hạt này mở ở Level '+f.unlock,true);});
@@ -505,7 +533,11 @@ function renderShop(){
     els.shop.appendChild(card);
   });
   var def=fruitDef(state.selectedSeed);
-  els.selectedSeed.textContent=def?'Đang chọn: '+fruitName(def.id)+' • 🪙 '+def.seed+' • chạm ô đất trống để gieo':'Chọn hạt rồi chạm ô đất trống';
+  if(def){
+    els.selectedSeed.innerHTML='Đang chọn: <b>'+fruitName(def.id)+'</b> • '+coinHtml(def.seed,true)+' • chạm ô đất trống để gieo';
+  }else{
+    els.selectedSeed.textContent='Chọn hạt rồi chạm ô đất trống';
+  }
 }
 
 function render(){
