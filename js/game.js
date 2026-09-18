@@ -1,43 +1,563 @@
 (function(){
 'use strict';
-var splash=document.getElementById('splash'),game=document.getElementById('game'),board=document.getElementById('board'),message=document.getElementById('message'),moveLabel=document.getElementById('moveLabel'),levelLabel=document.getElementById('levelLabel'),winDots=document.getElementById('winDots'),seedLabel=document.getElementById('seedLabel'),rotateOverlay=document.getElementById('rotateOverlay');
-var save=SunnyStorage.load(),map=null,state=null,history=[],moves=0,drag=null,selectedSource=null,completedCols=new Set();SunnyAudio.setEnabled(save.sound);
-function screenGame(){splash.classList.remove('active');game.classList.add('active');setTimeout(SunnyRenderer.fitBoard,50);}
-function start(){screenGame();if(save.map&&save.state&&save.map.level===save.level){map=save.map;state=save.state;history=save.history||[];moves=save.moves||0;}else newMap();selectedSource=null;render();if(!save.tutorialCompleted){SunnyTutorial.open(function(){save.tutorialCompleted=true;persist();});}}
-function newMap(){var seed=SunnyGenerator.freshSeed(save.level);map=SunnyGenerator.generateLevel(save.level,seed);state=SunnyRules.cloneState(map.initial);history=[];moves=0;selectedSource=null;completedCols=new Set();save.map=map;persist();}
-function persist(){save.map=map;save.state=state;save.history=history.slice(-40);save.moves=moves;SunnyStorage.save(save);}
-function render(){SunnyRenderer.render(state,{pointerDown:onPointerDown,pointerDest:onDestinationPointerDown});levelLabel.textContent='Cấp '+save.level;winDots.textContent=['○','○','○'].map((x,i)=>i<save.wins?'●':'○').join(' ');seedLabel.textContent=map?'Mã màn: '+map.seed.split('-').pop():'';moveLabel.textContent='Số bước: '+moves;document.getElementById('btnSound').firstChild.nodeValue=save.sound?'🔊':'🔇';applySelection();checkRotate();}
-function applySelection(){document.querySelectorAll('.source-selected,.token.selected').forEach(function(e){e.classList.remove('source-selected','selected');});if(selectedSource!==null&&SunnyRules.sourceToken(state,selectedSource))SunnyRenderer.highlightSource(selectedSource);else selectedSource=null;}
-function posFromElement(el){if(!el)return null;if(el.id==='leftReserve')return 'L';if(el.id==='rightReserve')return 'R';if(el.classList.contains('column'))return parseInt(el.dataset.pos,10);return null;}
-function sourceFromToken(el){return el.dataset.source==='L'?'L':el.dataset.source==='R'?'R':parseInt(el.dataset.source,10);}
-function getDropPos(x,y){var all=[document.getElementById('leftReserve')].concat(Array.from(document.querySelectorAll('.column')),[document.getElementById('rightReserve')]);for(var i=0;i<all.length;i++){var r=all[i].getBoundingClientRect();if(x>=r.left-10&&x<=r.right+10&&y>=r.top-35&&y<=r.bottom+20)return posFromElement(all[i]);}return null;}
-function showMessage(t,bad,duration){message.textContent=t;message.style.color=bad?'#d84d67':'#d85a8b';clearTimeout(showMessage.t);showMessage.t=setTimeout(function(){message.textContent='';},duration||1500);}
-function onPointerDown(e){if(drag)return;e.preventDefault();e.stopPropagation();SunnyAudio.init();var el=e.currentTarget,src=sourceFromToken(el);if(selectedSource!==null&&selectedSource!==src){attemptMove(selectedSource,src,null);return;}try{el.setPointerCapture(e.pointerId);}catch(_){ }drag={id:el.dataset.fruit,from:src,pointerId:e.pointerId,sourceEl:el,clone:null,line:null,startX:e.clientX,startY:e.clientY,moved:false};el.classList.add('selected');SunnyAudio.play('pick');window.addEventListener('pointermove',onPointerMove,{passive:false});window.addEventListener('pointerup',onPointerUp,{once:true});window.addEventListener('pointercancel',onPointerCancel,{once:true});}
-function onDestinationPointerDown(e){if(selectedSource===null)return;if(e.target.closest('.token'))return;e.preventDefault();e.stopPropagation();var to=posFromElement(e.currentTarget);if(to===selectedSource){selectedSource=null;SunnyRenderer.clearHighlights();showMessage('Đã bỏ chọn');return;}attemptMove(selectedSource,to,null);}
-function ensureDragVisual(x,y){if(!drag||drag.clone)return;var c=document.createElement('div');c.className='drag-token';c.style.setProperty('--token',getComputedStyle(board).getPropertyValue('--token'));c.appendChild(SunnyRenderer.fruitArt(drag.id));document.getElementById('dragLayer').appendChild(c);drag.clone=c;moveDrag(x,y);}
-function moveDrag(x,y){if(!drag||!drag.clone)return;drag.clone.style.left=x+'px';drag.clone.style.top=y+'px';var pos=getDropPos(x,y);SunnyRenderer.clearHighlights();drag.sourceEl.classList.add('selected');if(pos!==null&&pos!==drag.from){var c=SunnyRules.canMove(state,drag.from,pos);SunnyRenderer.highlightDest(pos,c.ok);drawRoute(pos,c.ok);}}
-function drawRoute(to,ok){if(drag.line)drag.line.remove();var a=drag.sourceEl.getBoundingClientRect(),dst=SunnyRenderer.elementForPos(to);if(!dst)return;var b=dst.getBoundingClientRect(),x1=a.left+a.width/2,y1=document.getElementById('rail').getBoundingClientRect().top+6,x2=b.left+b.width/2;var line=document.createElement('div');line.className='route-line'+(ok?'':' bad');line.style.left=Math.min(x1,x2)+'px';line.style.top=y1+'px';line.style.width=Math.abs(x2-x1)+'px';document.body.appendChild(line);drag.line=line;}
-function onPointerMove(e){if(!drag||e.pointerId!==drag.pointerId)return;if(e.cancelable)e.preventDefault();var dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;if(!drag.moved&&Math.sqrt(dx*dx+dy*dy)<9)return;if(!drag.moved){drag.moved=true;ensureDragVisual(e.clientX,e.clientY);}moveDrag(e.clientX,e.clientY);}
-function finishDrag(){if(!drag)return;window.removeEventListener('pointermove',onPointerMove);try{drag.sourceEl.releasePointerCapture(drag.pointerId);}catch(_){ }if(drag.clone)drag.clone.remove();if(drag.line)drag.line.remove();SunnyRenderer.clearHighlights();drag=null;}
-function onPointerCancel(){var from=drag&&drag.from;finishDrag();if(from!==undefined&&from!==null){selectedSource=from;applySelection();}}
-function onPointerUp(e){if(!drag||e.pointerId!==drag.pointerId)return;var d=drag,from=d.from,to=getDropPos(e.clientX,e.clientY),moved=d.moved;finishDrag();if(!moved){if(selectedSource===from){selectedSource=null;showMessage('Đã bỏ chọn');}else{selectedSource=from;showMessage('Đã chọn trái cây • Chạm nơi muốn đặt');}applySelection();return;}if(to===null||to===from){selectedSource=from;applySelection();showMessage('Đã chọn trái cây • Chạm nơi muốn đặt');return;}attemptMove(from,to,d.sourceEl);}
-function flashFullDestination(to){var dst=SunnyRenderer.elementForPos(to);if(!dst)return;dst.classList.add('drop-bad','invalid-flash');setTimeout(function(){dst.classList.remove('drop-bad','invalid-flash');applySelection();},650);}
-function showBlockedFeedback(from,to){clearTimeout(showBlockedFeedback.t);document.querySelectorAll('.blocking-flash').forEach(function(el){el.classList.remove('blocking-flash');});var blockers=SunnyRules.blockingColumns(state,from,to);game.classList.remove('blocked-shake');void game.offsetWidth;game.classList.add('blocked-shake');blockers.forEach(function(i){var el=SunnyRenderer.elementForPos(i);if(el)el.classList.add('blocking-flash');});showMessage('⛔ Cột 4 trái đang chặn đường!',true,1900);showBlockedFeedback.t=setTimeout(function(){game.classList.remove('blocked-shake');document.querySelectorAll('.blocking-flash').forEach(function(el){el.classList.remove('blocking-flash');});applySelection();},1150);}
-function attemptMove(from,to,sourceEl){if(to===null||to===from){selectedSource=from;applySelection();return false;}var check=SunnyRules.canMove(state,from,to);if(!check.ok){SunnyAudio.play('bad');selectedSource=from;applySelection();if(check.reason==='full'){showMessage('Chỗ này đầy rồi!',true);flashFullDestination(to);}else if(check.reason==='blocked'){showBlockedFeedback(from,to);}else showMessage('Không thể đi tới chỗ này',true);if(sourceEl){sourceEl.classList.remove('shake');void sourceEl.offsetWidth;sourceEl.classList.add('shake');setTimeout(function(){sourceEl.classList.remove('shake');},450);}return false;}history.push(SunnyRules.cloneState(state));state=SunnyRules.movePiece(state,from,to);moves++;selectedSource=null;SunnyAudio.play('drop');checkCompletedColumns();persist();render();setTimeout(afterMove,230);return true;}
-function checkCompletedColumns(){state.columns.forEach(function(c,i){var done=c.length===3&&c[0]===c[1]&&c[1]===c[2];if(done&&!completedCols.has(i)){completedCols.add(i);SunnyAudio.play('complete');setTimeout(function(){var col=SunnyRenderer.elementForPos(i);if(col)col.querySelectorAll('.token').forEach(function(t){t.classList.add('celebrate'));},60);}else if(!done)completedCols.delete(i);});}
-function afterMove(){if(SunnyRules.isSolved(state)){SunnyAudio.play('win');save.wins++;if(save.wins>=3){save.wins=0;if(save.level<10){save.level++;save.map=null;save.state=null;persist();modal('🌟','Bạn đã lên Cấp '+save.level+'!','Ba màn hoàn thành xuất sắc. Thử thách mới đang chờ bạn!',[['Chơi tiếp','primary',function(){newMap();closeModal();render();SunnyAudio.play('level');}]]);}else{persist();modal('🏆','Bạn đã chinh phục Sunny Fruits!','Bạn đã hoàn thành Cấp 10. Bạn có thể tiếp tục chơi những màn mới ở độ khó cao nhất.',[['Chơi vô tận','primary',function(){save.level=10;newMap();closeModal();render();}]]);}}else{persist();modal('🎉','Bạn giỏi quá!','Hoàn thành màn chơi!',[['Màn tiếp theo','primary',function(){newMap();closeModal();render();}]]);}}else if(SunnyRules.isDeadlocked(state)){setTimeout(deadlock,250);}}
-function deadlock(){SunnyAudio.play('bad');modal('🧩','Ôi, bị kẹt rồi!','Bạn không còn nước đi hợp lệ. Cấp độ sẽ quay lại Cấp 1.',[['Chơi lại từ Cấp 1','primary',function(){save.level=1;save.wins=0;newMap();closeModal();render();}]]);}
-function modal(icon,title,text,buttons){document.getElementById('modalIcon').textContent=icon;document.getElementById('modalTitle').textContent=title;document.getElementById('modalText').textContent=text;var a=document.getElementById('modalActions');a.innerHTML='';buttons.forEach(function(b){var x=document.createElement('button');x.textContent=b[0];x.className=b[1]||'soft';x.addEventListener('click',b[2]);a.appendChild(x);});document.getElementById('modal').classList.remove('hidden');}
-function closeModal(){document.getElementById('modal').classList.add('hidden');}
-function undo(){if(!history.length){showMessage('Chưa có bước để đi lại');return;}state=history.pop();moves=Math.max(0,moves-1);selectedSource=null;SunnyAudio.play('drop');persist();render();}
-function restart(){state=SunnyRules.cloneState(map.initial);history=[];moves=0;selectedSource=null;completedCols.clear();persist();render();showMessage('Đã xáo lại màn từ đầu');}
-function hint(){selectedSource=null;showMessage('Đang tìm gợi ý...');setTimeout(function(){var r=SunnySolver.solve(state,{limit:7000,maxDepth:42}),mv=r.solved&&r.moves.length?r.moves[0]:SunnySolver.bestEffortMove(state);if(mv){SunnyRenderer.hint(mv);showMessage('Thử di chuyển trái đang sáng nhé!');}else showMessage('Chưa tìm được gợi ý',true);},20);}
-function checkRotate(){var n=state?state.columns.length:0,portrait=innerHeight>innerWidth;rotateOverlay.classList.toggle('hidden',!(n>=8&&portrait&&innerWidth<700));}
-function safeCancelDrag(){if(drag){var from=drag.from;finishDrag();selectedSource=from;applySelection();}}
-['contextmenu','selectstart','dragstart'].forEach(function(type){document.getElementById('app').addEventListener(type,function(e){e.preventDefault();});});
-board.addEventListener('touchmove',function(e){if(e.cancelable)e.preventDefault();},{passive:false});
-document.addEventListener('gesturestart',function(e){if(game.classList.contains('active'))e.preventDefault();},{passive:false});
-window.addEventListener('resize',function(){safeCancelDrag();SunnyRenderer.fitBoard();checkRotate();});window.addEventListener('orientationchange',function(){safeCancelDrag();setTimeout(function(){SunnyRenderer.fitBoard();checkRotate();},120);});if(window.visualViewport)visualViewport.addEventListener('resize',function(){SunnyRenderer.fitBoard();});
-document.getElementById('btnStart').addEventListener('click',start);document.getElementById('btnTutorial').addEventListener('click',function(){SunnyTutorial.open(function(){});});document.getElementById('btnUndo').addEventListener('click',undo);document.getElementById('btnRestart').addEventListener('click',restart);document.getElementById('btnHint').addEventListener('click',hint);document.getElementById('btnSound').addEventListener('click',function(){save.sound=!save.sound;SunnyAudio.setEnabled(save.sound);persist();render();});
-window.SunnyGame={start:start,newMap:newMap,getState:function(){return state;},getSave:function(){return save;}};
+
+var splash = document.getElementById('splash');
+var game = document.getElementById('game');
+var board = document.getElementById('board');
+var message = document.getElementById('message');
+var moveLabel = document.getElementById('moveLabel');
+var levelLabel = document.getElementById('levelLabel');
+var winDots = document.getElementById('winDots');
+var seedLabel = document.getElementById('seedLabel');
+var rotateOverlay = document.getElementById('rotateOverlay');
+
+var save = SunnyStorage.load();
+var map = null;
+var state = null;
+var history = [];
+var moves = 0;
+var drag = null;
+var selectedSource = null;
+var completedCols = new Set();
+
+SunnyAudio.setEnabled(save.sound);
+
+function screenGame(){
+  splash.classList.remove('active');
+  game.classList.add('active');
+  setTimeout(SunnyRenderer.fitBoard, 50);
+}
+
+function start(){
+  screenGame();
+  if(save.map && save.state && save.map.level === save.level){
+    map = save.map;
+    state = save.state;
+    history = save.history || [];
+    moves = save.moves || 0;
+  }else{
+    newMap();
+  }
+  selectedSource = null;
+  render();
+  if(!save.tutorialCompleted){
+    SunnyTutorial.open(function(){
+      save.tutorialCompleted = true;
+      persist();
+    });
+  }
+}
+
+function newMap(){
+  var seed = SunnyGenerator.freshSeed(save.level);
+  map = SunnyGenerator.generateLevel(save.level, seed);
+  state = SunnyRules.cloneState(map.initial);
+  history = [];
+  moves = 0;
+  selectedSource = null;
+  completedCols = new Set();
+  save.map = map;
+  persist();
+}
+
+function persist(){
+  save.map = map;
+  save.state = state;
+  save.history = history.slice(-40);
+  save.moves = moves;
+  SunnyStorage.save(save);
+}
+
+function render(){
+  SunnyRenderer.render(state, {
+    pointerDown: onPointerDown,
+    pointerDest: onDestinationPointerDown
+  });
+  levelLabel.textContent = 'Cấp ' + save.level;
+  winDots.textContent = ['○','○','○'].map(function(x,i){ return i < save.wins ? '●' : '○'; }).join(' ');
+  seedLabel.textContent = map ? 'Mã màn: ' + map.seed.split('-').pop() : '';
+  moveLabel.textContent = 'Số bước: ' + moves;
+  document.getElementById('btnSound').firstChild.nodeValue = save.sound ? '🔊' : '🔇';
+  applySelection();
+  checkRotate();
+}
+
+function applySelection(){
+  document.querySelectorAll('.source-selected,.token.selected').forEach(function(el){
+    el.classList.remove('source-selected','selected');
+  });
+  if(selectedSource !== null && SunnyRules.sourceToken(state, selectedSource)){
+    SunnyRenderer.highlightSource(selectedSource);
+  }else{
+    selectedSource = null;
+  }
+}
+
+function posFromElement(el){
+  if(!el) return null;
+  if(el.id === 'leftReserve') return 'L';
+  if(el.id === 'rightReserve') return 'R';
+  if(el.classList.contains('column')) return parseInt(el.dataset.pos, 10);
+  return null;
+}
+
+function sourceFromToken(el){
+  if(el.dataset.source === 'L') return 'L';
+  if(el.dataset.source === 'R') return 'R';
+  return parseInt(el.dataset.source, 10);
+}
+
+function getDropPos(x,y){
+  var all = [document.getElementById('leftReserve')]
+    .concat(Array.from(document.querySelectorAll('.column')))
+    .concat([document.getElementById('rightReserve')]);
+  for(var i=0;i<all.length;i++){
+    var r = all[i].getBoundingClientRect();
+    if(x >= r.left - 10 && x <= r.right + 10 && y >= r.top - 35 && y <= r.bottom + 20){
+      return posFromElement(all[i]);
+    }
+  }
+  return null;
+}
+
+function showMessage(text,bad,duration){
+  message.textContent = text;
+  message.style.color = bad ? '#d84d67' : '#d85a8b';
+  clearTimeout(showMessage.timer);
+  showMessage.timer = setTimeout(function(){ message.textContent = ''; }, duration || 1500);
+}
+
+function onPointerDown(e){
+  if(drag) return;
+  e.preventDefault();
+  e.stopPropagation();
+  SunnyAudio.init();
+
+  var el = e.currentTarget;
+  var src = sourceFromToken(el);
+
+  if(selectedSource !== null && selectedSource !== src){
+    attemptMove(selectedSource, src, null);
+    return;
+  }
+
+  try{ el.setPointerCapture(e.pointerId); }catch(_err){}
+  drag = {
+    id: el.dataset.fruit,
+    from: src,
+    pointerId: e.pointerId,
+    sourceEl: el,
+    clone: null,
+    line: null,
+    startX: e.clientX,
+    startY: e.clientY,
+    moved: false
+  };
+  el.classList.add('selected');
+  SunnyAudio.play('pick');
+  window.addEventListener('pointermove', onPointerMove, {passive:false});
+  window.addEventListener('pointerup', onPointerUp, {once:true});
+  window.addEventListener('pointercancel', onPointerCancel, {once:true});
+}
+
+function onDestinationPointerDown(e){
+  if(selectedSource === null) return;
+  if(e.target.closest('.token')) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  var to = posFromElement(e.currentTarget);
+  if(to === selectedSource){
+    selectedSource = null;
+    SunnyRenderer.clearHighlights();
+    showMessage('Đã bỏ chọn');
+    return;
+  }
+  attemptMove(selectedSource, to, null);
+}
+
+function ensureDragVisual(x,y){
+  if(!drag || drag.clone) return;
+  var clone = document.createElement('div');
+  clone.className = 'drag-token';
+  clone.style.setProperty('--token', getComputedStyle(board).getPropertyValue('--token'));
+  clone.appendChild(SunnyRenderer.fruitArt(drag.id));
+  document.getElementById('dragLayer').appendChild(clone);
+  drag.clone = clone;
+  moveDrag(x,y);
+}
+
+function moveDrag(x,y){
+  if(!drag || !drag.clone) return;
+  drag.clone.style.left = x + 'px';
+  drag.clone.style.top = y + 'px';
+
+  var pos = getDropPos(x,y);
+  SunnyRenderer.clearHighlights();
+  drag.sourceEl.classList.add('selected');
+  if(pos !== null && pos !== drag.from){
+    var check = SunnyRules.canMove(state, drag.from, pos);
+    SunnyRenderer.highlightDest(pos, check.ok);
+    drawRoute(pos, check.ok);
+  }
+}
+
+function drawRoute(to,ok){
+  if(drag.line) drag.line.remove();
+  var srcRect = drag.sourceEl.getBoundingClientRect();
+  var dst = SunnyRenderer.elementForPos(to);
+  if(!dst) return;
+  var dstRect = dst.getBoundingClientRect();
+  var x1 = srcRect.left + srcRect.width/2;
+  var y1 = document.getElementById('rail').getBoundingClientRect().top + 6;
+  var x2 = dstRect.left + dstRect.width/2;
+  var line = document.createElement('div');
+  line.className = 'route-line' + (ok ? '' : ' bad');
+  line.style.left = Math.min(x1,x2) + 'px';
+  line.style.top = y1 + 'px';
+  line.style.width = Math.abs(x2-x1) + 'px';
+  document.body.appendChild(line);
+  drag.line = line;
+}
+
+function onPointerMove(e){
+  if(!drag || e.pointerId !== drag.pointerId) return;
+  if(e.cancelable) e.preventDefault();
+  var dx = e.clientX - drag.startX;
+  var dy = e.clientY - drag.startY;
+  if(!drag.moved && Math.sqrt(dx*dx + dy*dy) < 9) return;
+  if(!drag.moved){
+    drag.moved = true;
+    ensureDragVisual(e.clientX, e.clientY);
+  }
+  moveDrag(e.clientX, e.clientY);
+}
+
+function finishDrag(){
+  if(!drag) return;
+  window.removeEventListener('pointermove', onPointerMove);
+  try{ drag.sourceEl.releasePointerCapture(drag.pointerId); }catch(_err){}
+  if(drag.clone) drag.clone.remove();
+  if(drag.line) drag.line.remove();
+  SunnyRenderer.clearHighlights();
+  drag = null;
+}
+
+function onPointerCancel(){
+  var from = drag && drag.from;
+  finishDrag();
+  if(from !== undefined && from !== null){
+    selectedSource = from;
+    applySelection();
+  }
+}
+
+function onPointerUp(e){
+  if(!drag || e.pointerId !== drag.pointerId) return;
+  var d = drag;
+  var from = d.from;
+  var to = getDropPos(e.clientX,e.clientY);
+  var moved = d.moved;
+  var sourceEl = d.sourceEl;
+  finishDrag();
+
+  if(!moved){
+    if(selectedSource === from){
+      selectedSource = null;
+      showMessage('Đã bỏ chọn');
+    }else{
+      selectedSource = from;
+      showMessage('Đã chọn trái cây • Chạm nơi muốn đặt');
+    }
+    applySelection();
+    return;
+  }
+
+  if(to === null || to === from){
+    selectedSource = from;
+    applySelection();
+    showMessage('Đã chọn trái cây • Chạm nơi muốn đặt');
+    return;
+  }
+
+  attemptMove(from, to, sourceEl);
+}
+
+function flashFullDestination(to){
+  var dst = SunnyRenderer.elementForPos(to);
+  if(!dst) return;
+  dst.classList.add('drop-bad','invalid-flash');
+  setTimeout(function(){
+    dst.classList.remove('drop-bad','invalid-flash');
+    applySelection();
+  },650);
+}
+
+function showBlockedFeedback(from,to){
+  clearTimeout(showBlockedFeedback.timer);
+  document.querySelectorAll('.blocking-flash').forEach(function(el){
+    el.classList.remove('blocking-flash');
+  });
+
+  var blockers = SunnyRules.blockingColumns(state,from,to);
+  game.classList.remove('blocked-shake');
+  void game.offsetWidth;
+  game.classList.add('blocked-shake');
+
+  blockers.forEach(function(i){
+    var el = SunnyRenderer.elementForPos(i);
+    if(el) el.classList.add('blocking-flash');
+  });
+
+  showMessage('⛔ Cột 4 trái đang chặn đường!', true, 1900);
+  showBlockedFeedback.timer = setTimeout(function(){
+    game.classList.remove('blocked-shake');
+    document.querySelectorAll('.blocking-flash').forEach(function(el){
+      el.classList.remove('blocking-flash');
+    });
+    applySelection();
+  },1150);
+}
+
+function attemptMove(from,to,sourceEl){
+  if(to === null || to === from){
+    selectedSource = from;
+    applySelection();
+    return false;
+  }
+
+  var check = SunnyRules.canMove(state,from,to);
+  if(!check.ok){
+    SunnyAudio.play('bad');
+    selectedSource = from;
+    applySelection();
+
+    if(check.reason === 'full'){
+      showMessage('Chỗ này đầy rồi!', true);
+      flashFullDestination(to);
+    }else if(check.reason === 'blocked'){
+      showBlockedFeedback(from,to);
+    }else{
+      showMessage('Không thể đi tới chỗ này', true);
+    }
+
+    if(sourceEl){
+      sourceEl.classList.remove('shake');
+      void sourceEl.offsetWidth;
+      sourceEl.classList.add('shake');
+      setTimeout(function(){ sourceEl.classList.remove('shake'); },450);
+    }
+    return false;
+  }
+
+  history.push(SunnyRules.cloneState(state));
+  state = SunnyRules.movePiece(state,from,to);
+  moves++;
+  selectedSource = null;
+  SunnyAudio.play('drop');
+  checkCompletedColumns();
+  persist();
+  render();
+  setTimeout(afterMove,230);
+  return true;
+}
+
+function checkCompletedColumns(){
+  state.columns.forEach(function(c,i){
+    var done = c.length === 3 && c[0] === c[1] && c[1] === c[2];
+    if(done && !completedCols.has(i)){
+      completedCols.add(i);
+      SunnyAudio.play('complete');
+      setTimeout(function(){
+        var col = SunnyRenderer.elementForPos(i);
+        if(col){
+          col.querySelectorAll('.token').forEach(function(t){ t.classList.add('celebrate'); });
+        }
+      },60);
+    }else if(!done){
+      completedCols.delete(i);
+    }
+  });
+}
+
+function afterMove(){
+  if(SunnyRules.isSolved(state)){
+    SunnyAudio.play('win');
+    save.wins++;
+
+    if(save.wins >= 3){
+      save.wins = 0;
+      if(save.level < 10){
+        save.level++;
+        save.map = null;
+        save.state = null;
+        persist();
+        modal('🌟','Bạn đã lên Cấp ' + save.level + '!','Ba màn hoàn thành xuất sắc. Thử thách mới đang chờ bạn!',[[
+          'Chơi tiếp','primary',function(){
+            newMap();
+            closeModal();
+            render();
+            SunnyAudio.play('level');
+          }
+        ]]);
+      }else{
+        persist();
+        modal('🏆','Bạn đã chinh phục Sunny Fruits!','Bạn đã hoàn thành Cấp 10. Bạn có thể tiếp tục chơi những màn mới ở độ khó cao nhất.',[[
+          'Chơi vô tận','primary',function(){
+            save.level = 10;
+            newMap();
+            closeModal();
+            render();
+          }
+        ]]);
+      }
+    }else{
+      persist();
+      modal('🎉','Bạn giỏi quá!','Hoàn thành màn chơi!',[['Màn tiếp theo','primary',function(){
+        newMap();
+        closeModal();
+        render();
+      }]]);
+    }
+  }else if(SunnyRules.isDeadlocked(state)){
+    setTimeout(deadlock,250);
+  }
+}
+
+function deadlock(){
+  SunnyAudio.play('bad');
+  modal('🧩','Ôi, bị kẹt rồi!','Bạn không còn nước đi hợp lệ. Cấp độ sẽ quay lại Cấp 1.',[[
+    'Chơi lại từ Cấp 1','primary',function(){
+      save.level = 1;
+      save.wins = 0;
+      newMap();
+      closeModal();
+      render();
+    }
+  ]]);
+}
+
+function modal(icon,title,text,buttons){
+  document.getElementById('modalIcon').textContent = icon;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalText').textContent = text;
+  var actions = document.getElementById('modalActions');
+  actions.innerHTML = '';
+  buttons.forEach(function(btn){
+    var el = document.createElement('button');
+    el.textContent = btn[0];
+    el.className = btn[1] || 'soft';
+    el.addEventListener('click',btn[2]);
+    actions.appendChild(el);
+  });
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function undo(){
+  if(!history.length){
+    showMessage('Chưa có bước để đi lại');
+    return;
+  }
+  state = history.pop();
+  moves = Math.max(0,moves-1);
+  selectedSource = null;
+  SunnyAudio.play('drop');
+  persist();
+  render();
+}
+
+function restart(){
+  state = SunnyRules.cloneState(map.initial);
+  history = [];
+  moves = 0;
+  selectedSource = null;
+  completedCols.clear();
+  persist();
+  render();
+  showMessage('Đã xáo lại màn từ đầu');
+}
+
+function hint(){
+  selectedSource = null;
+  showMessage('Đang tìm gợi ý...');
+  setTimeout(function(){
+    var result = SunnySolver.solve(state,{limit:7000,maxDepth:42});
+    var mv = result.solved && result.moves.length ? result.moves[0] : SunnySolver.bestEffortMove(state);
+    if(mv){
+      SunnyRenderer.hint(mv);
+      showMessage('Thử di chuyển trái đang sáng nhé!');
+    }else{
+      showMessage('Chưa tìm được gợi ý',true);
+    }
+  },20);
+}
+
+function checkRotate(){
+  var n = state ? state.columns.length : 0;
+  var portrait = innerHeight > innerWidth;
+  rotateOverlay.classList.toggle('hidden', !(n >= 8 && portrait && innerWidth < 700));
+}
+
+function safeCancelDrag(){
+  if(drag){
+    var from = drag.from;
+    finishDrag();
+    selectedSource = from;
+    applySelection();
+  }
+}
+
+['contextmenu','selectstart','dragstart'].forEach(function(type){
+  document.getElementById('app').addEventListener(type,function(e){ e.preventDefault(); });
+});
+
+board.addEventListener('touchmove',function(e){
+  if(e.cancelable) e.preventDefault();
+},{passive:false});
+
+document.addEventListener('gesturestart',function(e){
+  if(game.classList.contains('active')) e.preventDefault();
+},{passive:false});
+
+window.addEventListener('resize',function(){
+  safeCancelDrag();
+  SunnyRenderer.fitBoard();
+  checkRotate();
+});
+
+window.addEventListener('orientationchange',function(){
+  safeCancelDrag();
+  setTimeout(function(){
+    SunnyRenderer.fitBoard();
+    checkRotate();
+  },120);
+});
+
+if(window.visualViewport){
+  visualViewport.addEventListener('resize',function(){ SunnyRenderer.fitBoard(); });
+}
+
+document.getElementById('btnStart').addEventListener('click',start);
+document.getElementById('btnTutorial').addEventListener('click',function(){ SunnyTutorial.open(function(){}); });
+document.getElementById('btnUndo').addEventListener('click',undo);
+document.getElementById('btnRestart').addEventListener('click',restart);
+document.getElementById('btnHint').addEventListener('click',hint);
+document.getElementById('btnSound').addEventListener('click',function(){
+  save.sound = !save.sound;
+  SunnyAudio.setEnabled(save.sound);
+  persist();
+  render();
+});
+
+window.SunnyGame = {
+  start:start,
+  newMap:newMap,
+  getState:function(){ return state; },
+  getSave:function(){ return save; }
+};
+
 })();
