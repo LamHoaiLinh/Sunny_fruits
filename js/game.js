@@ -20,6 +20,8 @@ var drag = null;
 var selectedSource = null;
 var completedCols = new Set();
 var suppressDestinationClickUntil = 0;
+var portraitPlayAllowed = false;
+try{portraitPlayAllowed = localStorage.getItem('sunny_fruits_allow_portrait_v1') === '1';}catch(_e){}
 
 SunnyAudio.setEnabled(save.sound);
 
@@ -549,10 +551,19 @@ function hint(){
   },20);
 }
 
+function allowPortraitPlay(){
+  portraitPlayAllowed = true;
+  try{localStorage.setItem('sunny_fruits_allow_portrait_v1','1');}catch(_e){}
+  rotateOverlay.classList.add('hidden');
+  setTimeout(SunnyRenderer.fitBoard,50);
+  showMessage('Đã tiếp tục chơi dọc • Xoay ngang bất kỳ lúc nào nếu muốn');
+}
+
 function checkRotate(){
   var n = state ? state.columns.length : 0;
   var portrait = innerHeight > innerWidth;
-  rotateOverlay.classList.toggle('hidden', !(n >= 8 && portrait && innerWidth < 700));
+  var shouldSuggest = n >= 8 && portrait && innerWidth < 700 && !portraitPlayAllowed;
+  rotateOverlay.classList.toggle('hidden', !shouldSuggest);
 }
 
 function safeCancelDrag(){
@@ -600,6 +611,7 @@ document.getElementById('btnUndo').addEventListener('click',undo);
 document.getElementById('btnRestart').addEventListener('click',restart);
 document.getElementById('btnShuffle').addEventListener('click',changePuzzle);
 document.getElementById('btnResetLevel').addEventListener('click',resetToLevelOne);
+document.getElementById('btnPlayPortrait').addEventListener('click',allowPortraitPlay);
 document.getElementById('btnHint').addEventListener('click',hint);
 document.getElementById('btnSound').addEventListener('click',function(){
   save.sound = !save.sound;
