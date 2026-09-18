@@ -1,90 +1,41 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-  <meta name="theme-color" content="#ffd6e7">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Sunny Fruits</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffd6e7">
+<title>Sunny Game Hub</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="hub.css">
+<link rel="icon" href="assets/icons/sunny-garden.svg">
 </head>
 <body>
-<div id="app" aria-label="Sunny Fruits">
-  <section id="splash" class="screen active">
-    <div class="sky-deco">☁️ ✨ ☁️</div>
-    <div class="logo-card">
-      <div class="logo-fruits">🍓 🍊 🍇</div>
-      <h1>SUNNY FRUITS</h1>
-      <p>Xếp trái cây thật vui!</p>
-      <button id="btnStart" class="primary big">Chơi ngay</button>
-      <button id="btnTutorial" class="soft">Hướng dẫn</button>
-    </div>
+<main class="hub">
+  <section class="hero">
+    <h1>SUNNY GAME HUB</h1>
+    <p>Chọn trò chơi Sunny muốn chơi hôm nay</p>
   </section>
-
-  <section id="game" class="screen">
-    <header class="hud">
-      <div class="brand"><b>SUNNY FRUITS</b><span id="levelLabel">Cấp 1</span></div>
-      <div class="progress"><span id="winDots">○ ○ ○</span><small id="seedLabel"></small></div>
-      <div class="hud-actions">
-        <button id="btnHint" title="Gợi ý">💡<span>Gợi ý</span></button>
-        <button id="btnUndo" title="Đi lại">↶<span>Đi lại</span></button>
-        <button id="btnRestart" title="Làm lại">↻<span>Làm lại</span></button>
-        <button id="btnSound" title="Âm thanh">🔊<span>Âm thanh</span></button>
+  <section class="games">
+    <article class="card">
+      <img src="assets/icons/sunny-fruits.svg" alt="Icon Sunny Fruits">
+      <div>
+        <h2>SUNNY FRUITS</h2>
+        <div class="tags"><span class="tag">Xếp trái cây</span><span class="tag">Đường ray</span><span class="tag">Puzzle</span></div>
+        <p>Game xếp trái cây theo cột, dùng đường ray và hai ô để tạm.</p>
+        <a class="play" href="games/sunny-fruits/index.html">▶ Chơi game</a>
       </div>
-    </header>
-    <div class="stats"><span id="moveLabel">Số bước: 0</span><span id="message" role="status"></span></div>
-    <main id="boardWrap">
-      <div id="rotateOverlay" class="rotate-overlay hidden"><div>📱↻</div><b>Bạn xoay ngang màn hình để chơi dễ hơn nhé!</b></div>
-      <div id="board" class="board" aria-label="Bàn xếp trái cây">
-        <div id="leftReserve" class="reserve left" data-pos="reserve-left" aria-label="Ô để tạm 1"><span class="reserve-label">Để tạm 1</span></div>
-        <div id="rightReserve" class="reserve right" data-pos="reserve-right" aria-label="Ô để tạm 2"><span class="reserve-label">Để tạm 2</span></div>
-        <div id="rail" class="rail"></div>
-        <div id="columns" class="columns"></div>
-        <div id="dragLayer" class="drag-layer"></div>
+    </article>
+    <article class="card">
+      <img src="assets/icons/sunny-garden.svg" alt="Icon Sunny Garden">
+      <div>
+        <h2>SUNNY GARDEN</h2>
+        <div class="tags"><span class="tag">Trồng cây</span><span class="tag">Merge</span><span class="tag">Bán hàng</span></div>
+        <p>Trồng cây theo lượt, nhặt trái miễn phí trên sân 6×6, ghép trái và bán cho khách để mở rộng kho.</p>
+        <a class="play" href="games/sunny-garden/index.html">▶ Chơi game</a>
       </div>
-    </main>
-    <footer class="tip">Nhấp 1 lần để chọn rồi nhấp nơi đến • Hoặc kéo thả • Cột có 4 trái sẽ chặn đường</footer>
+    </article>
   </section>
-
-  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div id="modalIcon" class="modal-icon">🌟</div>
-      <h2 id="modalTitle"></h2>
-      <p id="modalText"></p>
-      <div id="modalActions" class="modal-actions"></div>
-    </div>
-  </div>
-
-  <div id="tutorial" class="tutorial hidden">
-    <div class="tutorial-card">
-      <div id="tutorialVisual" class="tutorial-visual">🍓 → 🍓🍓🍓</div>
-      <h2 id="tutorialTitle">Cách chơi</h2>
-      <p id="tutorialText"></p>
-      <div class="tutorial-nav">
-        <button id="tutorialSkip" class="soft">Bỏ qua</button>
-        <button id="tutorialNext" class="primary">Tiếp theo</button>
-      </div>
-    </div>
-  </div>
-</div>
-<script src="js/sheet_chunks/sheet1_1.js"></script>
-<script src="js/sheet_chunks/sheet1_2.js"></script>
-<script src="js/sheet_chunks/sheet1_3.js"></script>
-<script src="js/sheet_chunks/sheet2_1.js"></script>
-<script src="js/sheet_chunks/sheet2_2.js"></script>
-<script src="js/sheet_chunks/sheet2_3.js"></script>
-<script src="js/sheet_chunks/sheet2_4.js"></script>
-<script src="js/sheets.js"></script>
-<script src="js/fruits.js"></script>
-<script src="js/rules.js"></script>
-<script src="js/generator.js"></script>
-<script src="js/solver.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/renderer.js"></script>
-<script src="js/tutorial.js"></script>
-<script src="js/game.js"></script>
+  <div class="footer">Sunny Game Hub • Hai game dùng chung bộ hình trái cây nhưng lưu tiến độ riêng</div>
+</main>
 </body>
 </html>
