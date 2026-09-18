@@ -14,7 +14,7 @@
     <a class="hubBtn" href="../../index.html">🏠 HUB</a>
     <div class="titleWrap"><img src="../../assets/icons/sunny-garden.svg" alt=""><div><b>SUNNY GARDEN</b><small>Trồng • Ghép • Bán</small></div></div>
     <div class="stats">
-      <span title="Vàng">🪙 <b id="goldLabel">0</b></span>
+      <span title="Vàng" class="goldStat"><span class="coinIcon" aria-hidden="true"></span><b id="goldLabel">0</b></span>
       <span title="Cấp">⭐ Lv <b id="levelLabel">1</b></span>
       <span title="Lượt">☀️ <b id="turnLabel">0</b></span>
     </div>
@@ -24,7 +24,7 @@
   <section class="ordersPanel">
     <div id="customerPortrait" class="customerPortrait" aria-label="Khách hàng"></div>
     <div class="orderInfo">
-      <div class="orderHead"><b>ĐƠN HÀNG</b><span id="orderReward">🪙 0</span><button id="refreshOrderBtn" class="iconBtn" title="Đổi đơn">🔄</button></div>
+      <div class="orderHead"><b>ĐƠN HÀNG</b><span id="orderReward"><span class="coinIcon" aria-hidden="true"></span><span class="coinValue">0</span></span><button id="refreshOrderBtn" class="iconBtn" title="Đổi đơn">🔄</button></div>
       <div id="orderSlots" class="orderSlots"></div>
     </div>
     <div class="xpBox"><div class="xpText"><span>EXP</span><b id="xpLabel">0/80</b></div><div class="xpBar"><i id="xpFill"></i></div></div>
@@ -34,7 +34,7 @@
     <section class="warehousePanel">
       <div class="panelTitle"><span>📦 KHO SUNNY</span><small id="warehouseCount">0/8</small></div>
       <div id="warehouse" class="warehouse"></div>
-      <div class="warehouseHint">Chạm 1 trái → chạm trái giống để ghép • Hoặc chạm ô đơn hàng để bán</div>
+      <div class="warehouseHint">Chạm 1 trái → chạm ô trống để dời • Chạm trái giống để ghép • Chạm ô đơn hàng để bán</div>
     </section>
 
     <section class="fieldPanel">
