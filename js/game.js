@@ -139,7 +139,10 @@ function onPointerDown(e){
 
   if(selectedSource !== null && selectedSource !== src){
     suppressDestinationClickUntil = Date.now() + 250;
-    attemptMove(selectedSource, src, null);
+    selectedSource = src;
+    SunnyAudio.play('pick');
+    applySelection();
+    showMessage('Đã chuyển sang trái cây mới • Chạm nơi muốn đặt');
     return;
   }
 
