@@ -3,6 +3,7 @@
 
 var SAVE_KEY='sunny_garden_save_v1';
 var MAX_ROWS=10, COLS=4, FIELD_SIZE=36;
+var FREE_FRUIT_CHANCE=0.15;
 var lastDropIndex=-1;
 
 var FRUITS=[
@@ -59,6 +60,12 @@ var els={
   fieldCount:document.getElementById('fieldCount'),
   shop:document.getElementById('seedShop'),
   selectedSeed:document.getElementById('selectedSeedLabel'),
+  bookBtn:document.getElementById('fruitBookBtn'),
+  bookMiniCount:document.getElementById('bookMiniCount'),
+  bookModal:document.getElementById('fruitBookModal'),
+  bookGrid:document.getElementById('fruitBookGrid'),
+  bookCount:document.getElementById('fruitBookCount'),
+  bookClose:document.getElementById('fruitBookClose'),
   toast:document.getElementById('toast')
 };
 
@@ -75,7 +82,8 @@ function defaults(){
     selectedSeed:'mango',
     selectedWarehouse:null,
     order:null,
-    completedOrders:0
+    completedOrders:0,
+    discoveredFruits:[]
   };
 }
 
@@ -90,6 +98,12 @@ function load(){
     s.gold=Math.max(0,Number(s.gold)||0);
     s.turn=Math.max(0,Number(s.turn)||0);
     if(!fruitDef(s.selectedSeed)||fruitDef(s.selectedSeed).unlock>s.level)s.selectedSeed='mango';
+    if(!Array.isArray(s.discoveredFruits))s.discoveredFruits=[];
+    var known={};
+    s.discoveredFruits.forEach(function(id){if(fruitDef(id))known[id]=true;});
+    s.warehouse.forEach(function(id){if(id&&fruitDef(id))known[id]=true;});
+    s.field.forEach(function(cell){if(cell&&cell.fruitId&&fruitDef(cell.fruitId))known[cell.fruitId]=true;});
+    s.discoveredFruits=Object.keys(known);
     s.selectedWarehouse=null;
     return s;
   }catch(e){return defaults();}
@@ -132,6 +146,70 @@ function makeFruit(id,extraClass){
   return el;
 }
 
+function isDiscovered(id){
+  return state.discoveredFruits.indexOf(id)>=0;
+}
+
+function discoverFruit(id,announce){
+  if(!fruitDef(id)||isDiscovered(id))return false;
+  state.discoveredFruits.push(id);
+  if(els.bookBtn){
+    els.bookBtn.classList.remove('newFind');
+    void els.bookBtn.offsetWidth;
+    els.bookBtn.classList.add('newFind');
+    setTimeout(function(){els.bookBtn.classList.remove('newFind');},900);
+  }
+  if(announce){
+    setTimeout(function(){toast('📖 Đã khám phá '+fruitName(id)+'!');},120);
+  }
+  return true;
+}
+
+function renderFruitBook(){
+  if(!els.bookGrid)return;
+  els.bookGrid.innerHTML='';
+  var found=0;
+  FRUITS.forEach(function(f){
+    var discovered=isDiscovered(f.id);
+    if(discovered)found++;
+    var card=document.createElement('div');
+    card.className='bookFruitCard '+(discovered?'found':'unknown');
+
+    var artWrap=document.createElement('div');
+    artWrap.className='bookFruitArt';
+    if(discovered){
+      artWrap.appendChild(makeFruit(f.id));
+    }else{
+      var q=document.createElement('div');
+      q.className='bookQuestion';
+      q.textContent='?';
+      artWrap.appendChild(q);
+    }
+    card.appendChild(artWrap);
+
+    var label=document.createElement('div');
+    label.className='bookFruitLabel';
+    if(discovered){
+      label.innerHTML='<b>'+fruitName(f.id)+'</b><small>Lv '+f.level+'</small>';
+    }else{
+      label.innerHTML='<b>Chưa khám phá</b><small>?</small>';
+    }
+    card.appendChild(label);
+    els.bookGrid.appendChild(card);
+  });
+  if(els.bookCount)els.bookCount.textContent=found+'/'+FRUITS.length;
+  if(els.bookMiniCount)els.bookMiniCount.textContent=found+'/'+FRUITS.length;
+}
+
+function openFruitBook(){
+  renderFruitBook();
+  els.bookModal.classList.remove('hidden');
+}
+
+function closeFruitBook(){
+  els.bookModal.classList.add('hidden');
+}
+
 function xpNeed(level){return 80+(level-1)*45;}
 
 function toast(text,bad){
@@ -164,21 +242,31 @@ function randomEmptyField(){
 }
 
 function spawnFreeFruit(){
+  lastDropIndex=-1;
+  if(Math.random()>=FREE_FRUIT_CHANCE)return false;
+
   var idx=randomEmptyField();
   if(idx<0){
-    lastDropIndex=-1;
-    toast('Sân 6×6 đã đầy • Lượt này không rơi trái miễn phí',true);
+    toast('Sân 6×6 đã đầy • Không còn chỗ cho trái miễn phí',true);
     return false;
   }
-  state.field[idx]={kind:'free',fruitId:pickWeightedFruit()};
+
+  // pickWeightedFruit() chỉ lấy trong unlockedFruits(), tức là không bao giờ
+  // rơi loại trái thuộc Level tương lai của Sunny.
+  var fruitId=pickWeightedFruit();
+  state.field[idx]={kind:'free',fruitId:fruitId};
   lastDropIndex=idx;
+  discoverFruit(fruitId,true);
   return true;
 }
 
 function advancePlants(){
   for(var i=0;i<state.field.length;i++){
     var c=state.field[i];
-    if(c&&c.kind==='plant'&&c.stage<4)c.stage++;
+    if(c&&c.kind==='plant'&&c.stage<4){
+      c.stage++;
+      if(c.stage===4)discoverFruit(c.fruitId,true);
+    }
   }
 }
 
@@ -223,6 +311,7 @@ function collectField(index){
   var slot=findEmptyWarehouse();
   if(slot<0){toast('Kho Sunny đã đầy • Hãy ghép hoặc bán bớt trái',true);return;}
   state.warehouse[slot]=cell.fruitId;
+  discoverFruit(cell.fruitId,false);
   state.field[index]=null;
   save();render();
   toast(cell.kind==='free'?'Đã nhặt trái miễn phí':'Thu hoạch thành công');
@@ -274,6 +363,7 @@ function clickWarehouse(index){
     var from=state.selectedWarehouse;
     state.warehouse[from]=null;
     state.warehouse[index]=up;
+    discoverFruit(up,true);
     state.selectedWarehouse=null;
     takeTurn();
     toast(fruitName(id)+' + '+fruitName(id)+' → '+fruitName(up));
@@ -585,6 +675,7 @@ function render(){
   renderWarehouse();
   renderField();
   renderShop();
+  renderFruitBook();
 }
 
 document.getElementById('nextTurnBtn').addEventListener('click',function(){
@@ -592,6 +683,10 @@ document.getElementById('nextTurnBtn').addEventListener('click',function(){
   toast('☀️ Qua 1 lượt • Cây lớn thêm');
 });
 document.getElementById('refreshOrderBtn').addEventListener('click',refreshOrder);
+els.bookBtn.addEventListener('click',openFruitBook);
+els.bookClose.addEventListener('click',closeFruitBook);
+els.bookModal.addEventListener('click',function(e){if(e.target===els.bookModal)closeFruitBook();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!els.bookModal.classList.contains('hidden'))closeFruitBook();});
 
 render();
 save();
