@@ -6,7 +6,12 @@
 <meta name="theme-color" content="#fff3d8">
 <title>Sunny Dice Machine</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS",Arial,sans-serif;color:#4e3b45;background:linear-gradient(160deg,#fff9e8,#eefaff 52%,#fff0f6)}button,a{font:inherit}.app{max-width:1240px;margin:auto;padding:14px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.back,.iconbtn{border:0;text-decoration:none;background:#fff;color:#6a5260;border-radius:999px;padding:10px 14px;font-weight:900;box-shadow:0 4px 14px #6c4a5b20;cursor:pointer}.hero{text-align:center;padding:4px 10px 12px}.hero h1{margin:0;color:#e36d98;font-size:clamp(30px,5vw,54px);letter-spacing:1px}.hero p{margin:6px 0 0;color:#806772;font-size:clamp(14px,2vw,18px)}.panel{background:#ffffffdd;border:2px solid #fff;border-radius:24px;box-shadow:0 14px 38px #5f41521a;padding:14px}.setup{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.setup strong{font-size:15px}.seg{display:flex;gap:7px;flex-wrap:wrap}.namesbox{margin:2px 0 12px;padding:11px 12px;background:#fffafc;border:1px solid #f3dfe8;border-radius:16px}.namesbox strong{display:block;margin-bottom:8px}.namesbox small{font-weight:700;color:#9a7f8d}.nameinputs{display:flex;gap:8px;flex-wrap:wrap}.namefield{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #ead9e1;border-radius:999px;padding:6px 10px}.namefield i{width:12px;height:12px;border-radius:50%;display:block;flex:none}.namefield input{width:92px;border:0;outline:0;background:transparent;color:#5f4b56;font-weight:900;font-size:13px}.namefield input:focus{color:#d95786}.seg button,.dice button,.reset{border:0;border-radius:16px;background:#fff3f7;color:#6a5260;min-width:48px;padding:10px 14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 #e9cbd6}.seg button.active{background:#ff93b7;color:#fff;box-shadow:0 4px 0 #d85d89}.seg button:active,.dice button:active,.reset:active{transform:translateY(2px);box-shadow:0 2px 0 #d9bdc8}.canvaswrap{background:#f9fbff;border-radius:20px;overflow:hidden;border:2px solid #f1e8ed}.canvaswrap canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none}.status{display:flex;gap:8px;align-items:center;justify-content:center;min-height:42px;font-weight:900;text-align:center;color:#6c5361}.dicezone{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.dice{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.dice button{font-size:26px;line-height:1;width:58px;height:54px;padding:0;background:#fff;color:#5b4652}.dice button:hover{background:#fff4c8}.dice button:disabled{opacity:.4;cursor:not-allowed}.reset{background:#edf7ff;box-shadow:0 4px 0 #c7dfef}.help{margin-top:12px;font-size:13px;line-height:1.5;color:#755f6c;background:#fff9fc;border-radius:18px;padding:12px 14px}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px}.dot{display:inline-flex;align-items:center;gap:6px}.dot i{width:12px;height:12px;border-radius:50%;display:inline-block}.history{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}.chip{background:#fff;border:1px solid #f0dfe7;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.footer{text-align:center;color:#927b87;font-size:11px;margin:12px 0 4px}@media(max-width:720px){.app{padding:8px}.panel{padding:8px;border-radius:18px}.dicezone{grid-template-columns:1fr}.reset{justify-self:center}.canvaswrap{border-radius:14px}.setup{justify-content:center}.setup>strong{width:100%;text-align:center}.nameinputs{justify-content:center}.namefield input{width:82px}.hero{padding-bottom:8px}.help{font-size:12px}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS",Arial,sans-serif;color:#4e3b45;background:linear-gradient(160deg,#fff9e8,#eefaff 52%,#fff0f6)}button,a{font:inherit}.app{max-width:1240px;margin:auto;padding:14px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.back,.iconbtn{border:0;text-decoration:none;background:#fff;color:#6a5260;border-radius:999px;padding:10px 14px;font-weight:900;box-shadow:0 4px 14px #6c4a5b20;cursor:pointer}.hero{text-align:center;padding:4px 10px 12px}.hero h1{margin:0;color:#e36d98;font-size:clamp(30px,5vw,54px);letter-spacing:1px}.hero p{margin:6px 0 0;color:#806772;font-size:clamp(14px,2vw,18px)}.panel{background:#ffffffdd;border:2px solid #fff;border-radius:24px;box-shadow:0 14px 38px #5f41521a;padding:14px}.setup{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.setup strong{font-size:15px}.seg{display:flex;gap:7px;flex-wrap:wrap}.namesbox{margin:2px 0 12px;padding:11px 12px;background:#fffafc;border:1px solid #f3dfe8;border-radius:16px}.namesbox strong{display:block;margin-bottom:8px}.namesbox small{font-weight:700;color:#9a7f8d}.nameinputs{display:flex;gap:8px;flex-wrap:wrap}.namefield{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #ead9e1;border-radius:999px;padding:6px 10px}.namefield i{width:12px;height:12px;border-radius:50%;display:block;flex:none}.namefield input{width:92px;border:0;outline:0;background:transparent;color:#5f4b56;font-weight:900;font-size:13px}.namefield input:focus{color:#d95786}.seg button,.dice button,.reset{border:0;border-radius:16px;background:#fff3f7;color:#6a5260;min-width:48px;padding:10px 14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 #e9cbd6}.seg button.active{background:#ff93b7;color:#fff;box-shadow:0 4px 0 #d85d89}.seg button:active,.dice button:active,.reset:active{transform:translateY(2px);box-shadow:0 2px 0 #d9bdc8}.canvaswrap{background:#f9fbff;border-radius:20px;overflow:hidden;border:2px solid #f1e8ed}.canvaswrap canvas{display:block;width:100%;height:auto;aspect-ratio:4/3;touch-action:none}.status{display:flex;gap:8px;align-items:center;justify-content:center;min-height:42px;font-weight:900;text-align:center;color:#6c5361}.dicezone{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.dice{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.dice button{font-size:26px;line-height:1;width:58px;height:54px;padding:0;background:#fff;color:#5b4652}.dice button:hover{background:#fff4c8}.dice button:disabled{opacity:.4;cursor:not-allowed}.reset{background:#edf7ff;box-shadow:0 4px 0 #c7dfef}.help{margin-top:12px;font-size:13px;line-height:1.5;color:#755f6c;background:#fff9fc;border-radius:18px;padding:12px 14px}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px}.dot{display:inline-flex;align-items:center;gap:6px}.dot i{width:12px;height:12px;border-radius:50%;display:inline-block}.history{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}.chip{background:#fff;border:1px solid #f0dfe7;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.footer{text-align:center;color:#927b87;font-size:11px;margin:12px 0 4px}@media(max-width:720px){
+.app{padding:4px}.topbar{margin-bottom:2px}.back,.iconbtn{padding:7px 10px;font-size:13px}.hero{padding:0 6px 5px}.hero h1{font-size:26px;letter-spacing:.5px}.hero p{margin:2px 0 0;font-size:12px;line-height:1.25}
+.panel{padding:5px;border-radius:14px}.setup{justify-content:center;gap:5px;margin-bottom:5px}.setup>strong{width:auto;text-align:center;font-size:12px}.seg{gap:5px}.seg button{padding:7px 10px;min-width:0;border-radius:12px;font-size:12px}
+.namesbox{margin:0 0 5px;padding:6px 7px;border-radius:12px}.namesbox strong{margin-bottom:4px;font-size:12px}.namesbox small{font-size:10px}.nameinputs{justify-content:center;gap:4px}.namefield{padding:4px 7px;gap:5px}.namefield input{width:64px;font-size:11px}.namefield i{width:9px;height:9px}
+.canvaswrap{border-radius:12px}.status{min-height:30px;font-size:12px;line-height:1.25}.dicezone{grid-template-columns:1fr;gap:5px;margin-top:5px}.dice{gap:5px}.dice button{width:44px;height:40px;font-size:21px}.reset{justify-self:center;padding:7px 12px;font-size:12px}.history{margin-top:5px}.chip{padding:4px 7px;font-size:10px}.help{margin-top:6px;padding:8px;font-size:10px;line-height:1.35}.footer{font-size:9px;margin:5px 0}
+}
 </style>
 </head>
 <body>
@@ -33,7 +38,7 @@
       <strong>Tên người chơi <small>(có thể đổi bất cứ lúc nào)</small></strong>
       <div class="nameinputs" id="nameInputs"></div>
     </div>
-    <div class="canvaswrap"><canvas id="game" width="1200" height="720" aria-label="Cỗ máy xúc xắc vật lý"></canvas></div>
+    <div class="canvaswrap"><canvas id="game" width="1200" height="900" aria-label="Cỗ máy xúc xắc vật lý"></canvas></div>
     <div class="status" id="status">Tung xúc xắc ngoài đời, sau đó chọn đúng mặt bên dưới.</div>
     <div class="dicezone">
       <div class="dice" id="diceButtons">
@@ -48,7 +53,7 @@
     </div>
     <div class="history" id="history"></div>
     <div class="help">
-      <b>Cơ chế:</b> bốn phễu có <b>4 ống riêng</b> đưa nước xanh về <b>TUA-BIN CHÍNH</b>. Phễu trúng vẫn tạo lợi thế +1 cho người tương ứng. Sau tua-bin, năng lượng được chuyển thành <b>dòng áp lực màu cam</b>: nạp bình tích áp → mở van một chiều → quay cánh gạt phụ → chạy vòng lên mép trái đường đua → chạy ngang phía trên → vòng xuống mép phải → về ống góp dưới đáy → mới đẩy các piston. Dòng cam chạy nhanh hơn nước xanh để chuỗi dài nhưng không lê thê.
+      <b>Cơ chế:</b> bốn phễu có <b>4 ống riêng</b> đưa nước xanh về <b>TUA-BIN CHÍNH</b>. Phễu trúng tạo lợi thế rõ hơn: người tương ứng được <b>+2 bậc</b>. Sau tua-bin, dòng cam đi lên <b>xô cân bằng</b>; xô đầy sẽ nghiêng ngẫu nhiên theo trạng thái vật lý sang trái hoặc phải. Nhánh trái chạy qua bể + đòn bẩy/quả nặng, nhánh phải chạy qua bể + bánh nước/búa gõ. Hai nhánh nhập lại rồi dòng cam mới chạy vòng quanh đường đua, xuống bộ chia áp và cuối cùng đẩy piston. Dòng cam chạy nhanh hơn nước xanh để chuỗi dài nhưng không lê thê.
       <div class="legend" id="legend"></div>
     </div>
   </section>
@@ -61,7 +66,7 @@ const statusEl=document.getElementById('status'),historyEl=document.getElementBy
 const nameInputsEl=document.getElementById('nameInputs'),legendEl=document.getElementById('legend');
 const diceBtns=[...document.querySelectorAll('[data-die]')],playerBtns=[...document.querySelectorAll('[data-players]')];
 const soundBtn=document.getElementById('soundBtn'),resetBtn=document.getElementById('resetBtn');
-const W=1200,H=720,MACHINE_R=780,TARGET=30;
+const W=1200,H=900,MACHINE_R=780,TARGET=30;
 const DEFAULT_NAMES=['Sunny','Nít','Linh','Bích'];
 let savedNames;
 try{savedNames=JSON.parse(localStorage.getItem('sunnyDicePlayerNames')||'null')}catch(e){savedNames=null}
@@ -91,7 +96,7 @@ function roundRect(x,y,w,h,r,fill,stroke){
   ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}
 }
 const pegs=[];
-for(let r=0;r<6;r++){
+for(let r=0;r<7;r++){
   const count=6+(r%2),gap=96,start=92+(r%2?0:48);
   for(let c=0;c<count;c++){const x=start+c*gap;if(x<745)pegs.push({x,y:170+r*55,r:10})}
 }
@@ -120,13 +125,13 @@ function renderLegend(){
   for(let p=0;p<state.players;p++){
     const span=document.createElement('span');span.className='dot';
     const dot=document.createElement('i');dot.style.background=racers[p].color;
-    const name=document.createTextNode((racers[p].name||DEFAULT_NAMES[p])+' • '+playerFunnelText(p)+' +1');
+    const name=document.createTextNode((racers[p].name||DEFAULT_NAMES[p])+' • '+playerFunnelText(p)+' +2');
     span.append(dot,name);legendEl.append(span);
   }
   if(state.players===3){
     const span=document.createElement('span');span.className='dot';
     const dot=document.createElement('i');dot.style.background='#f09a44';
-    const name=document.createTextNode('Phễu 4 TURBO • người cuối +1');
+    const name=document.createTextNode('Phễu 4 TURBO • người cuối +2');
     span.append(dot,name);legendEl.append(span);
   }
 }
@@ -149,19 +154,19 @@ function startRun(die){
   const startXs=[0,92,210,330,450,570,690];
   const jitter=(rng()-.5)*9,side=(rng()-.5)*18;
   const phases=movingBase.map(()=>rng()*Math.PI*2);
-  state.run={seed,rng,phases,collisions:0,energy:0,cup:-1,impact:null,baseMoves:null,moves:null,bonusPlayer:-1,bonusLabel:'',bonusColor:'#f09a44',oldScores:state.scores.slice(),targetScores:null,waterAnnounced:false,gearAnnounced:false,chamberAnnounced:false,valveAnnounced:false,topAnnounced:false,rightAnnounced:false,hydraulicAnnounced:false,raceAnnounced:false};
+  state.run={seed,rng,phases,collisions:0,energy:0,cup:-1,impact:null,baseMoves:null,moves:null,bonusPlayer:-1,bonusLabel:'',bonusColor:'#f09a44',oldScores:state.scores.slice(),targetScores:null,waterAnnounced:false,gearAnnounced:false,chamberAnnounced:false,valveAnnounced:false,topAnnounced:false,rightAnnounced:false,hydraulicAnnounced:false,raceAnnounced:false,bucketAnnounced:false,branchAnnounced:false,routeSide:null};
   state.marble={x:startXs[die]+jitter,y:78,vx:side,vy:0,r:15,rot:0};
   setDiceEnabled(false);setStatus('Máy đang chạy: viên bi '+dieChars[die]+' đã được thả...');
   beep(620,.07,.035);
 }
 function funnelRule(c){
-  if(state.players===4)return {type:'player',player:c,color:racers[c].color,label:racers[c].name+' +1'};
+  if(state.players===4)return {type:'player',player:c,color:racers[c].color,label:racers[c].name+' +2'};
   if(state.players===3){
-    if(c<3)return {type:'player',player:c,color:racers[c].color,label:racers[c].name+' +1'};
-    return {type:'balance',player:-1,color:'#f09a44',label:'TURBO • người cuối +1'};
+    if(c<3)return {type:'player',player:c,color:racers[c].color,label:racers[c].name+' +2'};
+    return {type:'balance',player:-1,color:'#f09a44',label:'TURBO • người cuối +2'};
   }
   const p=c%2;
-  return {type:'player',player:p,color:racers[p].color,label:racers[p].name+' +1'};
+  return {type:'player',player:p,color:racers[p].color,label:racers[p].name+' +2'};
 }
 function detectCup(x){
   for(let c=0;c<4;c++){
@@ -211,14 +216,14 @@ function stepPhysics(dt){
     const mvx=Math.cos(state.simTime*p.speed+ph)*p.amp*p.speed;
     collideCircle(b,cx,p.y,p.r,mvx,0);
   });
-  if(b.y>505){
+  if(b.y>585){
     const cup=detectCup(b.x);
     if(cup<0){handleMiss();return}
     state.run.cup=cup;
     state.run.impact={x:b.x,y:b.y,vx:b.vx,vy:b.vy,speed:Math.hypot(b.vx,b.vy)};
     beginChain();
   }else if(state.simTime>8){
-    b.y=510;
+    b.y=590;
     const cup=detectCup(b.x);
     if(cup<0){handleMiss();return}
     state.run.cup=cup;
@@ -247,13 +252,13 @@ function computeMoves(){
     bonusPlayer=candidates[0];
   }
   const moves=baseMoves.slice();
-  if(bonusPlayer>=0)moves[bonusPlayer]=Math.min(6,moves[bonusPlayer]+1);
+  if(bonusPlayer>=0)moves[bonusPlayer]=Math.min(7,moves[bonusPlayer]+2);
   r.baseMoves=baseMoves;
   r.bonusPlayer=bonusPlayer;
   r.bonusColor=bonusPlayer>=0?racers[bonusPlayer].color:rule.color;
   r.bonusLabel=rule.type==='balance'
-    ? 'TURBO chọn '+racers[bonusPlayer].name+' +1'
-    : racers[bonusPlayer].name+' +1';
+    ? 'TURBO chọn '+racers[bonusPlayer].name+' +2'
+    : racers[bonusPlayer].name+' +2';
   r.moves=moves;
   r.targetScores=r.oldScores.map((s,p)=>s+(moves[p]||0));
 }
@@ -263,9 +268,9 @@ function beginChain(){
   computeMoves();
   const rule=funnelRule(state.run.cup);
   if(rule.type==='balance'){
-    setStatus('Bóng vào PHỄU 4 TURBO — van cân bằng ưu tiên '+racers[state.run.bonusPlayer].name+' thêm +1 bậc.');
+    setStatus('Bóng vào PHỄU 4 TURBO — van cân bằng ưu tiên '+racers[state.run.bonusPlayer].name+' thêm +2 bậc.');
   }else{
-    setStatus('Bóng vào PHỄU '+(state.run.cup+1)+' của '+racers[state.run.bonusPlayer].name+' — mở van ưu tiên, tăng áp +1 bậc.');
+    setStatus('Bóng vào PHỄU '+(state.run.cup+1)+' của '+racers[state.run.bonusPlayer].name+' — mở van ưu tiên, tăng áp +2 bậc.');
   }
   beep(180,.12,.03);
 }
@@ -273,61 +278,70 @@ function updateChain(dt){
   if(state.phase!=='chain')return;
   state.chainTime+=dt;
   const impact=state.run.impact,boost=1+clamp(impact.speed/900,0,.8)+clamp(state.run.energy/10,0,.6);
+  if(!state.run.routeSide){
+    const signature=Math.floor(Math.abs(impact.x)+Math.abs(impact.vx)*.3+state.run.collisions*7+state.die*11);
+    state.run.routeSide=signature%2===0?'left':'right';
+  }
 
-  // Nước xanh vào tua-bin: giữ nhịp chậm như bản trước.
   if(state.chainTime>.55&&state.chainTime<6.15&&Math.random()<dt*18){
     state.particles.push({t:0,d:4.5+Math.random()*1.0,j:(Math.random()-.5)*7,r:6.5+Math.random()*3});
   }
   state.particles.forEach(p=>p.t+=dt);
   state.particles=state.particles.filter(p=>p.t<p.d);
 
-  if(state.chainTime>4.55)state.turbine+=dt*1.75*boost;
-  if(state.chainTime>5.15)state.gear-=dt*1.08*boost;
+  if(state.chainTime>4.65)state.turbine+=dt*1.8*boost;
+  if(state.chainTime>5.25)state.gear-=dt*1.12*boost;
 
   if(state.chainTime>4.75&&!state.run.waterAnnounced){
     state.run.waterAnnounced=true;
-    setStatus('Nước xanh đã tới TUA-BIN CHÍNH. Tua-bin bắt đầu quay và chuyển đổi năng lượng...');
+    setStatus('Nước xanh đã tới TUA-BIN CHÍNH. Tua-bin bắt đầu quay...');
   }
   if(state.chainTime>5.45&&!state.run.gearAnnounced){
     state.run.gearAnnounced=true;
-    setStatus('Tua-bin đang kéo bánh răng. Dòng áp lực màu cam bắt đầu được tạo ra...');
+    setStatus('Tua-bin tạo dòng áp lực màu cam và đẩy lên XÔ CÂN BẰNG...');
   }
-  if(state.chainTime>5.95&&!state.run.chamberAnnounced){
+  if(state.chainTime>6.2&&!state.run.bucketAnnounced){
+    state.run.bucketAnnounced=true;
+    setStatus('Xô đang đầy dần... khi đủ nước nó sẽ tự nghiêng sang một phía.');
+  }
+  if(state.chainTime>7.15&&!state.run.branchAnnounced){
+    state.run.branchAnnounced=true;
+    setStatus('Xô đã nghiêng sang '+(state.run.routeSide==='left'?'TRÁI':'PHẢI')+' và đổ vào bể chứa tương ứng...');
+  }
+  if(state.chainTime>8.35&&!state.run.chamberAnnounced){
     state.run.chamberAnnounced=true;
-    setStatus('Dòng cam đang nạp BÌNH TÍCH ÁP...');
+    setStatus(state.run.routeSide==='left'
+      ? 'Bể trái đang kéo đòn bẩy + quả nặng, mở van vòng ngoài...'
+      : 'Bể phải đang quay bánh nước phụ + búa gõ, mở van vòng ngoài...');
   }
-  if(state.chainTime>6.65&&!state.run.valveAnnounced){
-    state.run.valveAnnounced=true;
-    setStatus('Bình áp đã đủ lực — van một chiều mở, cánh gạt phụ bắt đầu quay...');
-  }
-  if(state.chainTime>7.35&&!state.run.topAnnounced){
+  if(state.chainTime>9.35&&!state.run.topAnnounced){
     state.run.topAnnounced=true;
-    setStatus('Dòng cam đang chạy nhanh lên mép trái rồi vòng ngang phía trên đường đua...');
+    setStatus('Dòng cam tăng tốc chạy vòng lên mép trái và ngang phía trên đường đua...');
   }
-  if(state.chainTime>8.75&&!state.run.rightAnnounced){
+  if(state.chainTime>11.0&&!state.run.rightAnnounced){
     state.run.rightAnnounced=true;
-    setStatus('Dòng cam đã tới mép phải, đang chạy xuống bộ phân phối áp lực...');
+    setStatus('Dòng cam tới mép phải, chạy xuống bộ chia áp lực...');
   }
-  if(state.chainTime>10.05&&!state.run.hydraulicAnnounced){
+  if(state.chainTime>12.35&&!state.run.hydraulicAnnounced){
     state.run.hydraulicAnnounced=true;
     setStatus('Áp lực cam đã về ống góp dưới đáy và đang chia tới từng xi-lanh...');
   }
-  if(state.chainTime>11.25&&!state.run.raceAnnounced){
+  if(state.chainTime>13.25&&!state.run.raceAnnounced){
     state.run.raceAnnounced=true;
-    setStatus('Các xi-lanh đã nhận áp lực. Piston đang từ từ đẩy các viên bi lên...');
+    setStatus('Các xi-lanh đã nhận áp lực. Piston bắt đầu đẩy các viên bi lên...');
   }
 
-  if(state.chainTime>11.25){
-    const q=clamp((state.chainTime-11.25)/2.75,0,1),ease=1-Math.pow(1-q,3);
+  if(state.chainTime>13.25){
+    const q=clamp((state.chainTime-13.25)/2.75,0,1),ease=1-Math.pow(1-q,3);
     for(let p=0;p<state.players;p++)state.visualScores[p]=lerp(state.run.oldScores[p],state.run.targetScores[p],ease);
   }
 
-  if(state.chainTime>14.35&&!state.resultApplied){
+  if(state.chainTime>16.35&&!state.resultApplied){
     state.resultApplied=true;
     state.scores=state.run.targetScores.slice();
     state.visualScores=state.scores.slice();
     const crossed=[];for(let p=0;p<state.players;p++)if(state.scores[p]>=TARGET)crossed.push(p);
-    const desc=state.run.moves.map((m,p)=>racers[p].name+' +'+m+(state.run.bonusPlayer===p?' (phễu +1)':'')).join(' • ');
+    const desc=state.run.moves.map((m,p)=>racers[p].name+' +'+m+(state.run.bonusPlayer===p?' (phễu +2)':'')).join(' • ');
     state.history.unshift(dieChars[state.die]+' → '+desc);
     state.history=state.history.slice(0,5);
     renderHistory();
@@ -412,13 +426,41 @@ function drawDistributor(x,y,q){
   ctx.fillStyle='#ef9a34';ctx.globalAlpha=.25+.65*clamp(q,0,1);ctx.fillRect(x-20,y-22,40,44);
   ctx.globalAlpha=1;ctx.fillStyle='#6f5949';ctx.font='900 9px Trebuchet MS';ctx.textAlign='center';ctx.fillText('CHIA ÁP',x,y+4);ctx.restore();
 }
+function drawTippingBucket(x,y,fill,side,tip){
+  ctx.save();ctx.translate(x,y);
+  const ang=side==='left'?-tip*.55:tip*.55;ctx.rotate(ang);
+  ctx.fillStyle='#f6efe7';ctx.strokeStyle='#8a7568';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(-34,-24);ctx.lineTo(34,-24);ctx.lineTo(25,24);ctx.lineTo(-25,24);ctx.closePath();ctx.fill();ctx.stroke();
+  const h=40*clamp(fill,0,1);ctx.save();ctx.beginPath();ctx.rect(-24,20-h,48,h);ctx.clip();ctx.fillStyle='#ef9a34';ctx.fillRect(-24,-20,48,40);ctx.restore();
+  ctx.beginPath();ctx.arc(0,32,7,0,Math.PI*2);ctx.fillStyle='#6c5a51';ctx.fill();
+  ctx.restore();
+}
+function drawReservoir(x,y,q,label){
+  ctx.save();roundRect(x-34,y-30,68,60,8,'#fff8ef','#9e8064');
+  ctx.fillStyle='#ef9a34';ctx.globalAlpha=.8;ctx.fillRect(x-27,y+22-44*clamp(q,0,1),54,44*clamp(q,0,1));ctx.globalAlpha=1;
+  ctx.fillStyle='#6d584b';ctx.font='900 9px Trebuchet MS';ctx.textAlign='center';ctx.fillText(label,x,y+44);ctx.restore();
+}
+function drawSeesawMechanism(x,y,q){
+  const a=lerp(-.18,.22,clamp(q,0,1));ctx.save();ctx.translate(x,y);ctx.rotate(a);
+  ctx.strokeStyle='#815f48';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-44,0);ctx.lineTo(44,0);ctx.stroke();
+  ctx.fillStyle='#9d7659';ctx.beginPath();ctx.moveTo(-8,8);ctx.lineTo(8,8);ctx.lineTo(0,30);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#7d6a5e';ctx.beginPath();ctx.arc(-34,-12,14,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function drawHammerMechanism(x,y,q){
+  ctx.save();ctx.translate(x,y);
+  drawWheel(0,0,23,state.gear*3.2,'#f0a14a','#a66728',6);
+  const a=lerp(-1.0,.45,(Math.sin(state.chainTime*8)*.5+.5)*clamp(q,0,1));
+  ctx.rotate(a);ctx.strokeStyle='#735f54';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(42,0);ctx.stroke();
+  roundRect(36,-11,23,22,4,'#8d766a','#5f4c44');ctx.restore();
+}
 function drawMachine(){
   ctx.clearRect(0,0,W,H);
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#fffdf5');g.addColorStop(1,'#eef8ff');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#f3dce5';ctx.fillRect(785,0,5,H);
   ctx.fillStyle='#815d6d';ctx.font='900 20px Trebuchet MS';ctx.fillText('CỖ MÁY',36,38);ctx.fillText('ĐƯỜNG ĐUA 30 BẬC',825,38);
 
-  ctx.strokeStyle='#9e8790';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(35,55);ctx.lineTo(35,650);ctx.lineTo(760,650);ctx.lineTo(760,55);ctx.stroke();
+  ctx.strokeStyle='#9e8790';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(35,55);ctx.lineTo(35,825);ctx.lineTo(760,825);ctx.lineTo(760,55);ctx.stroke();
 
   const xs=[92,210,330,450,570,690];
   for(let d=1;d<=6;d++){
@@ -434,70 +476,98 @@ function drawMachine(){
     ctx.beginPath();ctx.arc(cx,p.y,p.r*.36,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
   });
 
-  // 4 phễu có màu chủ sở hữu.
+  // Phễu hạ thấp để tăng chiều dài đường ống xanh.
   for(let c=0;c<4;c++){
     const x=50+c*170,rule=funnelRule(c),selected=state.phase==='chain'&&state.run&&state.run.cup===c;
     ctx.save();ctx.globalAlpha=selected?.55:.28;ctx.fillStyle=rule.color;
-    ctx.beginPath();ctx.moveTo(x,485);ctx.lineTo(x+150,485);ctx.lineTo(x+112,548);ctx.lineTo(x+38,548);ctx.closePath();ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.moveTo(x,560);ctx.lineTo(x+150,560);ctx.lineTo(x+112,625);ctx.lineTo(x+38,625);ctx.closePath();ctx.fill();ctx.restore();
     ctx.strokeStyle=selected?rule.color:'#a88e99';ctx.lineWidth=selected?6:3;
     if(selected){ctx.save();ctx.shadowColor=rule.color;ctx.shadowBlur=14;ctx.stroke();ctx.restore()}else ctx.stroke();
-    ctx.fillStyle='#654f5a';ctx.textAlign='center';ctx.font='900 13px Trebuchet MS';ctx.fillText('PHỄU '+(c+1),x+75,507);
+    ctx.fillStyle='#654f5a';ctx.textAlign='center';ctx.font='900 13px Trebuchet MS';ctx.fillText('PHỄU '+(c+1),x+75,584);
     ctx.font='900 11px Trebuchet MS';
-    const label=rule.type==='balance'?'TURBO CUỐI +1':(racers[rule.player].name.length>9?racers[rule.player].name.slice(0,8)+'…':racers[rule.player].name)+' +1';
-    ctx.fillText(label,x+75,527);
+    const label=rule.type==='balance'?'TURBO CUỐI +2':(racers[rule.player].name.length>9?racers[rule.player].name.slice(0,8)+'…':racers[rule.player].name)+' +2';
+    ctx.fillText(label,x+75,605);
   }
   ctx.textAlign='left';
 
-  // 4 ống riêng hội tụ vào TUA-BIN CHÍNH.
-  const turbineX=430,turbineY=600;
+  const turbineX=430,turbineY=710;
   const funnelPaths=[
-    [[125,548],[150,565],[300,592],[368,600]],
-    [[295,548],[312,568],[360,590],[382,600]],
-    [[465,548],[462,570],[448,590],[440,600]],
-    [[635,548],[612,565],[515,590],[492,600]]
+    [[125,625],[160,648],[235,665],[315,690],[368,705]],
+    [[295,625],[322,650],[355,672],[380,690],[392,703]],
+    [[465,625],[505,643],[515,666],[490,686],[455,704]],
+    [[635,625],[605,648],[560,672],[515,693],[492,705]]
   ];
-  funnelPaths.forEach(p=>drawPipe(p,25,13));
+  funnelPaths.forEach(p=>drawPipe(p,27,14));
 
   const cup=state.run?state.run.cup:-1;
   if(state.phase==='chain'&&cup>=0){
     const blueQ=clamp((state.chainTime-.55)/4.55,0,1);
-    strokePartialPath(funnelPaths[cup],blueQ,'#49baf0',10,'#8fdcff');
+    strokePartialPath(funnelPaths[cup],blueQ,'#49baf0',11,'#8fdcff');
     const pt=pathPoint(funnelPaths[cup],blueQ);
     ctx.beginPath();ctx.arc(pt[0],pt[1],8,0,Math.PI*2);ctx.fillStyle='#eafaff';ctx.fill();ctx.strokeStyle='#32a9e1';ctx.lineWidth=3;ctx.stroke();
-
     state.particles.forEach(p=>{
       const q=clamp(p.t/p.d,0,1),pp=pathPoint(funnelPaths[cup],q),wig=p.j*Math.sin(q*Math.PI);
       ctx.beginPath();ctx.arc(pp[0],pp[1]+wig*.25,p.r*.72,0,Math.PI*2);ctx.fillStyle='#28aeea';ctx.fill();
     });
   }
 
-  drawWheel(turbineX,turbineY,62,state.turbine,'#68b9e6','#2c7aa5',8);
-  ctx.fillStyle='#536d78';ctx.font='900 13px Trebuchet MS';ctx.textAlign='center';ctx.fillText('TUA-BIN CHÍNH',turbineX,676);
+  drawWheel(turbineX,turbineY,65,state.turbine,'#68b9e6','#2c7aa5',8);
+  ctx.fillStyle='#536d78';ctx.font='900 13px Trebuchet MS';ctx.textAlign='center';ctx.fillText('TUA-BIN CHÍNH',turbineX,790);
+  drawGear(535,710,44,state.gear,'#f2b85c');drawGear(605,710,32,-state.gear*1.35,'#ef8e74');
 
-  // Bánh răng chuyển đổi sang mạch áp lực màu cam.
-  drawGear(528,600,42,state.gear,'#f2b85c');
-  drawGear(595,600,31,-state.gear*1.35,'#ef8e74');
+  // Dòng cam từ tua-bin lên xô cân bằng.
+  const feedRoute=[[637,710],[730,710],[805,710],[805,90],[950,90]];
+  drawPipe(feedRoute,24,13);
+  const feedQ=state.phase==='chain'?clamp((state.chainTime-5.45)/1.55,0,1):0;
+  if(feedQ>0)strokePartialPath(feedRoute,feedQ,'#ef982f',10,'#ffc36c');
 
-  // Mạch cam chạy dài vòng quanh đường đua: sau tua-bin -> bình áp -> van -> cánh gạt -> lên trái -> ngang trên -> xuống phải -> đáy.
-  const orangeRoute=[[625,600],[735,600],[812,600],[812,72],[1182,72],[1182,654],[842,654]];
-  drawPipe(orangeRoute,22,12);
+  const bucketFill=clamp((state.chainTime-5.9)/1.1,0,1);
+  const bucketTip=clamp((state.chainTime-7.0)/.55,0,1);
+  const side=state.run&&state.run.routeSide?state.run.routeSide:'left';
+  drawTippingBucket(950,90,bucketFill,side,bucketTip);
 
-  const orangeQ=state.phase==='chain'?clamp((state.chainTime-5.55)/4.85,0,1):0;
-  if(orangeQ>0){
-    strokePartialPath(orangeRoute,orangeQ,'#ef982f',9,'#ffc36c');
-    const op=pathPoint(orangeRoute,orangeQ);
+  // Hai nhánh vật lý khác nhau.
+  const leftRoute=[[950,110],[905,135],[875,155]];
+  const rightRoute=[[950,110],[1000,135],[1040,155]];
+  drawPipe(leftRoute,19,10);drawPipe(rightRoute,19,10);
+  const branchQ=state.phase==='chain'?clamp((state.chainTime-7.05)/.9,0,1):0;
+  if(side==='left'&&branchQ>0)strokePartialPath(leftRoute,branchQ,'#ef982f',8,'#ffc36c');
+  if(side==='right'&&branchQ>0)strokePartialPath(rightRoute,branchQ,'#ef982f',8,'#ffc36c');
+
+  const tankQ=clamp((state.chainTime-7.5)/1.1,0,1);
+  drawReservoir(875,180,side==='left'?tankQ:0,'BỂ TRÁI');
+  drawReservoir(1040,180,side==='right'?tankQ:0,'BỂ PHẢI');
+  drawSeesawMechanism(900,240,side==='left'?clamp((state.chainTime-8.15)/.8,0,1):0);
+  drawHammerMechanism(1040,240,side==='right'?clamp((state.chainTime-8.15)/.8,0,1):0);
+
+  // Hai nhánh nhập lại tại van chính rồi mới chạy vòng quanh đường đua.
+  const mergeLeft=[[875,210],[900,255],[965,265]];
+  const mergeRight=[[1040,210],[1030,255],[965,265]];
+  drawPipe(mergeLeft,18,9);drawPipe(mergeRight,18,9);
+  const mergeQ=state.phase==='chain'?clamp((state.chainTime-8.35)/.85,0,1):0;
+  if(side==='left'&&mergeQ>0)strokePartialPath(mergeLeft,mergeQ,'#ef982f',8,'#ffc36c');
+  if(side==='right'&&mergeQ>0)strokePartialPath(mergeRight,mergeQ,'#ef982f',8,'#ffc36c');
+  drawCheckValve(965,265,clamp((state.chainTime-9.0)/.4,0,1));
+
+  // Vòng áp lực dài quanh đường đua.
+  const loopRoute=[[965,265],[815,265],[815,55],[1182,55],[1182,835],[842,835]];
+  drawPipe(loopRoute,23,12);
+  const loopQ=state.phase==='chain'?clamp((state.chainTime-9.25)/3.2,0,1):0;
+  if(loopQ>0){
+    strokePartialPath(loopRoute,loopQ,'#ef982f',9,'#ffc36c');
+    const op=pathPoint(loopRoute,loopQ);
     ctx.beginPath();ctx.arc(op[0],op[1],9,0,Math.PI*2);ctx.fillStyle='#fff0bd';ctx.fill();ctx.strokeStyle='#e1841d';ctx.lineWidth=3;ctx.stroke();
   }
 
-  const chamberQ=clamp((state.chainTime-5.65)/.9,0,1);
-  drawPressureChamber(650,600,chamberQ);
-  drawCheckValve(712,600,clamp((state.chainTime-6.45)/.45,0,1));
-  drawWheel(766,600,25,state.gear*2.4,'#f4b05a','#b96d24',6);
-  drawPressureGauge(850,112,clamp((state.chainTime-7.1)/1.2,0,1));
-  drawDistributor(1150,155,clamp((state.chainTime-8.65)/.9,0,1));
+  // Cơ cấu phụ dọc vòng ngoài để không còn khoảng trống.
+  drawPressureGauge(865,95,clamp((state.chainTime-9.6)/.9,0,1));
+  drawWheel(960,55,24,state.gear*2.5,'#f4b05a','#b96d24',6);
+  drawPressureChamber(1060,95,clamp((state.chainTime-10.0)/.9,0,1));
+  drawDistributor(1150,180,clamp((state.chainTime-10.75)/.9,0,1));
+  drawWheel(1182,420,24,-state.gear*2.1,'#e8a04f','#a7672b',6);
+  drawCheckValve(1182,565,clamp((state.chainTime-11.1)/.5,0,1));
 
-  // Ống góp cuối cùng chỉ nhận lực sau khi dòng cam đã đi vòng hết.
-  drawHydraulicNetwork(state.phase==='chain'?clamp((state.chainTime-9.95)/1.15,0,1):0);
+  drawHydraulicNetwork(state.phase==='chain'?clamp((state.chainTime-12.15)/1.15,0,1):0);
 
   if(state.marble){
     const b=state.marble;ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.rot);
@@ -524,29 +594,26 @@ function drawHydraulicPump(x,y,phase){
   ctx.restore();
 }
 function drawHydraulicNetwork(q){
-  const manifoldY=654,startX=842,endX=1182;
+  const manifoldY=835,startX=842,endX=1182;
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-
-  // Ống góp chạy từ phải sang trái vì dòng cam đi xuống mép phải trước.
   ctx.strokeStyle='#9b8a7b';ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(endX,manifoldY);ctx.lineTo(startX,manifoldY);ctx.stroke();
   ctx.strokeStyle='#fff1df';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(endX,manifoldY);ctx.lineTo(startX,manifoldY);ctx.stroke();
 
   for(let p=0;p<state.players;p++){
     const cx=865+p*78+29;
-    ctx.strokeStyle='#9b8a7b';ctx.lineWidth=16;ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,642);ctx.stroke();
-    ctx.strokeStyle='#fff1df';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,642);ctx.stroke();
+    ctx.strokeStyle='#9b8a7b';ctx.lineWidth=16;ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,818);ctx.stroke();
+    ctx.strokeStyle='#fff1df';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,818);ctx.stroke();
   }
 
   if(q>0){
     const travel=(endX-startX)*q;
     ctx.strokeStyle='#ef982f';ctx.lineWidth=9;ctx.shadowColor='#ffc36c';ctx.shadowBlur=9;
     ctx.beginPath();ctx.moveTo(endX,manifoldY);ctx.lineTo(endX-travel,manifoldY);ctx.stroke();
-
     for(let p=0;p<state.players;p++){
       const cx=865+p*78+29;
       if(endX-travel<=cx){
         const bq=clamp((travel-(endX-cx))/32,0,1);
-        ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,lerp(manifoldY,642,bq));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,lerp(manifoldY,818,bq));ctx.stroke();
       }
     }
   }
@@ -554,8 +621,8 @@ function drawHydraulicNetwork(q){
   if(state.phase==='chain'&&state.run&&state.run.bonusPlayer>=0&&q>.45){
     const p=state.run.bonusPlayer,cx=865+p*78+29,pulse=.55+.45*Math.sin(state.chainTime*7);
     ctx.strokeStyle=racers[p].color;ctx.lineWidth=11;ctx.shadowColor=racers[p].color;ctx.shadowBlur=12+6*pulse;
-    ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,636);ctx.stroke();
-    ctx.fillStyle=racers[p].color;ctx.beginPath();ctx.arc(cx,manifoldY-5,7+2*pulse,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,810);ctx.stroke();
+    ctx.fillStyle=racers[p].color;ctx.beginPath();ctx.arc(cx,manifoldY-8,7+2*pulse,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
@@ -570,61 +637,60 @@ function drawGear(x,y,r,a,color){
   ctx.beginPath();ctx.arc(0,0,r*.42,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.restore();
 }
 function drawRace(){
-  const top=86,bottom=638,trackH=bottom-top;
+  const top=280,bottom=815,trackH=bottom-top;
   for(let p=0;p<state.players;p++){
     const x=865+p*78,w=58,cx=x+w/2;
     ctx.fillStyle='#ffffffb5';ctx.fillRect(x,top,w,trackH);
     ctx.strokeStyle='#ded5da';ctx.lineWidth=2;ctx.strokeRect(x,top,w,trackH);
-    for(let s=0;s<=10;s++){
-      const y=bottom-s*(trackH/10);ctx.strokeStyle=s%5===0?'#bdaeb6':'#e7dfe3';ctx.lineWidth=s%5===0?2:1;
+    for(let st=0;st<=10;st++){
+      const y=bottom-st*(trackH/10);ctx.strokeStyle=st%5===0?'#bdaeb6':'#e7dfe3';ctx.lineWidth=st%5===0?2:1;
       ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.stroke();
-      if(s<10){ctx.fillStyle='#9a8791';ctx.font='10px Arial';ctx.textAlign='right';ctx.fillText(String(s*3),x-5,y+3)}
+      if(st<10){ctx.fillStyle='#9a8791';ctx.font='10px Arial';ctx.textAlign='right';ctx.fillText(String(st*3),x-5,y+3)}
     }
-    // Xi-lanh thủy lực cố định trong mỗi đường đua
+
     roundRect(cx-12,top+12,24,trackH+8,8,'#edf5f8','#90a6b0');
     const score=clamp(state.visualScores[p],0,TARGET);
     const ballBottom=bottom-20,ballTop=top+27;
     const ballY=lerp(ballBottom,ballTop,score/TARGET);
     const plateY=ballY+23;
-    // Cột nước có áp nằm dưới piston
+
     ctx.save();ctx.beginPath();ctx.rect(cx-8,plateY+5,16,Math.max(0,bottom+9-(plateY+5)));ctx.clip();
     const fg=ctx.createLinearGradient(0,plateY,0,bottom);fg.addColorStop(0,'#ffd08a');fg.addColorStop(1,'#e98a22');
     ctx.fillStyle=fg;ctx.fillRect(cx-8,plateY+5,16,bottom+10-plateY);
-    if(state.phase==='chain'&&state.chainTime>10.0){
+    if(state.phase==='chain'&&state.chainTime>12.3){
       const pulse=(Math.sin(state.chainTime*8+p)+1)/2;ctx.fillStyle='rgba(255,255,255,'+(0.18+0.32*pulse)+')';
       ctx.fillRect(cx-7,lerp(bottom,plateY+8,pulse),14,9);
     }
     ctx.restore();
-    // Piston, bàn nâng và thanh dẫn
+
     ctx.fillStyle='#6f8791';ctx.fillRect(cx-5,plateY+5,10,Math.max(0,bottom+9-(plateY+5)));
     roundRect(cx-17,plateY-1,34,12,4,'#8298a1','#536b74');
     roundRect(cx-25,plateY-8,50,9,4,'#aab8bd','#667b84');
-    // Thanh răng/chốt hãm: giải thích vì sao piston đứng yên giữa các lượt
+
     ctx.strokeStyle='#9e8790';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+w-8,top+12);ctx.lineTo(x+w-8,bottom);ctx.stroke();
     for(let yy=top+22;yy<bottom;yy+=22){ctx.beginPath();ctx.moveTo(x+w-13,yy);ctx.lineTo(x+w-4,yy-5);ctx.stroke()}
     ctx.strokeStyle=racers[p].color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx+19,plateY-3);ctx.lineTo(x+w-8,plateY-8);ctx.stroke();
-    // Viên bi nằm trực tiếp trên bàn nâng, không còn lơ lửng
+
     ctx.fillStyle=racers[p].color;ctx.beginPath();ctx.arc(cx,ballY,20,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='900 16px Arial';ctx.textAlign='center';ctx.fillText(racers[p].icon,cx,ballY+6);
-    // Hiện lượng piston đang đẩy trong lượt
-    ctx.fillStyle='#5e4b55';ctx.font='900 12px Trebuchet MS';ctx.fillText(racers[p].name,cx,686);ctx.fillText(Math.floor(state.visualScores[p])+'/30',cx,706);
-    if(state.phase==='chain'&&state.chainTime>11.25&&state.run&&state.run.moves){
-      const q=clamp((state.chainTime-11.25)/2.75,0,1);
+
+    ctx.fillStyle='#5e4b55';ctx.font='900 12px Trebuchet MS';ctx.fillText(racers[p].name,cx,866);ctx.fillText(Math.floor(state.visualScores[p])+'/30',cx,886);
+    if(state.phase==='chain'&&state.chainTime>13.25&&state.run&&state.run.moves){
+      const q=clamp((state.chainTime-13.25)/2.75,0,1);
       if(q<1){
         ctx.fillStyle=racers[p].color;ctx.font='900 17px Trebuchet MS';ctx.fillText('PISTON +'+state.run.moves[p],cx,Math.max(top+18,ballY-32));
         if(state.run.bonusPlayer===p){
-          roundRect(cx-28,Math.max(top+24,ballY-59),56,19,8,'#fff7d7',racers[p].color);
-          ctx.fillStyle=racers[p].color;ctx.font='900 10px Trebuchet MS';ctx.fillText('PHỄU +1',cx,Math.max(top+37,ballY-46));
+          roundRect(cx-30,Math.max(top+24,ballY-59),60,19,8,'#fff7d7',racers[p].color);
+          ctx.fillStyle=racers[p].color;ctx.font='900 10px Trebuchet MS';ctx.fillText('PHỄU +2',cx,Math.max(top+37,ballY-46));
         }
       }
     }
   }
   ctx.textAlign='left';
-  // nhãn cơ cấu thủy lực
-  ctx.fillStyle='#607983';ctx.font='800 11px Trebuchet MS';ctx.fillText('ỐNG GÓP ÁP LỰC',936,674);
-  ctx.fillStyle='#7a6570';ctx.fillRect(838,62,5,36);ctx.fillStyle='#ff6f9f';ctx.fillRect(843,62,48,22);ctx.fillStyle='#fff';ctx.font='900 11px Arial';ctx.fillText('ĐÍCH',851,77);
+  ctx.fillStyle='#607983';ctx.font='800 11px Trebuchet MS';ctx.fillText('ỐNG GÓP ÁP LỰC',936,855);
+  ctx.fillStyle='#7a6570';ctx.fillRect(838,245,5,36);ctx.fillStyle='#ff6f9f';ctx.fillRect(843,245,48,22);ctx.fillStyle='#fff';ctx.font='900 11px Arial';ctx.fillText('ĐÍCH',851,260);
   if(state.winner!==null&&state.phase==='gameover'){
-    ctx.fillStyle='#fff8c6e8';ctx.fillRect(830,280,330,120);ctx.fillStyle='#6b5360';ctx.font='900 28px Trebuchet MS';ctx.textAlign='center';ctx.fillText('🏆 '+racers[state.winner].name+' THẮNG!',995,340);ctx.font='700 15px Trebuchet MS';ctx.fillText('Piston thủy lực đã đưa viên bi tới đích',995,370);ctx.textAlign='left';
+    ctx.fillStyle='#fff8c6e8';ctx.fillRect(830,390,330,120);ctx.fillStyle='#6b5360';ctx.font='900 28px Trebuchet MS';ctx.textAlign='center';ctx.fillText('🏆 '+racers[state.winner].name+' THẮNG!',995,450);ctx.font='700 15px Trebuchet MS';ctx.fillText('Piston thủy lực đã đưa viên bi tới đích',995,480);ctx.textAlign='left';
   }
 }
 function render(){drawMachine();drawRace()}
