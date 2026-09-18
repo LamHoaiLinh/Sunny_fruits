@@ -19,6 +19,7 @@ var moves = 0;
 var drag = null;
 var selectedSource = null;
 var completedCols = new Set();
+var suppressDestinationClickUntil = 0;
 
 SunnyAudio.setEnabled(save.sound);
 
@@ -71,7 +72,7 @@ function persist(){
 function render(){
   SunnyRenderer.render(state, {
     pointerDown: onPointerDown,
-    pointerDest: onDestinationPointerDown
+    clickDest: onDestinationClick
   });
   levelLabel.textContent = 'Cấp ' + save.level;
   winDots.textContent = ['○','○','○'].map(function(x,i){ return i < save.wins ? '●' : '○'; }).join(' ');
@@ -137,6 +138,7 @@ function onPointerDown(e){
   var src = sourceFromToken(el);
 
   if(selectedSource !== null && selectedSource !== src){
+    suppressDestinationClickUntil = Date.now() + 250;
     attemptMove(selectedSource, src, null);
     return;
   }
@@ -160,7 +162,8 @@ function onPointerDown(e){
   window.addEventListener('pointercancel', onPointerCancel, {once:true});
 }
 
-function onDestinationPointerDown(e){
+function onDestinationClick(e){
+  if(Date.now() < suppressDestinationClickUntil) return;
   if(selectedSource === null) return;
   if(e.target.closest('.token')) return;
   e.preventDefault();
@@ -260,6 +263,7 @@ function onPointerUp(e){
   var moved = d.moved;
   var sourceEl = d.sourceEl;
   finishDrag();
+  suppressDestinationClickUntil = Date.now() + 250;
 
   if(!moved){
     if(selectedSource === from){
