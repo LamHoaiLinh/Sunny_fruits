@@ -560,10 +560,9 @@ function allowPortraitPlay(){
 }
 
 function checkRotate(){
-  var n = state ? state.columns.length : 0;
-  var portrait = innerHeight > innerWidth;
-  var shouldSuggest = n >= 8 && portrait && innerWidth < 700 && !portraitPlayAllowed;
-  rotateOverlay.classList.toggle('hidden', !shouldSuggest);
+  // Không chặn gameplay khi điện thoại dựng dọc.
+  // Bàn chơi tự co bằng SunnyRenderer.fitBoard(), vì vậy luôn cho phép tiếp tục màn hiện tại.
+  rotateOverlay.classList.add('hidden');
 }
 
 function safeCancelDrag(){
