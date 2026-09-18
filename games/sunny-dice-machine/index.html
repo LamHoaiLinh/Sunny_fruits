@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#fff3d8">
 <title>Sunny Dice Machine</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS",Arial,sans-serif;color:#4e3b45;background:linear-gradient(160deg,#fff9e8,#eefaff 52%,#fff0f6)}button,a{font:inherit}.app{max-width:1240px;margin:auto;padding:14px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.back,.iconbtn{border:0;text-decoration:none;background:#fff;color:#6a5260;border-radius:999px;padding:10px 14px;font-weight:900;box-shadow:0 4px 14px #6c4a5b20;cursor:pointer}.hero{text-align:center;padding:4px 10px 12px}.hero h1{margin:0;color:#e36d98;font-size:clamp(30px,5vw,54px);letter-spacing:1px}.hero p{margin:6px 0 0;color:#806772;font-size:clamp(14px,2vw,18px)}.panel{background:#ffffffdd;border:2px solid #fff;border-radius:24px;box-shadow:0 14px 38px #5f41521a;padding:14px}.setup{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.setup strong{font-size:15px}.seg{display:flex;gap:7px;flex-wrap:wrap}.seg button,.dice button,.reset{border:0;border-radius:16px;background:#fff3f7;color:#6a5260;min-width:48px;padding:10px 14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 #e9cbd6}.seg button.active{background:#ff93b7;color:#fff;box-shadow:0 4px 0 #d85d89}.seg button:active,.dice button:active,.reset:active{transform:translateY(2px);box-shadow:0 2px 0 #d9bdc8}.canvaswrap{background:#f9fbff;border-radius:20px;overflow:hidden;border:2px solid #f1e8ed}.canvaswrap canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none}.status{display:flex;gap:8px;align-items:center;justify-content:center;min-height:42px;font-weight:900;text-align:center;color:#6c5361}.dicezone{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.dice{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.dice button{font-size:26px;line-height:1;width:58px;height:54px;padding:0;background:#fff;color:#5b4652}.dice button:hover{background:#fff4c8}.dice button:disabled{opacity:.4;cursor:not-allowed}.reset{background:#edf7ff;box-shadow:0 4px 0 #c7dfef}.help{margin-top:12px;font-size:13px;line-height:1.5;color:#755f6c;background:#fff9fc;border-radius:18px;padding:12px 14px}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px}.dot{display:inline-flex;align-items:center;gap:6px}.dot i{width:12px;height:12px;border-radius:50%;display:inline-block}.history{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}.chip{background:#fff;border:1px solid #f0dfe7;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.footer{text-align:center;color:#927b87;font-size:11px;margin:12px 0 4px}@media(max-width:720px){.app{padding:8px}.panel{padding:8px;border-radius:18px}.dicezone{grid-template-columns:1fr}.reset{justify-self:center}.canvaswrap{border-radius:14px}.setup{justify-content:center}.setup>strong{width:100%;text-align:center}.hero{padding-bottom:8px}.help{font-size:12px}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS",Arial,sans-serif;color:#4e3b45;background:linear-gradient(160deg,#fff9e8,#eefaff 52%,#fff0f6)}button,a{font:inherit}.app{max-width:1240px;margin:auto;padding:14px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.back,.iconbtn{border:0;text-decoration:none;background:#fff;color:#6a5260;border-radius:999px;padding:10px 14px;font-weight:900;box-shadow:0 4px 14px #6c4a5b20;cursor:pointer}.hero{text-align:center;padding:4px 10px 12px}.hero h1{margin:0;color:#e36d98;font-size:clamp(30px,5vw,54px);letter-spacing:1px}.hero p{margin:6px 0 0;color:#806772;font-size:clamp(14px,2vw,18px)}.panel{background:#ffffffdd;border:2px solid #fff;border-radius:24px;box-shadow:0 14px 38px #5f41521a;padding:14px}.setup{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.setup strong{font-size:15px}.seg{display:flex;gap:7px;flex-wrap:wrap}.namesbox{margin:2px 0 12px;padding:11px 12px;background:#fffafc;border:1px solid #f3dfe8;border-radius:16px}.namesbox strong{display:block;margin-bottom:8px}.namesbox small{font-weight:700;color:#9a7f8d}.nameinputs{display:flex;gap:8px;flex-wrap:wrap}.namefield{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #ead9e1;border-radius:999px;padding:6px 10px}.namefield i{width:12px;height:12px;border-radius:50%;display:block;flex:none}.namefield input{width:92px;border:0;outline:0;background:transparent;color:#5f4b56;font-weight:900;font-size:13px}.namefield input:focus{color:#d95786}.seg button,.dice button,.reset{border:0;border-radius:16px;background:#fff3f7;color:#6a5260;min-width:48px;padding:10px 14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 #e9cbd6}.seg button.active{background:#ff93b7;color:#fff;box-shadow:0 4px 0 #d85d89}.seg button:active,.dice button:active,.reset:active{transform:translateY(2px);box-shadow:0 2px 0 #d9bdc8}.canvaswrap{background:#f9fbff;border-radius:20px;overflow:hidden;border:2px solid #f1e8ed}.canvaswrap canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none}.status{display:flex;gap:8px;align-items:center;justify-content:center;min-height:42px;font-weight:900;text-align:center;color:#6c5361}.dicezone{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.dice{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.dice button{font-size:26px;line-height:1;width:58px;height:54px;padding:0;background:#fff;color:#5b4652}.dice button:hover{background:#fff4c8}.dice button:disabled{opacity:.4;cursor:not-allowed}.reset{background:#edf7ff;box-shadow:0 4px 0 #c7dfef}.help{margin-top:12px;font-size:13px;line-height:1.5;color:#755f6c;background:#fff9fc;border-radius:18px;padding:12px 14px}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px}.dot{display:inline-flex;align-items:center;gap:6px}.dot i{width:12px;height:12px;border-radius:50%;display:inline-block}.history{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}.chip{background:#fff;border:1px solid #f0dfe7;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.footer{text-align:center;color:#927b87;font-size:11px;margin:12px 0 4px}@media(max-width:720px){.app{padding:8px}.panel{padding:8px;border-radius:18px}.dicezone{grid-template-columns:1fr}.reset{justify-self:center}.canvaswrap{border-radius:14px}.setup{justify-content:center}.setup>strong{width:100%;text-align:center}.nameinputs{justify-content:center}.namefield input{width:82px}.hero{padding-bottom:8px}.help{font-size:12px}}
 </style>
 </head>
 <body>
@@ -29,6 +29,10 @@
       </div>
       <strong>Đích: 30 bậc</strong>
     </div>
+    <div class="namesbox">
+      <strong>Tên người chơi <small>(có thể đổi bất cứ lúc nào)</small></strong>
+      <div class="nameinputs" id="nameInputs"></div>
+    </div>
     <div class="canvaswrap"><canvas id="game" width="1200" height="720" aria-label="Cỗ máy xúc xắc vật lý"></canvas></div>
     <div class="status" id="status">Tung xúc xắc ngoài đời, sau đó chọn đúng mặt bên dưới.</div>
     <div class="dicezone">
@@ -45,12 +49,7 @@
     <div class="history" id="history"></div>
     <div class="help">
       <b>Cơ chế:</b> mặt xúc xắc chỉ quyết định vị trí thả viên bi. Từ đó, viên bi chịu trọng lực, va chạm với chốt và bumper đang chuyển động. Sai lệch rất nhỏ ở vị trí thả và pha chuyển động làm đường đi thay đổi. Viên bi rơi vào phễu nào sẽ kích hoạt dòng nước, tuabin và bộ bánh răng; trạng thái vật lý lúc va chạm quyết định mỗi nhân vật leo bao nhiêu bậc. Vì vậy cùng một mặt xúc xắc vẫn có thể cho kết quả khác.
-      <div class="legend">
-        <span class="dot"><i style="background:#ff6f9f"></i>Sunny</span>
-        <span class="dot"><i style="background:#58aef0"></i>Mây</span>
-        <span class="dot"><i style="background:#f4be42"></i>Mít</span>
-        <span class="dot"><i style="background:#9a78e8"></i>Nho</span>
-      </div>
+      <div class="legend" id="legend"></div>
     </div>
   </section>
   <div class="footer">Sunny Game Hub • Game chạy local, không cần mạng</div>
@@ -59,14 +58,19 @@
 (()=>{'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const statusEl=document.getElementById('status'),historyEl=document.getElementById('history');
+const nameInputsEl=document.getElementById('nameInputs'),legendEl=document.getElementById('legend');
 const diceBtns=[...document.querySelectorAll('[data-die]')],playerBtns=[...document.querySelectorAll('[data-players]')];
 const soundBtn=document.getElementById('soundBtn'),resetBtn=document.getElementById('resetBtn');
 const W=1200,H=720,MACHINE_R=780,TARGET=30;
+const DEFAULT_NAMES=['Sunny','Nít','Linh','Bích'];
+let savedNames;
+try{savedNames=JSON.parse(localStorage.getItem('sunnyDicePlayerNames')||'null')}catch(e){savedNames=null}
+if(!Array.isArray(savedNames))savedNames=DEFAULT_NAMES.slice();
 const racers=[
-  {name:'Sunny',icon:'★',color:'#ff6f9f'},
-  {name:'Mây',icon:'●',color:'#58aef0'},
-  {name:'Mít',icon:'▲',color:'#f4be42'},
-  {name:'Nho',icon:'◆',color:'#9a78e8'}
+  {name:savedNames[0]||DEFAULT_NAMES[0],icon:'★',color:'#ff6f9f'},
+  {name:savedNames[1]||DEFAULT_NAMES[1],icon:'●',color:'#58aef0'},
+  {name:savedNames[2]||DEFAULT_NAMES[2],icon:'▲',color:'#f4be42'},
+  {name:savedNames[3]||DEFAULT_NAMES[3],icon:'◆',color:'#9a78e8'}
 ];
 const dieChars=['','⚀','⚁','⚂','⚃','⚄','⚅'];
 let audioCtx=null,lastHitSound=0;
@@ -103,6 +107,30 @@ const state={
 };
 function setStatus(s){statusEl.textContent=s}
 function setDiceEnabled(on){diceBtns.forEach(b=>b.disabled=!on)}
+function saveNames(){
+  try{localStorage.setItem('sunnyDicePlayerNames',JSON.stringify(racers.map(r=>r.name)))}catch(e){}
+}
+function renderLegend(){
+  legendEl.replaceChildren();
+  for(let p=0;p<state.players;p++){
+    const span=document.createElement('span');span.className='dot';
+    const dot=document.createElement('i');dot.style.background=racers[p].color;
+    const name=document.createTextNode(racers[p].name||DEFAULT_NAMES[p]);
+    span.append(dot,name);legendEl.append(span);
+  }
+}
+function renderNameInputs(){
+  nameInputsEl.replaceChildren();
+  for(let p=0;p<state.players;p++){
+    const label=document.createElement('label');label.className='namefield';
+    const dot=document.createElement('i');dot.style.background=racers[p].color;
+    const input=document.createElement('input');input.type='text';input.maxLength=12;input.value=racers[p].name||DEFAULT_NAMES[p];input.setAttribute('aria-label','Tên người chơi '+(p+1));
+    input.addEventListener('input',()=>{racers[p].name=input.value.slice(0,12);saveNames();renderLegend()});
+    input.addEventListener('blur',()=>{const v=input.value.trim();racers[p].name=v||DEFAULT_NAMES[p];input.value=racers[p].name;saveNames();renderLegend()});
+    label.append(dot,input);nameInputsEl.append(label);
+  }
+  renderLegend();
+}
 function startRun(die){
   if(state.phase!=='idle')return;
   state.die=die;state.round++;state.phase='drop';state.simTime=0;state.chainTime=0;state.resultApplied=false;state.particles=[];
@@ -110,7 +138,7 @@ function startRun(die){
   const startXs=[0,92,210,330,450,570,690];
   const jitter=(rng()-.5)*9,side=(rng()-.5)*18;
   const phases=movingBase.map(()=>rng()*Math.PI*2);
-  state.run={seed,rng,phases,collisions:0,energy:0,cup:-1,impact:null,moves:null,oldScores:state.scores.slice(),targetScores:null};
+  state.run={seed,rng,phases,collisions:0,energy:0,cup:-1,impact:null,moves:null,oldScores:state.scores.slice(),targetScores:null,waterAnnounced:false};
   state.marble={x:startXs[die]+jitter,y:78,vx:side,vy:0,r:15,rot:0};
   setDiceEnabled(false);setStatus('Máy đang chạy: viên bi '+dieChars[die]+' đã được thả...');
   beep(620,.07,.035);
@@ -177,16 +205,17 @@ function updateChain(dt){
   if(state.phase!=='chain')return;
   state.chainTime+=dt;
   const impact=state.run.impact,boost=1+clamp(impact.speed/900,0,.8)+clamp(state.run.energy/10,0,.6);
-  if(state.chainTime>.55){state.turbine+=dt*4.2*boost;state.gear-=dt*2.5*boost}
-  if(state.chainTime>.35&&state.chainTime<1.8&&Math.random()<dt*45){
-    state.particles.push({t:0,d:.7+Math.random()*.6,j:(Math.random()-.5)*18});
+  if(state.chainTime>.45&&state.chainTime<4.15&&Math.random()<dt*22){
+    state.particles.push({t:0,d:3.0+Math.random()*1.15,j:(Math.random()-.5)*12,r:5.5+Math.random()*2.5});
   }
   state.particles.forEach(p=>p.t+=dt);state.particles=state.particles.filter(p=>p.t<p.d);
-  if(state.chainTime>1.65){
-    const q=clamp((state.chainTime-1.65)/1.15,0,1),ease=1-Math.pow(1-q,3);
+  if(state.chainTime>2.75){state.turbine+=dt*2.15*boost;state.gear-=dt*1.25*boost}
+  if(state.chainTime>2.85&&!state.run.waterAnnounced){state.run.waterAnnounced=true;setStatus('Nước đã tới tuabin. Guồng nước và bánh răng đang truyền lực sang đường đua...')}
+  if(state.chainTime>4.55){
+    const q=clamp((state.chainTime-4.55)/1.25,0,1),ease=1-Math.pow(1-q,3);
     for(let p=0;p<state.players;p++)state.visualScores[p]=lerp(state.run.oldScores[p],state.run.targetScores[p],ease);
   }
-  if(state.chainTime>2.9&&!state.resultApplied){
+  if(state.chainTime>6.05&&!state.resultApplied){
     state.resultApplied=true;state.scores=state.run.targetScores.slice();state.visualScores=state.scores.slice();
     const best=Math.max(...state.scores.slice(0,state.players));
     const crossed=[];for(let p=0;p<state.players;p++)if(state.scores[p]>=TARGET)crossed.push(p);
@@ -200,11 +229,14 @@ function updateChain(dt){
     }
   }
 }
-function renderHistory(){historyEl.innerHTML=state.history.map(x=>'<span class="chip">'+x+'</span>').join('')}
+function renderHistory(){
+  historyEl.replaceChildren();
+  state.history.forEach(x=>{const span=document.createElement('span');span.className='chip';span.textContent=x;historyEl.append(span)});
+}
 function resetGame(players=state.players){
   state.players=players;state.scores=[0,0,0,0];state.visualScores=[0,0,0,0];state.phase='idle';state.die=0;state.marble=null;state.round=0;state.history=[];state.winner=null;state.particles=[];state.turbine=0;state.gear=0;state.resultApplied=false;
   playerBtns.forEach(b=>b.classList.toggle('active',+b.dataset.players===players));
-  setDiceEnabled(true);renderHistory();setStatus('Tung xúc xắc ngoài đời, sau đó chọn đúng mặt bên dưới.');
+  renderNameInputs();setDiceEnabled(true);renderHistory();setStatus('Tung xúc xắc ngoài đời, sau đó chọn đúng mặt bên dưới.');
 }
 function drawMachine(){
   ctx.clearRect(0,0,W,H);
@@ -249,14 +281,21 @@ function drawMachine(){
   // bánh răng
   drawGear(520,585,45,state.gear,'#f2b85c');drawGear(600,585,34,-state.gear*1.35,'#ef8e74');
   ctx.strokeStyle='#8c7b83';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(634,585);ctx.lineTo(760,585);ctx.stroke();
-  // nước
+  // nước: chạy chậm, có dòng chính và giọt lớn để nhìn rõ đường truyền lực
   if(state.phase==='chain'&&cup>=0){
     const sx=125+cup*170;
+    const waterQ=clamp((state.chainTime-.45)/3.15,0,1);
+    ctx.save();ctx.strokeStyle='#4ebaf0cc';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(sx,548);
+    if(waterQ<=.24){ctx.lineTo(sx,lerp(548,585,waterQ/.24))}
+    else{ctx.lineTo(sx,585);ctx.lineTo(lerp(sx,400,(waterQ-.24)/.76),585)}
+    ctx.stroke();ctx.restore();
     state.particles.forEach(p=>{
       const q=clamp(p.t/p.d,0,1);let x,y;
-      if(q<.4){const z=q/.4;x=sx;y=lerp(548,585,z)}
-      else{const z=(q-.4)/.6;x=lerp(sx,400,z);y=585}
-      ctx.beginPath();ctx.arc(x+p.j*Math.sin(q*Math.PI),y,5,0,Math.PI*2);ctx.fillStyle='#55b9eeaa';ctx.fill()
+      if(q<.24){const z=q/.24;x=sx;y=lerp(548,585,z)}
+      else{const z=(q-.24)/.76;x=lerp(sx,400,z);y=585}
+      const px=x+p.j*Math.sin(q*Math.PI);
+      ctx.beginPath();ctx.arc(px,y,p.r,0,Math.PI*2);ctx.fillStyle='#43b7ee';ctx.fill();
+      ctx.beginPath();ctx.arc(px-2,y-2,Math.max(2,p.r*.35),0,Math.PI*2);ctx.fillStyle='#dff6ff';ctx.fill();
     });
   }
   // viên bi
@@ -294,8 +333,8 @@ function drawRace(){
     ctx.fillStyle=racers[p].color;ctx.beginPath();ctx.arc(x+w/2,y,22,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='900 17px Arial';ctx.textAlign='center';ctx.fillText(racers[p].icon,x+w/2,y+6);
     ctx.fillStyle='#5e4b55';ctx.font='900 12px Trebuchet MS';ctx.fillText(racers[p].name,x+w/2,675);ctx.fillText(Math.floor(state.visualScores[p])+'/30',x+w/2,695);
-    if(state.phase==='chain'&&state.chainTime>1.65&&state.run&&state.run.moves){
-      const q=clamp((state.chainTime-1.65)/1.15,0,1);
+    if(state.phase==='chain'&&state.chainTime>4.55&&state.run&&state.run.moves){
+      const q=clamp((state.chainTime-4.55)/1.25,0,1);
       if(q<1){ctx.fillStyle=racers[p].color;ctx.font='900 18px Trebuchet MS';ctx.fillText('+'+state.run.moves[p],x+w/2,y-31)}
     }
   }
