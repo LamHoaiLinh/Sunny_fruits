@@ -38,7 +38,12 @@
     </header>
     <div class="stats"><span id="moveLabel">Số bước: 0</span><span id="message" role="status"></span></div>
     <main id="boardWrap">
-      <div id="rotateOverlay" class="rotate-overlay hidden"><div>📱↻</div><b>Bạn xoay ngang màn hình để chơi dễ hơn nhé!</b></div>
+      <div id="rotateOverlay" class="rotate-overlay hidden">
+        <div class="rotate-icon">📱↻</div>
+        <b>Xoay ngang màn hình sẽ chơi dễ hơn</b>
+        <small>Hoặc tiếp tục chơi dọc với màn hiện tại.</small>
+        <button id="btnPlayPortrait" type="button" class="primary rotate-continue">▶ Chơi dọc</button>
+      </div>
       <div id="board" class="board" aria-label="Bàn xếp trái cây">
         <div id="leftReserve" class="reserve left" data-pos="reserve-left" aria-label="Ô để tạm 1"><span class="reserve-label">Để tạm 1</span></div>
         <div id="rightReserve" class="reserve right" data-pos="reserve-right" aria-label="Ô để tạm 2"><span class="reserve-label">Để tạm 2</span></div>
