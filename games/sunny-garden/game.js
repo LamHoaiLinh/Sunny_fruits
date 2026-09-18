@@ -291,23 +291,62 @@ function generateOrder(){
   var people=orderAvailableCustomers();
   var person=people[Math.floor(Math.random()*people.length)];
   var fruits=unlockedFruits();
-  var maxSlots=Math.min(4,1+Math.floor((state.level-1)/3));
-  var count=1+Math.floor(Math.random()*maxSlots);
-  var needs=[],sum=0;
-  for(var i=0;i<count;i++){
-    var roll=Math.random();
-    var maxIndex=Math.min(fruits.length-1,Math.floor(state.level/3)+1);
-    var pick;
-    if(roll<.62)pick=fruits[Math.floor(Math.random()*Math.max(1,Math.min(2,fruits.length)))];
-    else pick=fruits[Math.floor(Math.random()*(maxIndex+1))];
-    needs.push(pick.id);sum+=pick.value;
+
+  // Chỉ lấy trái đã mở khóa. Đơn lớn có thể gồm 2-3 LOẠI khác nhau.
+  var maxTypes=Math.min(3,fruits.length);
+  var typeCount=1;
+  var roll=Math.random();
+  if(maxTypes>=3&&state.level>=5){
+    // Từ Lv5: khoảng 35% đơn 2 loại, 15% đơn 3 loại.
+    if(roll<.15)typeCount=3;
+    else if(roll<.50)typeCount=2;
+  }else if(maxTypes>=2&&state.level>=2){
+    // Từ Lv2: bắt đầu có đơn 2 loại.
+    if(roll<.35)typeCount=2;
   }
+
+  // Chọn các loại KHÁC NHAU, thiên về trái cấp thấp để đơn không quá gắt.
+  var pool=fruits.slice();
+  var chosen=[];
+  while(chosen.length<typeCount&&pool.length){
+    var weights=[],total=0;
+    for(var i=0;i<pool.length;i++){
+      var w=Math.max(1,Math.round(100/Math.pow(i+1,1.55)));
+      weights.push(w);total+=w;
+    }
+    var r=Math.random()*total,pickIndex=0;
+    for(var j=0;j<pool.length;j++){r-=weights[j];if(r<=0){pickIndex=j;break;}}
+    chosen.push(pool[pickIndex]);
+    pool.splice(pickIndex,1);
+  }
+
+  // Tối đa 4 ô đơn. Đơn 3 loại luôn có ít nhất 3 ô.
+  var minSlots=chosen.length;
+  var maxSlots=Math.min(4,chosen.length+(state.level>=4?1:0));
+  var slotCount=minSlots;
+  if(maxSlots>minSlots&&Math.random()<.6)slotCount=maxSlots;
+
+  var needs=[],sum=0;
+  chosen.forEach(function(f){needs.push(f.id);sum+=f.value;});
+  while(needs.length<slotCount){
+    var extra=chosen[Math.floor(Math.random()*chosen.length)];
+    needs.push(extra.id);sum+=extra.value;
+  }
+
+  // Xáo thứ tự icon để đơn hàng nhìn tự nhiên hơn.
+  for(var k=needs.length-1;k>0;k--){
+    var swap=Math.floor(Math.random()*(k+1));
+    var tmp=needs[k];needs[k]=needs[swap];needs[swap]=tmp;
+  }
+
+  var diversityBonus=(chosen.length-1)*14;
   return {
     customer:person.id,
     needs:needs,
     filled:Array(needs.length).fill(null),
-    reward:Math.round(sum*1.45+12*count+state.level*3),
-    xp:20+8*count+Math.min(20,state.level*2)
+    reward:Math.round(sum*1.45+12*slotCount+state.level*3+diversityBonus),
+    xp:20+8*slotCount+Math.min(20,state.level*2)+diversityBonus,
+    typeCount:chosen.length
   };
 }
 
@@ -404,13 +443,13 @@ function renderCustomer(){
   els.customer.style.backgroundPosition=(c.col*25)+'% '+(c.row*100)+'%';
   els.reward.innerHTML=coinHtml(state.order.reward,false);
   els.orderSlots.innerHTML='';
+  els.orderSlots.setAttribute('aria-label','Đơn hàng gồm '+state.order.needs.length+' trái');
   state.order.needs.forEach(function(id,i){
     var slot=document.createElement('button');
     slot.className='orderSlot '+(state.order.filled[i]?'filled':'need');
     slot.type='button';
     slot.title=state.order.filled[i]?'Đã đủ '+fruitName(id):'Cần '+fruitName(id);
     var art=makeFruit(id);
-    if(!state.order.filled[i])art.style.opacity='.48';
     slot.appendChild(art);
     if(state.order.filled[i]){
       var tick=document.createElement('span');
