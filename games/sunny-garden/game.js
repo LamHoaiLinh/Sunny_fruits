@@ -3,10 +3,12 @@
 
 var SAVE_KEY='sunny_garden_save_v1';
 var MAX_ROWS=10, COLS=4, FIELD_SIZE=36;
+var MAX_PLAYER_LEVEL=60;
 var FREE_FRUIT_CHANCE=0.15;
 var lastDropIndex=-1;
 
 var FRUITS=[
+  // 30 bậc trái cố định. Giữ nguyên 8 bậc đầu để không phá save/gameplay cũ.
   {id:'mango',level:1,unlock:1,seed:12,value:16},
   {id:'jackfruit',level:2,unlock:2,seed:28,value:36},
   {id:'guava',level:3,unlock:3,seed:45,value:60},
@@ -14,32 +16,54 @@ var FRUITS=[
   {id:'coconut',level:5,unlock:6,seed:105,value:145},
   {id:'watermelon',level:6,unlock:8,seed:150,value:220},
   {id:'durian',level:7,unlock:10,seed:220,value:330},
-  {id:'mangosteen',level:8,unlock:12,seed:320,value:500}
+  {id:'mangosteen',level:8,unlock:12,seed:320,value:500},
+  {id:'banana',level:9,unlock:14,seed:430,value:670},
+  {id:'pineapple',level:10,unlock:16,seed:560,value:880},
+  {id:'avocado',level:11,unlock:18,seed:720,value:1140},
+  {id:'papaya',level:12,unlock:20,seed:920,value:1470},
+  {id:'pomegranate',level:13,unlock:22,seed:1160,value:1870},
+  {id:'lychee',level:14,unlock:24,seed:1450,value:2350},
+  {id:'rambutan',level:15,unlock:26,seed:1800,value:2940},
+  {id:'pomelo',level:16,unlock:28,seed:2220,value:3650},
+  {id:'passion-fruit',level:17,unlock:30,seed:2720,value:4500},
+  {id:'starfruit',level:18,unlock:32,seed:3320,value:5520},
+  {id:'peach',level:19,unlock:34,seed:4040,value:6750},
+  {id:'pear',level:20,unlock:36,seed:4900,value:8220},
+  {id:'lemon',level:21,unlock:38,seed:5920,value:9970},
+  {id:'lime',level:22,unlock:40,seed:7130,value:12050},
+  {id:'grapefruit',level:23,unlock:42,seed:8560,value:14520},
+  {id:'persimmon',level:24,unlock:44,seed:10240,value:17450},
+  {id:'sugar-apple',level:25,unlock:46,seed:12210,value:20920},
+  {id:'soursop',level:26,unlock:48,seed:14520,value:25030},
+  {id:'sapodilla',level:27,unlock:50,seed:17220,value:29880},
+  {id:'longan',level:28,unlock:52,seed:20380,value:35600},
+  {id:'langsat',level:29,unlock:54,seed:24060,value:42330},
+  {id:'buddhas-hand',level:30,unlock:56,seed:28340,value:50240}
 ];
 
 var CUSTOMERS=[
   {id:'farmer',name:'Nông dân',minLevel:1,col:0,row:0},
   {id:'post',name:'Cô giao thư',minLevel:1,col:1,row:0},
-  {id:'grandma',name:'Bà nội trợ',minLevel:2,col:2,row:0},
-  {id:'builder',name:'Thợ xây',minLevel:3,col:3,row:0},
-  {id:'girl',name:'Bé gái',minLevel:4,col:4,row:0},
-  {id:'gardener',name:'Người làm vườn',minLevel:5,col:0,row:1},
-  {id:'rake',name:'Người làm vườn trẻ',minLevel:6,col:1,row:1},
-  {id:'baker',name:'Đầu bếp',minLevel:8,col:2,row:1},
-  {id:'student',name:'Học sinh',minLevel:10,col:3,row:1},
-  {id:'vet',name:'Bác sĩ thú y',minLevel:12,col:4,row:1}
+  {id:'grandma',name:'Bà nội trợ',minLevel:3,col:2,row:0},
+  {id:'builder',name:'Thợ xây',minLevel:6,col:3,row:0},
+  {id:'girl',name:'Bé gái',minLevel:9,col:4,row:0},
+  {id:'gardener',name:'Người làm vườn',minLevel:12,col:0,row:1},
+  {id:'rake',name:'Người làm vườn trẻ',minLevel:16,col:1,row:1},
+  {id:'baker',name:'Đầu bếp',minLevel:22,col:2,row:1},
+  {id:'student',name:'Học sinh',minLevel:30,col:3,row:1},
+  {id:'vet',name:'Bác sĩ thú y',minLevel:40,col:4,row:1}
 ];
 
 var ROW_UNLOCKS=[
   null,null,
-  {level:2,cost:80},
-  {level:4,cost:160},
-  {level:6,cost:300},
-  {level:8,cost:520},
-  {level:10,cost:800},
-  {level:12,cost:1200},
-  {level:15,cost:1700},
-  {level:18,cost:2300}
+  {level:3,cost:100},
+  {level:6,cost:240},
+  {level:10,cost:520},
+  {level:14,cost:950},
+  {level:18,cost:1600},
+  {level:22,cost:2600},
+  {level:26,cost:4200},
+  {level:30,cost:6800}
 ];
 
 var fruitMeta={};
@@ -53,6 +77,7 @@ var els={
   xpFill:document.getElementById('xpFill'),
   customer:document.getElementById('customerPortrait'),
   reward:document.getElementById('orderReward'),
+  orderTier:document.getElementById('orderTier'),
   orderSlots:document.getElementById('orderSlots'),
   warehouse:document.getElementById('warehouse'),
   warehouseCount:document.getElementById('warehouseCount'),
@@ -94,7 +119,7 @@ function load(){
     if(!Array.isArray(s.warehouse)||s.warehouse.length!==MAX_ROWS*COLS)s.warehouse=Array(MAX_ROWS*COLS).fill(null);
     if(!Array.isArray(s.field)||s.field.length!==FIELD_SIZE)s.field=Array(FIELD_SIZE).fill(null);
     s.unlockedRows=Math.max(2,Math.min(MAX_ROWS,Number(s.unlockedRows)||2));
-    s.level=Math.max(1,Number(s.level)||1);
+    s.level=Math.max(1,Math.min(MAX_PLAYER_LEVEL,Number(s.level)||1));
     s.gold=Math.max(0,Number(s.gold)||0);
     s.turn=Math.max(0,Number(s.turn)||0);
     if(!fruitDef(s.selectedSeed)||fruitDef(s.selectedSeed).unlock>s.level)s.selectedSeed='mango';
@@ -210,7 +235,12 @@ function closeFruitBook(){
   els.bookModal.classList.add('hidden');
 }
 
-function xpNeed(level){return 80+(level-1)*45;}
+function xpNeed(level){
+  if(level>=MAX_PLAYER_LEVEL)return 0;
+  if(level<=10)return 80+(level-1)*42;
+  if(level<=30)return 458+(level-10)*55;
+  return 1558+(level-30)*72;
+}
 
 function toast(text,bad){
   els.toast.textContent=text;
@@ -382,26 +412,36 @@ function generateOrder(){
   var person=people[Math.floor(Math.random()*people.length)];
   var fruits=unlockedFruits();
 
-  // Chỉ lấy trái đã mở khóa. Đơn lớn có thể gồm 2-3 LOẠI khác nhau.
-  var maxTypes=Math.min(3,fruits.length);
+  // Nhiệm vụ tăng dần theo Level:
+  // Lv1-4: đơn nhỏ; Lv5-14: đơn vừa; Lv15-29: đơn lớn;
+  // Lv30+: có đơn VIP 4 loại, tối đa 6 ô.
+  var maxTypes=Math.min(state.level>=30?4:3,fruits.length);
   var typeCount=1;
   var roll=Math.random();
-  if(maxTypes>=3&&state.level>=5){
-    // Từ Lv5: khoảng 35% đơn 2 loại, 15% đơn 3 loại.
+
+  if(state.level>=30&&maxTypes>=4){
+    if(roll<.22)typeCount=4;
+    else if(roll<.57)typeCount=3;
+    else if(roll<.90)typeCount=2;
+  }else if(state.level>=15&&maxTypes>=3){
+    if(roll<.28)typeCount=3;
+    else if(roll<.72)typeCount=2;
+  }else if(state.level>=5&&maxTypes>=3){
     if(roll<.15)typeCount=3;
     else if(roll<.50)typeCount=2;
-  }else if(maxTypes>=2&&state.level>=2){
-    // Từ Lv2: bắt đầu có đơn 2 loại.
+  }else if(state.level>=2&&maxTypes>=2){
     if(roll<.35)typeCount=2;
   }
 
-  // Chọn các loại KHÁC NHAU, thiên về trái cấp thấp để đơn không quá gắt.
+  // Chọn các loại khác nhau. Trái cấp thấp vẫn phổ biến hơn để không tạo đơn quá ác.
   var pool=fruits.slice();
   var chosen=[];
   while(chosen.length<typeCount&&pool.length){
     var weights=[],total=0;
     for(var i=0;i<pool.length;i++){
-      var w=Math.max(1,Math.round(100/Math.pow(i+1,1.55)));
+      var idx=FRUITS.indexOf(pool[i]);
+      var age=Math.max(0,fruits.length-1-idx);
+      var w=Math.max(2,Math.round(34/Math.pow(idx+1,.78))+Math.min(12,age));
       weights.push(w);total+=w;
     }
     var r=Math.random()*total,pickIndex=0;
@@ -410,11 +450,17 @@ function generateOrder(){
     pool.splice(pickIndex,1);
   }
 
-  // Tối đa 4 ô đơn. Đơn 3 loại luôn có ít nhất 3 ô.
-  var minSlots=chosen.length;
-  var maxSlots=Math.min(4,chosen.length+(state.level>=4?1:0));
-  var slotCount=minSlots;
-  if(maxSlots>minSlots&&Math.random()<.6)slotCount=maxSlots;
+  var slotCap=state.level>=35?6:(state.level>=20?5:4);
+  var extraCapacity=state.level>=15?2:1;
+  var maxSlots=Math.min(slotCap,chosen.length+extraCapacity);
+  var slotCount=chosen.length;
+  if(maxSlots>slotCount){
+    var chance=state.level>=20?.78:.58;
+    while(slotCount<maxSlots&&Math.random()<chance){
+      slotCount++;
+      chance-=.16;
+    }
+  }
 
   var needs=[],sum=0;
   chosen.forEach(function(f){needs.push(f.id);sum+=f.value;});
@@ -423,37 +469,48 @@ function generateOrder(){
     needs.push(extra.id);sum+=extra.value;
   }
 
-  // Xáo thứ tự icon để đơn hàng nhìn tự nhiên hơn.
   for(var k=needs.length-1;k>0;k--){
     var swap=Math.floor(Math.random()*(k+1));
     var tmp=needs[k];needs[k]=needs[swap];needs[swap]=tmp;
   }
 
-  var diversityBonus=(chosen.length-1)*14;
+  var tier='normal';
+  if(typeCount>=4||slotCount>=6)tier='vip';
+  else if(typeCount>=3||slotCount>=5)tier='large';
+
+  var diversityBonus=(chosen.length-1)*(14+Math.floor(state.level*.9));
+  var quantityBonus=Math.max(0,slotCount-2)*(8+Math.floor(state.level*.55));
+  var tierMultiplier=tier==='vip'?1.28:(tier==='large'?1.14:1);
   return {
     customer:person.id,
     needs:needs,
     filled:Array(needs.length).fill(null),
-    reward:Math.round(sum*1.45+12*slotCount+state.level*3+diversityBonus),
-    xp:20+8*slotCount+Math.min(20,state.level*2)+diversityBonus,
-    typeCount:chosen.length
+    reward:Math.round((sum*1.45+12*slotCount+state.level*4+diversityBonus+quantityBonus)*tierMultiplier),
+    xp:Math.round((20+8*slotCount+Math.min(70,state.level*2)+diversityBonus*.55+quantityBonus*.4)*tierMultiplier),
+    typeCount:chosen.length,
+    tier:tier
   };
 }
-
 function customerById(id){
   for(var i=0;i<CUSTOMERS.length;i++)if(CUSTOMERS[i].id===id)return CUSTOMERS[i];
   return CUSTOMERS[0];
 }
 
 function addXp(amount){
+  if(state.level>=MAX_PLAYER_LEVEL){
+    state.level=MAX_PLAYER_LEVEL;
+    state.xp=0;
+    return;
+  }
   state.xp+=amount;
   var leveled=false;
-  while(state.xp>=xpNeed(state.level)){
+  while(state.level<MAX_PLAYER_LEVEL&&state.xp>=xpNeed(state.level)){
     state.xp-=xpNeed(state.level);
     state.level++;
-    state.gold+=25+state.level*8;
+    state.gold+=30+state.level*12+Math.floor(state.level*state.level*.55);
     leveled=true;
   }
+  if(state.level>=MAX_PLAYER_LEVEL)state.xp=0;
   if(leveled)toast('⭐ Lên Level '+state.level+' • Đã mở thêm nội dung!');
 }
 
@@ -523,8 +580,13 @@ function renderStats(){
   els.level.textContent=state.level;
   els.turn.textContent=state.turn;
   var need=xpNeed(state.level);
-  els.xp.textContent=state.xp+'/'+need;
-  els.xpFill.style.width=Math.min(100,state.xp/need*100)+'%';
+  if(state.level>=MAX_PLAYER_LEVEL){
+    els.xp.textContent='MAX';
+    els.xpFill.style.width='100%';
+  }else{
+    els.xp.textContent=state.xp+'/'+need;
+    els.xpFill.style.width=Math.min(100,state.xp/need*100)+'%';
+  }
 }
 
 function renderCustomer(){
@@ -532,6 +594,12 @@ function renderCustomer(){
   els.customer.title=c.name;
   els.customer.style.backgroundPosition=(c.col*25)+'% '+(c.row*100)+'%';
   els.reward.innerHTML=coinHtml(state.order.reward,false);
+  if(els.orderTier){
+    var tier=state.order.tier||'normal';
+    els.orderTier.className='orderTier '+tier;
+    els.orderTier.textContent=tier==='vip'?'👑':(tier==='large'?'🧺':'🌱');
+    els.orderTier.title=tier==='vip'?'Đơn VIP':(tier==='large'?'Đơn lớn':'Đơn thường');
+  }
   els.orderSlots.innerHTML='';
   els.orderSlots.setAttribute('aria-label','Đơn hàng gồm '+state.order.needs.length+' trái');
   state.order.needs.forEach(function(id,i){
