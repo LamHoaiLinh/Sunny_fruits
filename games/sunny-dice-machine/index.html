@@ -48,7 +48,7 @@
     </div>
     <div class="history" id="history"></div>
     <div class="help">
-      <b>Cơ chế:</b> mặt xúc xắc chỉ quyết định vị trí thả viên bi. Nếu bóng rơi ngoài 4 phễu thì lượt đó không tính và phải thảy lại xí ngầu. Nếu bóng vào phễu, nước chảy chậm tới tuabin, kéo bánh răng và trục cam. Trục cam ép một bơm thủy lực, áp lực nước chạy qua ống góp tới từng xi-lanh của đường đua. Mỗi viên bi nằm trên một bàn nâng có piston và chốt hãm, nên viên bi chỉ đi lên khi piston thực sự được đẩy lên.
+      <b>Cơ chế:</b> mặt xúc xắc chỉ quyết định vị trí thả viên bi. Mỗi phễu có màu và tên người được lợi: bóng vào đúng phễu sẽ mở van ưu tiên và người đó được thêm <b>+1 bậc</b>, nhưng kết quả vật lý chính vẫn quyết định phần lớn số bậc. Với 3 người, Phễu 4 là <b>TURBO CÂN BẰNG</b> dành +1 cho người đang đứng cuối. Với 2 người, Phễu 1 & 3 thuộc người 1, Phễu 2 & 4 thuộc người 2. Sau đó nước chạy tới tuabin, bơm thủy lực và piston mới đẩy các viên bi lên.
       <div class="legend" id="legend"></div>
     </div>
   </section>
@@ -110,12 +110,23 @@ function setDiceEnabled(on){diceBtns.forEach(b=>b.disabled=!on)}
 function saveNames(){
   try{localStorage.setItem('sunnyDicePlayerNames',JSON.stringify(racers.map(r=>r.name)))}catch(e){}
 }
+function playerFunnelText(p){
+  if(state.players===4)return 'Phễu '+(p+1);
+  if(state.players===3)return 'Phễu '+(p+1);
+  return p===0?'Phễu 1 & 3':'Phễu 2 & 4';
+}
 function renderLegend(){
   legendEl.replaceChildren();
   for(let p=0;p<state.players;p++){
     const span=document.createElement('span');span.className='dot';
     const dot=document.createElement('i');dot.style.background=racers[p].color;
-    const name=document.createTextNode(racers[p].name||DEFAULT_NAMES[p]);
+    const name=document.createTextNode((racers[p].name||DEFAULT_NAMES[p])+' • '+playerFunnelText(p)+' +1');
+    span.append(dot,name);legendEl.append(span);
+  }
+  if(state.players===3){
+    const span=document.createElement('span');span.className='dot';
+    const dot=document.createElement('i');dot.style.background='#f09a44';
+    const name=document.createTextNode('Phễu 4 TURBO • người cuối +1');
     span.append(dot,name);legendEl.append(span);
   }
 }
@@ -138,10 +149,19 @@ function startRun(die){
   const startXs=[0,92,210,330,450,570,690];
   const jitter=(rng()-.5)*9,side=(rng()-.5)*18;
   const phases=movingBase.map(()=>rng()*Math.PI*2);
-  state.run={seed,rng,phases,collisions:0,energy:0,cup:-1,impact:null,moves:null,oldScores:state.scores.slice(),targetScores:null,waterAnnounced:false,gearAnnounced:false,energyAnnounced:false,pumpAnnounced:false,hydraulicAnnounced:false,raceAnnounced:false};
+  state.run={seed,rng,phases,collisions:0,energy:0,cup:-1,impact:null,baseMoves:null,moves:null,bonusPlayer:-1,bonusLabel:'',bonusColor:'#f09a44',oldScores:state.scores.slice(),targetScores:null,waterAnnounced:false,gearAnnounced:false,energyAnnounced:false,pumpAnnounced:false,hydraulicAnnounced:false,raceAnnounced:false};
   state.marble={x:startXs[die]+jitter,y:78,vx:side,vy:0,r:15,rot:0};
   setDiceEnabled(false);setStatus('Máy đang chạy: viên bi '+dieChars[die]+' đã được thả...');
   beep(620,.07,.035);
+}
+function funnelRule(c){
+  if(state.players===4)return {type:'player',player:c,color:racers[c].color,label:racers[c].name+' +1'};
+  if(state.players===3){
+    if(c<3)return {type:'player',player:c,color:racers[c].color,label:racers[c].name+' +1'};
+    return {type:'balance',player:-1,color:'#f09a44',label:'TURBO • người cuối +1'};
+  }
+  const p=c%2;
+  return {type:'player',player:p,color:racers[p].color,label:racers[p].name+' +1'};
 }
 function detectCup(x){
   for(let c=0;c<4;c++){
@@ -209,20 +229,44 @@ function stepPhysics(dt){
 function computeMoves(){
   const r=state.run,i=r.impact,cup=r.cup;
   const basis=i.x*.017+i.vx*.026+i.vy*.0067+r.collisions*.61+state.die*1.19+r.energy*.43;
-  const moves=[];
+  const baseMoves=[];
   for(let p=0;p<state.players;p++){
     const wave=Math.sin(basis+p*1.83)+Math.cos(basis*.57+p*2.11)+Math.sin((cup+1)*(p+2)*.79+i.speed*.008);
-    let m=1+Math.floor(clamp((wave+3)/6,0,.999)*5);
-    if(p===cup%state.players)m=Math.min(6,m+1);
-    moves.push(m);
+    baseMoves.push(1+Math.floor(clamp((wave+3)/6,0,.999)*5));
   }
-  r.moves=moves;r.targetScores=r.oldScores.map((s,p)=>s+(moves[p]||0));
+  const rule=funnelRule(cup);
+  let bonusPlayer=rule.player;
+  if(rule.type==='balance'){
+    let candidates=[...Array(state.players).keys()];
+    const minScore=Math.min(...r.oldScores.slice(0,state.players));
+    candidates=candidates.filter(p=>r.oldScores[p]===minScore);
+    if(candidates.length>1){
+      const minBase=Math.min(...candidates.map(p=>baseMoves[p]));
+      candidates=candidates.filter(p=>baseMoves[p]===minBase);
+    }
+    bonusPlayer=candidates[0];
+  }
+  const moves=baseMoves.slice();
+  if(bonusPlayer>=0)moves[bonusPlayer]=Math.min(6,moves[bonusPlayer]+1);
+  r.baseMoves=baseMoves;
+  r.bonusPlayer=bonusPlayer;
+  r.bonusColor=bonusPlayer>=0?racers[bonusPlayer].color:rule.color;
+  r.bonusLabel=rule.type==='balance'
+    ? 'TURBO chọn '+racers[bonusPlayer].name+' +1'
+    : racers[bonusPlayer].name+' +1';
+  r.moves=moves;
+  r.targetScores=r.oldScores.map((s,p)=>s+(moves[p]||0));
 }
 function beginChain(){
   if(state.phase!=='drop')return;
   state.phase='chain';state.chainTime=0;state.marble.vx*=.25;state.marble.vy=0;
   computeMoves();
-  setStatus('Viên bi vào phễu '+(state.run.cup+1)+'. Nước đang truyền lực sang tuabin...');
+  const rule=funnelRule(state.run.cup);
+  if(rule.type==='balance'){
+    setStatus('Bóng vào PHỄU 4 TURBO — van cân bằng ưu tiên '+racers[state.run.bonusPlayer].name+' thêm +1 bậc.');
+  }else{
+    setStatus('Bóng vào PHỄU '+(state.run.cup+1)+' của '+racers[state.run.bonusPlayer].name+' — mở van ưu tiên, tăng áp +1 bậc.');
+  }
   beep(180,.12,.03);
 }
 function updateChain(dt){
@@ -238,7 +282,7 @@ function updateChain(dt){
   if(state.chainTime>4.75&&!state.run.waterAnnounced){state.run.waterAnnounced=true;setStatus('Nước đã tới tuabin. Guồng nước bắt đầu tích động năng...')}
   if(state.chainTime>5.65&&!state.run.gearAnnounced){state.run.gearAnnounced=true;setStatus('Tuabin đang kéo bộ bánh răng và trục cam...')}
   if(state.chainTime>6.45&&!state.run.energyAnnounced){state.run.energyAnnounced=true;setStatus('Động năng đang chạy dọc trục cam tới bơm thủy lực...')}
-  if(state.chainTime>7.75&&!state.run.pumpAnnounced){state.run.pumpAnnounced=true;setStatus('Trục cam đang ép bơm thủy lực. Áp lực nước bắt đầu tăng...')}
+  if(state.chainTime>7.75&&!state.run.pumpAnnounced){state.run.pumpAnnounced=true;setStatus('Trục cam đang ép bơm thủy lực. Van ưu tiên '+racers[state.run.bonusPlayer].name+' được mở thêm +1 áp lực...')}
   if(state.chainTime>8.55&&!state.run.hydraulicAnnounced){state.run.hydraulicAnnounced=true;setStatus('Áp lực nước đang chạy qua ống góp tới các xi-lanh đường đua...')}
   if(state.chainTime>10.35&&!state.run.raceAnnounced){state.run.raceAnnounced=true;setStatus('Xi-lanh đã nhận áp lực. Piston đang từ từ đẩy các viên bi lên...')}
   if(state.chainTime>10.35){
@@ -248,7 +292,7 @@ function updateChain(dt){
   if(state.chainTime>13.45&&!state.resultApplied){
     state.resultApplied=true;state.scores=state.run.targetScores.slice();state.visualScores=state.scores.slice();
     const crossed=[];for(let p=0;p<state.players;p++)if(state.scores[p]>=TARGET)crossed.push(p);
-    const desc=state.run.moves.map((m,p)=>racers[p].name+' +'+m).join(' • ');
+    const desc=state.run.moves.map((m,p)=>racers[p].name+' +'+m+(state.run.bonusPlayer===p?' (phễu +1)':'')).join(' • ');
     state.history.unshift(dieChars[state.die]+' → '+desc);state.history=state.history.slice(0,5);renderHistory();
     if(crossed.length){
       let winner=crossed[0];crossed.forEach(p=>{if(state.scores[p]>state.scores[winner])winner=p});
@@ -289,13 +333,19 @@ function drawMachine(){
     ctx.beginPath();ctx.arc(cx,p.y,p.r+5,0,Math.PI*2);ctx.fillStyle='#ffe19a';ctx.fill();ctx.strokeStyle='#d6a94a';ctx.lineWidth=4;ctx.stroke();
     ctx.beginPath();ctx.arc(cx,p.y,p.r*.36,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
   });
-  // phễu
+  // phễu: màu và tên cho biết ai được +1 nếu bóng rơi vào
   for(let c=0;c<4;c++){
-    const x=50+c*170;
-    ctx.fillStyle=['#ffd9e6','#d9efff','#fff0b9','#e8dcff'][c];
+    const x=50+c*170,rule=funnelRule(c),selected=state.phase==='chain'&&state.run&&state.run.cup===c;
+    ctx.save();
+    ctx.globalAlpha=selected?0.55:0.28;ctx.fillStyle=rule.color;
     ctx.beginPath();ctx.moveTo(x,485);ctx.lineTo(x+150,485);ctx.lineTo(x+112,548);ctx.lineTo(x+38,548);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='#a88e99';ctx.lineWidth=3;ctx.stroke();
-    ctx.fillStyle='#755d68';ctx.font='800 15px Trebuchet MS';ctx.textAlign='center';ctx.fillText('PHỄU '+(c+1),x+75,515);
+    ctx.restore();
+    ctx.strokeStyle=selected?rule.color:'#a88e99';ctx.lineWidth=selected?6:3;
+    if(selected){ctx.save();ctx.shadowColor=rule.color;ctx.shadowBlur=14;ctx.stroke();ctx.restore()}else ctx.stroke();
+    ctx.fillStyle='#654f5a';ctx.textAlign='center';ctx.font='900 13px Trebuchet MS';ctx.fillText('PHỄU '+(c+1),x+75,507);
+    ctx.font='900 11px Trebuchet MS';
+    let label=rule.type==='balance'?'TURBO CUỐI +1':(racers[rule.player].name.length>9?racers[rule.player].name.slice(0,8)+'…':racers[rule.player].name)+' +1';
+    ctx.fillText(label,x+75,527);
   }
   ctx.textAlign='left';
   // ống dẫn lớn: viền ngoài + lòng ống sáng để đường nước rõ hơn
@@ -388,6 +438,12 @@ function drawHydraulicNetwork(q){
       }
     }
   }
+  if(state.phase==='chain'&&state.run&&state.run.bonusPlayer>=0&&q>.35){
+    const p=state.run.bonusPlayer,cx=865+p*78+29,pulse=.55+.45*Math.sin(state.chainTime*7);
+    ctx.strokeStyle=racers[p].color;ctx.lineWidth=11;ctx.shadowColor=racers[p].color;ctx.shadowBlur=12+6*pulse;
+    ctx.beginPath();ctx.moveTo(cx,manifoldY);ctx.lineTo(cx,636);ctx.stroke();
+    ctx.fillStyle=racers[p].color;ctx.beginPath();ctx.arc(cx,manifoldY-5,7+2*pulse,0,Math.PI*2);ctx.fill();
+  }
   ctx.restore();
 }
 function drawWheel(x,y,r,a,fill,stroke,spokes){
@@ -441,7 +497,13 @@ function drawRace(){
     ctx.fillStyle='#5e4b55';ctx.font='900 12px Trebuchet MS';ctx.fillText(racers[p].name,cx,686);ctx.fillText(Math.floor(state.visualScores[p])+'/30',cx,706);
     if(state.phase==='chain'&&state.chainTime>10.35&&state.run&&state.run.moves){
       const q=clamp((state.chainTime-10.35)/2.7,0,1);
-      if(q<1){ctx.fillStyle=racers[p].color;ctx.font='900 17px Trebuchet MS';ctx.fillText('PISTON +'+state.run.moves[p],cx,Math.max(top+18,ballY-32))}
+      if(q<1){
+        ctx.fillStyle=racers[p].color;ctx.font='900 17px Trebuchet MS';ctx.fillText('PISTON +'+state.run.moves[p],cx,Math.max(top+18,ballY-32));
+        if(state.run.bonusPlayer===p){
+          roundRect(cx-28,Math.max(top+24,ballY-59),56,19,8,'#fff7d7',racers[p].color);
+          ctx.fillStyle=racers[p].color;ctx.font='900 10px Trebuchet MS';ctx.fillText('PHỄU +1',cx,Math.max(top+37,ballY-46));
+        }
+      }
     }
   }
   ctx.textAlign='left';
