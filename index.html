@@ -38,14 +38,14 @@
     <main id="boardWrap">
       <div id="rotateOverlay" class="rotate-overlay hidden"><div>📱↻</div><b>Bạn xoay ngang màn hình để chơi dễ hơn nhé!</b></div>
       <div id="board" class="board" aria-label="Bàn xếp trái cây">
+        <div id="leftReserve" class="reserve left" data-pos="reserve-left" aria-label="Ô để tạm 1"><span class="reserve-label">Để tạm 1</span></div>
+        <div id="rightReserve" class="reserve right" data-pos="reserve-right" aria-label="Ô để tạm 2"><span class="reserve-label">Để tạm 2</span></div>
         <div id="rail" class="rail"></div>
-        <div id="leftReserve" class="reserve left" data-pos="reserve-left"><span class="reserve-label">Để tạm</span></div>
         <div id="columns" class="columns"></div>
-        <div id="rightReserve" class="reserve right" data-pos="reserve-right"><span class="reserve-label">Để tạm</span></div>
         <div id="dragLayer" class="drag-layer"></div>
       </div>
     </main>
-    <footer class="tip">Xếp 3 trái giống nhau vào cùng một cột • Cột có 4 thẻ sẽ chặn đường</footer>
+    <footer class="tip">Nhấp 1 lần để chọn rồi nhấp nơi đến • Hoặc kéo thả • Cột có 4 trái sẽ chặn đường</footer>
   </section>
 
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
