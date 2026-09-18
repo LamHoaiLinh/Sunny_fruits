@@ -516,7 +516,7 @@ function drawMachine(){
   drawGear(535,710,44,state.gear,'#f2b85c');drawGear(605,710,32,-state.gear*1.35,'#ef8e74');
 
   // Dòng cam từ tua-bin lên xô cân bằng.
-  const feedRoute=[[637,710],[730,710],[805,710],[805,190],[950,190]];
+  const feedRoute=[[637,710],[730,710],[805,710],[805,90],[950,90]];
   drawPipe(feedRoute,24,13);
   const feedQ=state.phase==='chain'?clamp((state.chainTime-5.45)/1.55,0,1):0;
   if(feedQ>0)strokePartialPath(feedRoute,feedQ,'#ef982f',10,'#ffc36c');
@@ -524,33 +524,33 @@ function drawMachine(){
   const bucketFill=clamp((state.chainTime-5.9)/1.1,0,1);
   const bucketTip=clamp((state.chainTime-7.0)/.55,0,1);
   const side=state.run&&state.run.routeSide?state.run.routeSide:'left';
-  drawTippingBucket(950,190,bucketFill,side,bucketTip);
+  drawTippingBucket(950,90,bucketFill,side,bucketTip);
 
   // Hai nhánh vật lý khác nhau.
-  const leftRoute=[[950,210],[905,245],[875,285]];
-  const rightRoute=[[950,210],[1000,245],[1040,285]];
+  const leftRoute=[[950,110],[905,135],[875,155]];
+  const rightRoute=[[950,110],[1000,135],[1040,155]];
   drawPipe(leftRoute,19,10);drawPipe(rightRoute,19,10);
   const branchQ=state.phase==='chain'?clamp((state.chainTime-7.05)/.9,0,1):0;
   if(side==='left'&&branchQ>0)strokePartialPath(leftRoute,branchQ,'#ef982f',8,'#ffc36c');
   if(side==='right'&&branchQ>0)strokePartialPath(rightRoute,branchQ,'#ef982f',8,'#ffc36c');
 
   const tankQ=clamp((state.chainTime-7.5)/1.1,0,1);
-  drawReservoir(875,310,side==='left'?tankQ:0,'BỂ TRÁI');
-  drawReservoir(1040,310,side==='right'?tankQ:0,'BỂ PHẢI');
-  drawSeesawMechanism(900,390,side==='left'?clamp((state.chainTime-8.15)/.8,0,1):0);
-  drawHammerMechanism(1040,390,side==='right'?clamp((state.chainTime-8.15)/.8,0,1):0);
+  drawReservoir(875,180,side==='left'?tankQ:0,'BỂ TRÁI');
+  drawReservoir(1040,180,side==='right'?tankQ:0,'BỂ PHẢI');
+  drawSeesawMechanism(900,240,side==='left'?clamp((state.chainTime-8.15)/.8,0,1):0);
+  drawHammerMechanism(1040,240,side==='right'?clamp((state.chainTime-8.15)/.8,0,1):0);
 
   // Hai nhánh nhập lại tại van chính rồi mới chạy vòng quanh đường đua.
-  const mergeLeft=[[875,340],[900,430],[965,455]];
-  const mergeRight=[[1040,340],[1030,430],[965,455]];
+  const mergeLeft=[[875,210],[900,255],[965,265]];
+  const mergeRight=[[1040,210],[1030,255],[965,265]];
   drawPipe(mergeLeft,18,9);drawPipe(mergeRight,18,9);
   const mergeQ=state.phase==='chain'?clamp((state.chainTime-8.35)/.85,0,1):0;
   if(side==='left'&&mergeQ>0)strokePartialPath(mergeLeft,mergeQ,'#ef982f',8,'#ffc36c');
   if(side==='right'&&mergeQ>0)strokePartialPath(mergeRight,mergeQ,'#ef982f',8,'#ffc36c');
-  drawCheckValve(965,455,clamp((state.chainTime-9.0)/.4,0,1));
+  drawCheckValve(965,265,clamp((state.chainTime-9.0)/.4,0,1));
 
   // Vòng áp lực dài quanh đường đua.
-  const loopRoute=[[965,455],[815,455],[815,120],[1182,120],[1182,835],[842,835]];
+  const loopRoute=[[965,265],[815,265],[815,55],[1182,55],[1182,835],[842,835]];
   drawPipe(loopRoute,23,12);
   const loopQ=state.phase==='chain'?clamp((state.chainTime-9.25)/3.2,0,1):0;
   if(loopQ>0){
@@ -560,10 +560,10 @@ function drawMachine(){
   }
 
   // Cơ cấu phụ dọc vòng ngoài để không còn khoảng trống.
-  drawPressureGauge(865,150,clamp((state.chainTime-9.6)/.9,0,1));
-  drawWheel(960,120,24,state.gear*2.5,'#f4b05a','#b96d24',6);
-  drawPressureChamber(1060,120,clamp((state.chainTime-10.0)/.9,0,1));
-  drawDistributor(1150,240,clamp((state.chainTime-10.75)/.9,0,1));
+  drawPressureGauge(865,95,clamp((state.chainTime-9.6)/.9,0,1));
+  drawWheel(960,55,24,state.gear*2.5,'#f4b05a','#b96d24',6);
+  drawPressureChamber(1060,95,clamp((state.chainTime-10.0)/.9,0,1));
+  drawDistributor(1150,180,clamp((state.chainTime-10.75)/.9,0,1));
   drawWheel(1182,420,24,-state.gear*2.1,'#e8a04f','#a7672b',6);
   drawCheckValve(1182,565,clamp((state.chainTime-11.1)/.5,0,1));
 
@@ -637,7 +637,7 @@ function drawGear(x,y,r,a,color){
   ctx.beginPath();ctx.arc(0,0,r*.42,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.restore();
 }
 function drawRace(){
-  const top=180,bottom=815,trackH=bottom-top;
+  const top=280,bottom=815,trackH=bottom-top;
   for(let p=0;p<state.players;p++){
     const x=865+p*78,w=58,cx=x+w/2;
     ctx.fillStyle='#ffffffb5';ctx.fillRect(x,top,w,trackH);
@@ -688,7 +688,7 @@ function drawRace(){
   }
   ctx.textAlign='left';
   ctx.fillStyle='#607983';ctx.font='800 11px Trebuchet MS';ctx.fillText('ỐNG GÓP ÁP LỰC',936,855);
-  ctx.fillStyle='#7a6570';ctx.fillRect(838,145,5,36);ctx.fillStyle='#ff6f9f';ctx.fillRect(843,145,48,22);ctx.fillStyle='#fff';ctx.font='900 11px Arial';ctx.fillText('ĐÍCH',851,160);
+  ctx.fillStyle='#7a6570';ctx.fillRect(838,245,5,36);ctx.fillStyle='#ff6f9f';ctx.fillRect(843,245,48,22);ctx.fillStyle='#fff';ctx.font='900 11px Arial';ctx.fillText('ĐÍCH',851,260);
   if(state.winner!==null&&state.phase==='gameover'){
     ctx.fillStyle='#fff8c6e8';ctx.fillRect(830,390,330,120);ctx.fillStyle='#6b5360';ctx.font='900 28px Trebuchet MS';ctx.textAlign='center';ctx.fillText('🏆 '+racers[state.winner].name+' THẮNG!',995,450);ctx.font='700 15px Trebuchet MS';ctx.fillText('Piston thủy lực đã đưa viên bi tới đích',995,480);ctx.textAlign='left';
   }
