@@ -81,6 +81,7 @@ var els={
   orderSlots:document.getElementById('orderSlots'),
   warehouse:document.getElementById('warehouse'),
   warehouseCount:document.getElementById('warehouseCount'),
+  discardBtn:document.getElementById('discardBtn'),
   field:document.getElementById('field'),
   fieldCount:document.getElementById('fieldCount'),
   shop:document.getElementById('seedShop'),
@@ -401,6 +402,34 @@ function clickWarehouse(index){
     state.selectedWarehouse=index;
     renderWarehouse();
   }
+}
+
+function updateDiscardButton(){
+  if(!els.discardBtn)return;
+  var enabled=state.selectedWarehouse!==null&&!!state.warehouse[state.selectedWarehouse];
+  els.discardBtn.disabled=!enabled;
+  els.discardBtn.classList.toggle('active',enabled);
+  if(enabled){
+    els.discardBtn.title='Vứt bỏ '+fruitName(state.warehouse[state.selectedWarehouse])+' • Không nhận vàng';
+  }else{
+    els.discardBtn.title='Chọn 1 trái trong kho để vứt bỏ';
+  }
+}
+
+function discardSelectedFruit(){
+  if(state.selectedWarehouse===null)return;
+  var index=state.selectedWarehouse;
+  var id=state.warehouse[index];
+  if(!id)return;
+
+  var ok=window.confirm('Vứt bỏ '+fruitName(id)+'?\n\nKhông nhận vàng và không thể hoàn tác.');
+  if(!ok)return;
+
+  state.warehouse[index]=null;
+  state.selectedWarehouse=null;
+  save();
+  render();
+  toast('🗑️ Đã vứt bỏ '+fruitName(id),true);
 }
 
 function orderAvailableCustomers(){
@@ -744,6 +773,7 @@ function render(){
   renderField();
   renderShop();
   renderFruitBook();
+  updateDiscardButton();
 }
 
 document.getElementById('nextTurnBtn').addEventListener('click',function(){
@@ -751,6 +781,7 @@ document.getElementById('nextTurnBtn').addEventListener('click',function(){
   toast('☀️ Qua 1 lượt • Cây lớn thêm');
 });
 document.getElementById('refreshOrderBtn').addEventListener('click',refreshOrder);
+if(els.discardBtn)els.discardBtn.addEventListener('click',discardSelectedFruit);
 els.bookBtn.addEventListener('click',openFruitBook);
 els.bookClose.addEventListener('click',closeFruitBook);
 els.bookModal.addEventListener('click',function(e){if(e.target===els.bookModal)closeFruitBook();});
