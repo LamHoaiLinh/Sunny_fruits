@@ -20,12 +20,15 @@ const names={
   shoes:['Giày da đỏ','Giày thể thao trắng','Ủng mưa hồng','Giày ba lê','Giày đế dày Kuromi','Dép thỏ','Ủng mưa mặt trời'],
   accessory:['Vương miện nhỏ','Kẹp nơ','Vòng cổ ngọc trai','Túi đeo chéo','Mũ Kuromi','Tai gấu','Kẹp mây cầu vồng','Kẹp ngôi sao']
 };
+const hiddenItemIds=new Set(['hair_11','hair_14','hair_16']);
 const items={};
 for(const c of categories){
-  items[c.key]=names[c.key].map((name,i)=>({
-    id:`${c.key}_${i+1}`,name,category:c.key,
-    layer:`${A}layers/${c.key}_${i+1}.png`,thumb:`${A}thumbs/${c.key}_${i+1}.png`
-  }));
+  items[c.key]=names[c.key]
+    .map((name,i)=>({
+      id:`${c.key}_${i+1}`,name,category:c.key,
+      layer:`${A}layers/${c.key}_${i+1}.png`,thumb:`${A}thumbs/${c.key}_${i+1}.png`
+    }))
+    .filter(item=>!hiddenItemIds.has(item.id));
 }
 const models=[
   {id:'girl_1',name:'Đào Đào'},
@@ -55,6 +58,10 @@ function safeJSON(key,fallback){try{const x=JSON.parse(localStorage.getItem(key)
 function load(){
   const saved=safeJSON(STORAGE_KEY,null);
   if(saved && saved.selection){state={...state,...saved,selection:{...emptySelection(),...saved.selection}}}
+  for(const c of categories){
+    const id=state.selection[c.key];
+    if(id && (!findItem(id) || hiddenItemIds.has(id))) state.selection[c.key]=null;
+  }
   album=safeJSON(ALBUM_KEY,[]); if(!Array.isArray(album))album=[];
   stars=Number(localStorage.getItem(STARS_KEY)||0)||0;
 }
