@@ -1,0 +1,64 @@
+name: Import Sunny Princess artwork
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/import-sunny-princess-assets.yml"
+      - "games/sunny-princess/ASSETS_VERSION"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sunny-princess-assets
+  cancel-in-progress: false
+
+jobs:
+  import-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Sunny Game Hub
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Download pinned Dress Up Princess source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC_SHA="70da834a9098edda4f7b138b626e9cc6f39cf9fa"
+          rm -rf /tmp/sunny-princess-src /tmp/sunny-princess.zip
+          mkdir -p /tmp/sunny-princess-src
+          curl -L --fail --retry 3             "https://codeload.github.com/leven-space/dress-up-princess/zip/${SRC_SHA}"             -o /tmp/sunny-princess.zip
+          unzip -q /tmp/sunny-princess.zip -d /tmp/sunny-princess-src
+          SRC_DIR="$(find /tmp/sunny-princess-src -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+          test -d "${SRC_DIR}/public/assets"
+          rm -rf games/sunny-princess/assets
+          cp -R "${SRC_DIR}/public/assets" games/sunny-princess/assets
+
+      - name: Verify artwork set
+        shell: bash
+        run: |
+          set -euo pipefail
+          COUNT="$(find games/sunny-princess/assets -type f | wc -l | tr -d ' ')"
+          echo "Artwork files: ${COUNT}"
+          test "${COUNT}" -eq 107
+          test -f games/sunny-princess/assets/chars/girl_1.png
+          test -f games/sunny-princess/assets/layers/accessory_8.png
+          test -f games/sunny-princess/assets/scenes/snow.png
+
+      - name: Commit artwork into Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Sunny Hub Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add games/sunny-princess/assets
+          if git diff --cached --quiet; then
+            echo "Artwork is already up to date."
+            exit 0
+          fi
+          git commit -m "game4: import original Sunny Princess artwork"
+          git push
