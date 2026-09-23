@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#ffd6e7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Sunny Princess - Thay đồ công chúa</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="app">
+  <header class="topbar">
+    <a class="hub-btn" href="../../index.html" aria-label="Về Sunny Game Hub">← HUB</a>
+    <div class="brand">
+      <img src="assets/ui/icon_accessory.png" alt="" draggable="false">
+      <div><h1>SUNNY PRINCESS</h1><p>Thay đồ công chúa</p></div>
+    </div>
+    <div class="stars" aria-label="Số sao thử thách"><span>⭐</span><b id="starCount">0</b></div>
+  </header>
+  <nav class="toolbar" aria-label="Công cụ">
+    <button id="challengeBtn" class="tool-btn challenge"><span>🎯</span><b>Thử thách</b></button>
+    <button id="randomBtn" class="tool-btn"><img src="assets/ui/icon_random.png" alt=""><b>Phối nhanh</b></button>
+    <button id="resetBtn" class="tool-btn"><img src="assets/ui/icon_reset.png" alt=""><b>Làm lại</b></button>
+    <button id="saveBtn" class="tool-btn"><img src="assets/ui/icon_save.png" alt=""><b>Lưu album</b></button>
+    <button id="albumBtn" class="tool-btn"><img src="assets/ui/icon_album.png" alt=""><b>Album</b><i id="albumBadge" class="badge" hidden>0</i></button>
+    <button id="previewBtn" class="tool-btn"><span>🔍</span><b>Xem lớn</b></button>
+  </nav>
+  <section id="missionBar" class="mission-bar" hidden>
+    <div class="mission-title"><span>🎯</span><b>Phối giống các hình này</b></div>
+    <div id="missionTargets" class="mission-targets"></div>
+    <button id="hintBtn" class="mini-btn">💡 Gợi ý</button>
+    <button id="cancelMissionBtn" class="mini-btn muted">✕ Dừng</button>
+  </section>
+  <main class="game-main">
+    <section class="stage-zone" aria-label="Công chúa">
+      <div id="stage" class="stage">
+        <img id="sceneImg" class="stage-bg" src="assets/scenes/sky.png" alt="Bối cảnh" draggable="false">
+        <div class="stage-inner">
+          <img id="modelImg" class="stage-layer base" src="assets/chars/girl_1.png" alt="Công chúa" draggable="false">
+          <img id="layerShoes" class="stage-layer" data-category="shoes" alt="" draggable="false" hidden>
+          <img id="layerSkirt" class="stage-layer" data-category="skirt" alt="" draggable="false" hidden>
+          <img id="layerTop" class="stage-layer" data-category="top" alt="" draggable="false" hidden>
+          <img id="layerHair" class="stage-layer" data-category="hair" alt="" draggable="false" hidden>
+          <img id="layerAccessory" class="stage-layer" data-category="accessory" alt="" draggable="false" hidden>
+        </div>
+      </div>
+      <div id="modelSwitcher" class="model-switcher" aria-label="Chọn công chúa"></div>
+      <div id="sceneSwitcher" class="scene-switcher" aria-label="Chọn bối cảnh"></div>
+    </section>
+    <section class="wardrobe" aria-label="Tủ đồ">
+      <div id="categoryTabs" class="category-tabs"></div>
+      <div class="wardrobe-head">
+        <div><span id="categoryEmoji">💇‍♀️</span><b id="categoryTitle">Kiểu tóc</b></div>
+        <button id="removeItemBtn" class="remove-btn">Bỏ món đang mặc</button>
+      </div>
+      <div id="itemGrid" class="item-grid"></div>
+    </section>
+  </main>
+  <footer class="footer-note">Chạm vào đồ để mặc • Chạm lại món đang chọn để cởi</footer>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="confetti" class="confetti" aria-hidden="true"></div>
+<div id="albumModal" class="modal" hidden>
+  <section class="modal-card album-card" role="dialog" aria-modal="true" aria-labelledby="albumTitle">
+    <header><h2 id="albumTitle">📸 Album của Sunny</h2><button class="close-btn" data-close="albumModal">×</button></header>
+    <div id="albumGrid" class="album-grid"></div>
+  </section>
+</div>
+<div id="challengeModal" class="modal" hidden>
+  <section class="modal-card challenge-card" role="dialog" aria-modal="true" aria-labelledby="challengeTitle">
+    <header><h2 id="challengeTitle">🎯 Thử thách phối đồ</h2><button class="close-btn" data-close="challengeModal">×</button></header>
+    <p class="challenge-copy">Nhìn hình và tìm đúng <b>3 món đồ + 1 bối cảnh</b>. Phối đúng Sunny sẽ nhận được một ngôi sao.</p>
+    <div id="challengePreview" class="challenge-preview"></div>
+    <div class="modal-actions">
+      <button id="newChallengeBtn" class="primary-btn">🎲 Đổi thử thách</button>
+      <button id="startChallengeBtn" class="primary-btn strong">▶ Bắt đầu</button>
+    </div>
+  </section>
+</div>
+<div id="previewModal" class="preview-modal" hidden>
+  <button class="preview-close" data-close="previewModal">×</button>
+  <div id="previewStage" class="preview-stage"></div>
+  <div class="preview-actions"><button id="downloadBtn" class="primary-btn strong">⬇ Tải ảnh</button></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
