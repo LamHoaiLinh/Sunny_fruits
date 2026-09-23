@@ -14,7 +14,7 @@ const categories=[
   {key:'accessory',label:'Phụ kiện',short:'Phụ kiện',emoji:'👑',icon:`${A}ui/icon_accessory.png`,z:50}
 ];
 const names={
-  hair:['Tóc hai bên','Tóc ngắn tinh nghịch','Tóc xoăn dài','Tóc búi tròn','Tóc tết hồng','Tóc đuôi ngựa xanh','Tóc búi kẹo ngọt'],
+  hair:['Tóc hai bên','Tóc ngắn tinh nghịch','Tóc xoăn dài','Tóc búi tròn','Tóc tết hồng','Tóc đuôi ngựa xanh','Tóc búi kẹo ngọt','Tóc xoăn nâu dài','Tóc vàng tết vòng hoa','Tóc xoăn nâu nơ hồng','Tóc cột hai bên nơ tím','Tóc búi cao ngọc trai','Tóc lob nâu nhạt','Tóc tết lệch hoa hồng','Tóc gợn tím xanh pastel','Tóc bob hồng ngắn','Tóc búi vương miện','Tóc búi đôi dễ thương','Tóc đuôi ngựa vàng','Tóc bob đen mái bằng','Tóc tết đôi nâu đỏ','Tóc xoăn dài nâu sáng','Tóc mái hồng buông xoăn','Tóc thẳng vàng dài','Tóc búi rối đen'],
   top:['Áo thun hồng','Áo vàng chanh','Áo hoodie xanh','Áo len dâu tây','Áo hoodie Kuromi','Áo mèo con','Áo mây cầu vồng'],
   skirt:['Váy voan bồng','Chân váy jean','Váy dài hoa','Chân váy cầu vồng','Váy bồng Kuromi','Váy bồng trời sao','Váy mây mưa'],
   shoes:['Giày da đỏ','Giày thể thao trắng','Ủng mưa hồng','Giày ba lê','Giày đế dày Kuromi','Dép thỏ','Ủng mưa mặt trời'],
