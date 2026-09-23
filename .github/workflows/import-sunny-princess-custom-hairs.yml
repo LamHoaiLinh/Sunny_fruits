@@ -1,0 +1,109 @@
+name: Import Sunny Princess custom hairs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".sunny_import/TOC_TH1.zip"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sunny-princess-custom-hairs
+  cancel-in-progress: false
+
+jobs:
+  import-hairs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Hub
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Install Pillow
+        run: python -m pip install --quiet pillow
+
+      - name: Build aligned hair layers and thumbnails
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/sunny-hairs
+          mkdir -p /tmp/sunny-hairs
+          unzip -q ".sunny_import/TOC_TH1.zip" -d /tmp/sunny-hairs
+
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          root=Path('/tmp/sunny-hairs')
+          src_dirs=[p for p in root.rglob('*') if p.is_dir() and (p/'Layer 1.png').exists()]
+          if not src_dirs:
+              raise SystemExit('Không tìm thấy Layer 1.png trong gói tóc.')
+          src=src_dirs[0]
+
+          files=[
+              'Layer 1.png','Layer 2.png',
+              'Layer 2.1.png','Layer 2.2.png','Layer 2.3.png','Layer 2.4.png',
+              'Layer 2.5.png','Layer 2.6.png','Layer 2.7.png','Layer 2.8.png','Layer 2.9.png',
+              'Layer 3.png','Layer 4.png','Layer 5.png','Layer 6.png','Layer 7.png','Layer 8.png','Layer 9.png'
+          ]
+          fits={
+              8:(69.9,5.26),9:(60.3,5.94),10:(76.5,4.92),11:(69.4,3.10),
+              12:(55.0,3.01),13:(45.7,0.0),14:(68.6,4.05),15:(58.0,0.0),
+              16:(76.8,6.44),17:(59.9,7.40),18:(54.2,0.0),19:(57.6,0.0),
+              20:(58.2,7.66),21:(50.8,4.63),22:(71.3,5.11),23:(48.0,5.51),
+              24:(68.1,6.42),25:(47.0,0.74)
+          }
+
+          layers=Path('games/sunny-princess/assets/layers')
+          thumbs=Path('games/sunny-princess/assets/thumbs')
+          layers.mkdir(parents=True,exist_ok=True)
+          thumbs.mkdir(parents=True,exist_ok=True)
+
+          for idx,name in zip(range(8,26),files):
+              p=src/name
+              if not p.exists():
+                  raise SystemExit(f'Thiếu file: {name}')
+              im=Image.open(p).convert('RGBA')
+
+              target_w=round(960*fits[idx][0]/100)
+              scale=target_w/im.width
+              target_h=round(im.height*scale)
+              resized=im.resize((target_w,target_h),Image.Resampling.LANCZOS)
+
+              canvas=Image.new('RGBA',(960,1440),(0,0,0,0))
+              x=(960-target_w)//2
+              y=round(1440*fits[idx][1]/100)
+              canvas.alpha_composite(resized,(x,y))
+              canvas.save(layers/f'hair_{idx}.png',optimize=True)
+
+              thumb=Image.new('RGBA',(360,360),(0,0,0,0))
+              scale=min(340/im.width,340/im.height)
+              small=im.resize((round(im.width*scale),round(im.height*scale)),Image.Resampling.LANCZOS)
+              thumb.alpha_composite(small,((360-small.width)//2,(360-small.height)//2))
+              thumb.save(thumbs/f'hair_{idx}.png',optimize=True)
+
+          print('Đã tạo 18 layer tóc 960x1440 và 18 thumbnail.')
+          PY
+
+      - name: Verify output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find games/sunny-princess/assets/layers -maxdepth 1 -name 'hair_*.png' | wc -l)" -ge 25
+          test "$(find games/sunny-princess/assets/thumbs -maxdepth 1 -name 'hair_*.png' | wc -l)" -ge 25
+          test -f games/sunny-princess/assets/layers/hair_25.png
+          test -f games/sunny-princess/assets/thumbs/hair_25.png
+
+      - name: Commit imported hairs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Sunny Hub Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm -f ".sunny_import/TOC_TH1.zip"
+          git add games/sunny-princess/assets/layers games/sunny-princess/assets/thumbs
+          git commit -m "game4: add 18 custom Sunny hair assets"
+          git push
