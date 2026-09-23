@@ -14,7 +14,7 @@ const categories=[
   {key:'accessory',label:'Phụ kiện',short:'Phụ kiện',emoji:'👑',icon:`${A}ui/icon_accessory.png`,z:50}
 ];
 const names={
-  hair:['Tóc hai bên','Tóc ngắn tinh nghịch','Tóc xoăn dài','Tóc búi tròn','Tóc tết hồng','Tóc đuôi ngựa xanh','Tóc búi kẹo ngọt','Tóc xoăn nâu dài','Tóc vàng tết vòng hoa','Tóc xoăn nâu nơ hồng','Tóc cột hai bên nơ tím','Tóc búi cao ngọc trai','Tóc lob nâu nhạt','Tóc tết lệch hoa hồng','Tóc gợn tím xanh pastel','Tóc bob hồng ngắn','Tóc búi vương miện','Tóc búi đôi dễ thương','Tóc đuôi ngựa vàng','Tóc bob đen mái bằng','Tóc tết đôi nâu đỏ','Tóc xoăn dài nâu sáng','Tóc mái hồng buông xoăn','Tóc thẳng vàng dài','Tóc búi rối đen'],
+  hair:['Tóc hai bên','Tóc ngắn tinh nghịch','Tóc xoăn dài','Tóc búi tròn','Tóc tết hồng','Tóc đuôi ngựa xanh','Tóc búi kẹo ngọt','Tóc xoăn nâu dài','Tóc búi đôi nơ hồng','Tóc vàng tết vòng hoa','Tóc xoăn nâu nơ hồng','Tóc cột hai bên nơ tím','Tóc búi cao ngọc trai','Tóc lob nâu nhạt','Tóc tết lệch hoa hồng','Tóc gợn tím xanh pastel','Tóc bob hồng ngắn','Tóc búi vương miện','Tóc đuôi ngựa vàng','Tóc bob đen mái bằng','Tóc tết đôi nâu đỏ','Tóc xoăn dài nâu sáng','Tóc mái hồng buông xoăn','Tóc thẳng vàng dài','Tóc búi rối đen'],
   top:['Áo thun hồng','Áo vàng chanh','Áo hoodie xanh','Áo len dâu tây','Áo hoodie Kuromi','Áo mèo con','Áo mây cầu vồng'],
   skirt:['Váy voan bồng','Chân váy jean','Váy dài hoa','Chân váy cầu vồng','Váy bồng Kuromi','Váy bồng trời sao','Váy mây mưa'],
   shoes:['Giày da đỏ','Giày thể thao trắng','Ủng mưa hồng','Giày ba lê','Giày đế dày Kuromi','Dép thỏ','Ủng mưa mặt trời'],
@@ -41,6 +41,14 @@ const scenes=[
 ].map(([id,name])=>({id,name,bg:`${A}scenes/${id}.png`,thumb:`${A}scenes/thumbs/${id}.png`}));
 
 const emptySelection=()=>({hair:null,top:null,skirt:null,shoes:null,accessory:null});
+function sanitizeSelection(selection={}){
+  const clean={...emptySelection(),...selection};
+  for(const c of categories){
+    const id=clean[c.key];
+    if(id && !findItem(id)) clean[c.key]=null;
+  }
+  return clean;
+}
 let state={model:'girl_1',scene:'sky',activeCategory:'hair',selection:emptySelection()};
 let album=[];
 let stars=0;
@@ -57,11 +65,7 @@ const findItem=id=>{for(const c of categories){const x=items[c.key].find(y=>y.id
 function safeJSON(key,fallback){try{const x=JSON.parse(localStorage.getItem(key)||'null');return x??fallback}catch{return fallback}}
 function load(){
   const saved=safeJSON(STORAGE_KEY,null);
-  if(saved && saved.selection){state={...state,...saved,selection:{...emptySelection(),...saved.selection}}}
-  for(const c of categories){
-    const id=state.selection[c.key];
-    if(id && (!findItem(id) || hiddenItemIds.has(id))) state.selection[c.key]=null;
-  }
+  if(saved && saved.selection){state={...state,...saved,selection:sanitizeSelection(saved.selection)}}
   album=safeJSON(ALBUM_KEY,[]); if(!Array.isArray(album))album=[];
   stars=Number(localStorage.getItem(STARS_KEY)||0)||0;
 }
@@ -104,7 +108,7 @@ function removeCurrent(){const c=state.activeCategory;if(!state.selection[c]){sh
 
 function snapshot(){return {id:`look_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,model:state.model,scene:state.scene,selection:{...state.selection},ts:Date.now()}}
 function saveLook(){if(!Object.values(state.selection).some(Boolean)){showToast('Sunny mặc ít nhất một món trước nhé');return}album.unshift(snapshot());album=album.slice(0,40);persistAlbum();renderBadges();showToast('📸 Đã lưu vào album!')}
-function loadLook(look){state.model=look.model||'girl_1';state.scene=look.scene||'sky';state.selection={...emptySelection(),...(look.selection||{})};renderAll();closeModal('albumModal');showToast('Đã mặc lại bộ đồ này ✨')}
+function loadLook(look){state.model=look.model||'girl_1';state.scene=look.scene||'sky';state.selection=sanitizeSelection(look.selection);renderAll();closeModal('albumModal');showToast('Đã mặc lại bộ đồ này ✨')}
 function deleteLook(id){album=album.filter(x=>x.id!==id);persistAlbum();renderAlbum();renderBadges()}
 function renderAlbum(){
   const grid=$('#albumGrid');grid.innerHTML='';
@@ -112,7 +116,7 @@ function renderAlbum(){
   album.forEach(look=>{const card=el('article','album-item');const thumb=el('div','album-thumb');thumb.append(...buildLookImages(look));const acts=el('div','album-actions');acts.innerHTML='<button class="load-look">Mặc lại</button><button class="download-look">Tải ảnh</button><button class="delete-look">×</button>';acts.querySelector('.load-look').onclick=()=>loadLook(look);acts.querySelector('.download-look').onclick=()=>downloadLook(look);acts.querySelector('.delete-look').onclick=()=>deleteLook(look.id);card.append(thumb,acts);grid.appendChild(card)})
 }
 function buildLookImages(look){
-  const m=findModel(look.model),s=findScene(look.scene),sel={...emptySelection(),...(look.selection||{})};const arr=[];
+  const m=findModel(look.model),s=findScene(look.scene),sel=sanitizeSelection(look.selection);const arr=[];
   const bg=new Image();bg.className='bg';bg.src=s.bg;bg.alt='';arr.push(bg);
   const base=new Image();base.src=sel.hair?m.bald:m.base;base.alt='';base.style.zIndex='1';arr.push(base);
   for(const c of [...categories].sort((a,b)=>a.z-b.z)){const id=sel[c.key];if(!id)continue;const im=new Image();im.src=findItem(id).layer;im.alt='';im.style.zIndex=String(c.z);arr.push(im)}return arr
@@ -151,7 +155,7 @@ function celebrate(){const box=$('#confetti');box.innerHTML='';const icons=['⭐
 async function loadImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src})}
 function coverRect(iw,ih,w,h){const s=Math.max(w/iw,h/ih),sw=w/s,sh=h/s,sx=(iw-sw)/2,sy=(ih-sh)/2;return{sx,sy,sw,sh}}
 async function composeLook(look){
-  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1536;const ctx=canvas.getContext('2d');const m=findModel(look.model),s=findScene(look.scene),sel={...emptySelection(),...(look.selection||{})};
+  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1536;const ctx=canvas.getContext('2d');const m=findModel(look.model),s=findScene(look.scene),sel=sanitizeSelection(look.selection);
   const bg=await loadImage(s.bg),r=coverRect(bg.naturalWidth,bg.naturalHeight,1024,1536);ctx.drawImage(bg,r.sx,r.sy,r.sw,r.sh,0,0,1024,1536);
   const base=await loadImage(sel.hair?m.bald:m.base);ctx.drawImage(base,0,0,1024,1536);
   for(const c of [...categories].sort((a,b)=>a.z-b.z)){const id=sel[c.key];if(!id)continue;const im=await loadImage(findItem(id).layer);ctx.drawImage(im,0,0,1024,1536)}
