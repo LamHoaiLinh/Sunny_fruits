@@ -6,6 +6,7 @@ const STORAGE_KEY='sunnyPrincessState_v1';
 const ALBUM_KEY='sunnyPrincessAlbum_v1';
 const STARS_KEY='sunnyPrincessStars_v1';
 const LAYOUT_KEY='sunnyPrincessLayout_v1';
+const USER_HIDDEN_KEY='sunnyPrincessHiddenItems_v1';
 
 const categories=[
   {key:'hair',label:'Kiểu tóc',short:'Tóc',emoji:'💇‍♀️',icon:`${A}ui/icon_hair.png`,z:40},
@@ -46,7 +47,7 @@ function sanitizeSelection(selection={}){
   const clean={...emptySelection(),...selection};
   for(const c of categories){
     const id=clean[c.key];
-    if(id && !findItem(id)) clean[c.key]=null;
+    if(id && (!findItem(id)||userHiddenItemIds.has(id))) clean[c.key]=null;
   }
   return clean;
 }
@@ -57,6 +58,7 @@ let mission=null;
 let pendingMission=null;
 let toastTimer=null;
 let layoutConfig={};
+let userHiddenItemIds=new Set();
 let editorMode=false;
 let editorItemId=null;
 
@@ -66,6 +68,7 @@ const findModel=id=>models.find(x=>x.id===id)||models[0];
 const findScene=id=>scenes.find(x=>x.id===id)||scenes[0];
 const findItem=id=>{for(const c of categories){const x=items[c.key].find(y=>y.id===id);if(x)return x}return null};
 const findCategory=key=>categories.find(c=>c.key===key);
+const visibleItems=category=>items[category].filter(it=>!userHiddenItemIds.has(it.id));
 
 function placementKey(itemId,modelId=state.model){return `${modelId}:${itemId}`}
 function defaultPlacement(itemId){
@@ -84,6 +87,7 @@ function getPlacement(itemId,modelId=state.model){
   }
 }
 function persistLayout(){try{localStorage.setItem(LAYOUT_KEY,JSON.stringify(layoutConfig))}catch{}}
+function persistHidden(){try{localStorage.setItem(USER_HIDDEN_KEY,JSON.stringify([...userHiddenItemIds]))}catch{}}
 function applyPlacement(img,p){
   const tx=(p.x/1024)*100,ty=(p.y/1536)*100;
   img.style.transform=`translate(${tx}%,${ty}%) rotate(${p.rotation}deg) scale(${p.scale})`;
@@ -92,6 +96,8 @@ function applyPlacement(img,p){
 
 function safeJSON(key,fallback){try{const x=JSON.parse(localStorage.getItem(key)||'null');return x??fallback}catch{return fallback}}
 function load(){
+  const hidden=safeJSON(USER_HIDDEN_KEY,[]);
+  userHiddenItemIds=new Set(Array.isArray(hidden)?hidden.filter(id=>findItem(id)):[]);
   const saved=safeJSON(STORAGE_KEY,null);
   if(saved && saved.selection){state={...state,...saved,selection:sanitizeSelection(saved.selection)}}
   album=safeJSON(ALBUM_KEY,[]); if(!Array.isArray(album))album=[];
@@ -103,7 +109,7 @@ function persistAlbum(){try{localStorage.setItem(ALBUM_KEY,JSON.stringify(album.
 function persistStars(){try{localStorage.setItem(STARS_KEY,String(stars))}catch{}}
 function showToast(msg,ms=1450){const t=$('#toast');clearTimeout(toastTimer);t.textContent=msg;t.hidden=false;toastTimer=setTimeout(()=>t.hidden=true,ms)}
 
-function renderAll(){renderStage();renderModels();renderScenes();renderCategories();renderItems();renderBadges();renderMissionBar();persist();if(editorMode)updateEditorPanel()}
+function renderAll(){renderStage();renderModels();renderScenes();renderCategories();renderItems();renderBadges();renderMissionBar();updateHiddenCount();persist();if(editorMode)updateEditorPanel()}
 function renderStage(){
   const m=findModel(state.model),s=findScene(state.scene);
   $('#sceneImg').src=s.bg;$('#sceneImg').alt=s.name;
@@ -136,7 +142,7 @@ function updateWardrobeHead(){const c=categories.find(x=>x.key===state.activeCat
 function renderItems(){
   const box=$('#itemGrid');box.innerHTML='';
   const targetIds=new Set(mission?.targets||[]);
-  items[state.activeCategory].forEach(it=>{const b=el('button','item-card'+(state.selection[it.category]===it.id?' selected':'')+(targetIds.has(it.id)?' target':''));b.dataset.id=it.id;b.title=it.name;b.innerHTML=`<img src="${it.thumb}" alt=""><span>${it.name}</span>`;b.onclick=()=>toggleItem(it);box.appendChild(b)})
+  visibleItems(state.activeCategory).forEach(it=>{const b=el('button','item-card'+(state.selection[it.category]===it.id?' selected':'')+(targetIds.has(it.id)?' target':''));b.dataset.id=it.id;b.title=it.name;b.innerHTML=`<img src="${it.thumb}" alt=""><span>${it.name}</span>`;b.onclick=()=>toggleItem(it);box.appendChild(b)})
 }
 function toggleItem(it){
   const removing=state.selection[it.category]===it.id;
@@ -147,7 +153,7 @@ function toggleItem(it){
 }
 function renderBadges(){$('#starCount').textContent=stars;$('#albumBadge').textContent=album.length;$('#albumBadge').hidden=album.length===0}
 
-function randomize(){for(const c of categories){const list=items[c.key];state.selection[c.key]=list[Math.floor(Math.random()*list.length)].id}renderAll();checkMission();showToast('✨ Sunny đã có một bộ đồ mới!')}
+function randomize(){for(const c of categories){const list=visibleItems(c.key);state.selection[c.key]=list.length?list[Math.floor(Math.random()*list.length)].id:null}renderAll();checkMission();showToast('✨ Sunny đã có một bộ đồ mới!')}
 function resetLook(){state.selection=emptySelection();editorItemId=null;renderAll();showToast('Đã cởi hết đồ để phối lại')}
 function removeCurrent(){const c=state.activeCategory;if(!state.selection[c]){showToast('Chưa mặc món nào ở mục này');return}if(editorItemId===state.selection[c])editorItemId=null;state.selection[c]=null;renderStage();renderItems();renderMissionBar();persist();if(editorMode)updateEditorPanel()}
 
@@ -258,9 +264,50 @@ function changeLayer(action){
   })
 }
 
+function updateHiddenCount(){
+  const n=userHiddenItemIds.size,el=$('#hiddenCount');if(el)el.textContent=String(n)
+}
+function unequipEditorItem(){
+  const it=currentEditorItem();if(!it){showToast('Hãy chọn một món đồ trước');return}
+  if(state.selection[it.category]===it.id)state.selection[it.category]=null;
+  editorItemId=null;renderAll();showToast('Đã cởi '+it.name)
+}
+function hideCurrentItem(){
+  const it=currentEditorItem();if(!it){showToast('Hãy chọn một món đồ trước');return}
+  if(!window.confirm(`Ẩn "${it.name}" khỏi game?\n\nMón này sẽ biến khỏi tủ đồ, Phối nhanh và Thử thách. Bạn vẫn có thể khôi phục trong mục “Món đã ẩn”.`))return;
+  userHiddenItemIds.add(it.id);persistHidden();
+  if(state.selection[it.category]===it.id)state.selection[it.category]=null;
+  if(mission?.targets?.includes(it.id))mission=null;
+  if(pendingMission?.targets?.includes(it.id))pendingMission=null;
+  editorItemId=null;renderAll();renderHiddenItems();showToast('Đã ẩn '+it.name+' khỏi game',2000)
+}
+function renderHiddenItems(){
+  const box=$('#hiddenItemsList');if(!box)return;box.innerHTML='';
+  const hidden=[...userHiddenItemIds].map(findItem).filter(Boolean);
+  if(!hidden.length){box.innerHTML='<div class="hidden-items-empty">Chưa có món nào bị ẩn.</div>';$('#restoreAllHiddenBtn').hidden=true;updateHiddenCount();return}
+  $('#restoreAllHiddenBtn').hidden=false;
+  hidden.sort((a,b)=>a.category.localeCompare(b.category)||a.name.localeCompare(b.name,'vi'));
+  hidden.forEach(it=>{
+    const row=el('div','hidden-item-row'),cat=findCategory(it.category);
+    row.innerHTML=`<img src="${it.thumb}" alt=""><div><b>${it.name}</b><small>${cat?.label||it.category}</small></div><button type="button">Khôi phục</button>`;
+    row.querySelector('button').onclick=()=>restoreHiddenItem(it.id);
+    box.appendChild(row)
+  });
+  updateHiddenCount()
+}
+function restoreHiddenItem(id){
+  const it=findItem(id);userHiddenItemIds.delete(id);persistHidden();renderItems();renderHiddenItems();updateHiddenCount();
+  if(it)showToast('Đã khôi phục '+it.name)
+}
+function restoreAllHidden(){
+  if(!userHiddenItemIds.size)return;
+  userHiddenItemIds.clear();persistHidden();renderItems();renderHiddenItems();updateHiddenCount();showToast('Đã khôi phục tất cả món đồ')
+}
+function openHiddenManager(){renderHiddenItems();openModal('hiddenItemsModal')}
+
 function generateMission(){
-  const cats=[...categories].sort(()=>Math.random()-.5).slice(0,3);
-  pendingMission={targets:cats.map(c=>{const l=items[c.key];return l[Math.floor(Math.random()*l.length)].id}),scene:scenes[Math.floor(Math.random()*scenes.length)].id};renderChallengePreview()
+  const cats=categories.filter(c=>visibleItems(c.key).length).sort(()=>Math.random()-.5).slice(0,3);
+  pendingMission={targets:cats.map(c=>{const l=visibleItems(c.key);return l[Math.floor(Math.random()*l.length)].id}),scene:scenes[Math.floor(Math.random()*scenes.length)].id};renderChallengePreview()
 }
 function renderChallengePreview(){
   const box=$('#challengePreview');box.innerHTML='';if(!pendingMission)return;
@@ -300,6 +347,7 @@ async function downloadLook(look){try{showToast('Đang tạo ảnh…');const ca
 function wire(){
   $('#randomBtn').onclick=randomize;$('#resetBtn').onclick=resetLook;$('#saveBtn').onclick=saveLook;$('#albumBtn').onclick=()=>{renderAlbum();openModal('albumModal')};$('#previewBtn').onclick=()=>openPreview();$('#removeItemBtn').onclick=removeCurrent;
   $('#advancedEditBtn').onclick=()=>editorMode?closeEditor():openEditor();$('#closeEditorBtn').onclick=closeEditor;$('#finishEditorBtn').onclick=closeEditor;$('#resetItemLayoutBtn').onclick=resetCurrentItemLayout;
+  $('#unequipEditorBtn').onclick=unequipEditorItem;$('#hideItemBtn').onclick=hideCurrentItem;$('#manageHiddenBtn').onclick=openHiddenManager;$('#restoreAllHiddenBtn').onclick=restoreAllHidden;
   document.querySelectorAll('[data-dx][data-dy]').forEach(b=>b.onclick=()=>nudgeEditor(Number(b.dataset.dx),Number(b.dataset.dy),Number($('#editorStep').value)||5));
   document.querySelectorAll('[data-rotate]').forEach(b=>b.onclick=()=>mutateEditorPlacement(p=>p.rotation+=Number(b.dataset.rotate)));
   document.querySelectorAll('[data-layer-action]').forEach(b=>b.onclick=()=>changeLayer(b.dataset.layerAction));
@@ -311,7 +359,7 @@ function wire(){
   document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
   $('#previewModal').addEventListener('click',e=>{if(e.target===$('#previewModal'))closeModal('previewModal')});
   window.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){for(const id of ['albumModal','challengeModal','previewModal'])closeModal(id);if(editorMode)closeEditor();return}
+    if(e.key==='Escape'){for(const id of ['albumModal','challengeModal','previewModal','hiddenItemsModal'])closeModal(id);if(editorMode)closeEditor();return}
     if(!editorMode||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||e.target.matches('input,select,textarea'))return;
     e.preventDefault();const step=e.shiftKey?10:(Number($('#editorStep').value)||5);
     if(e.key==='ArrowLeft')nudgeEditor(-1,0,step);if(e.key==='ArrowRight')nudgeEditor(1,0,step);if(e.key==='ArrowUp')nudgeEditor(0,-1,step);if(e.key==='ArrowDown')nudgeEditor(0,1,step)
