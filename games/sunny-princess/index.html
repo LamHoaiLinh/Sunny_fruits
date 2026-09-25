@@ -27,6 +27,7 @@
     <button id="saveBtn" class="tool-btn"><img src="assets/ui/icon_save.png" alt=""><b>Lưu album</b></button>
     <button id="albumBtn" class="tool-btn"><img src="assets/ui/icon_album.png" alt=""><b>Album</b><i id="albumBadge" class="badge" hidden>0</i></button>
     <button id="previewBtn" class="tool-btn"><span>🔍</span><b>Xem lớn</b></button>
+    <button id="advancedEditBtn" class="tool-btn advanced"><span>🛠️</span><b>Chỉnh nâng cao</b></button>
   </nav>
   <section id="missionBar" class="mission-bar" hidden>
     <div class="mission-title"><span>🎯</span><b>Phối giống các hình này</b></div>
@@ -61,6 +62,57 @@
   </main>
   <footer class="footer-note">Chạm vào đồ để mặc • Chạm lại món đang chọn để cởi</footer>
 </div>
+<aside id="advancedEditor" class="advanced-editor" aria-label="Chỉnh sửa chuyên sâu" hidden>
+  <header class="editor-head">
+    <div><strong>🛠️ CHỈNH SỬA CHUYÊN SÂU</strong><small>Vị trí • kích thước • xoay • layer</small></div>
+    <button id="closeEditorBtn" class="editor-close" aria-label="Đóng">×</button>
+  </header>
+  <div class="editor-current">
+    <img id="editorThumb" alt="" hidden>
+    <div><small>Món đang chỉnh</small><b id="editorItemName">Chưa chọn món</b><span id="editorModelName"></span></div>
+  </div>
+  <p id="editorEmpty" class="editor-empty">Hãy mặc một món đồ, sau đó chọn đúng nhóm của món đó để bắt đầu chỉnh.</p>
+  <fieldset id="editorControls" class="editor-controls" disabled>
+    <div class="editor-section">
+      <label>Di chuyển <small id="editorXY">X 0 • Y 0</small></label>
+      <div class="nudge-wrap">
+        <button type="button" class="nudge up" data-dx="0" data-dy="-1">↑</button>
+        <button type="button" class="nudge left" data-dx="-1" data-dy="0">←</button>
+        <button type="button" class="nudge center" disabled>✥</button>
+        <button type="button" class="nudge right" data-dx="1" data-dy="0">→</button>
+        <button type="button" class="nudge down" data-dx="0" data-dy="1">↓</button>
+      </div>
+      <label class="inline-control">Bước di chuyển
+        <select id="editorStep"><option value="1">1 px</option><option value="5" selected>5 px</option><option value="10">10 px</option><option value="25">25 px</option></select>
+      </label>
+      <small class="editor-tip">Có thể dùng phím mũi tên. Giữ Shift để đi nhanh 10 px.</small>
+    </div>
+    <div class="editor-section">
+      <label for="editScale">Phóng to / thu nhỏ <b id="scaleValue">100%</b></label>
+      <input id="editScale" type="range" min="0.30" max="2.50" step="0.01" value="1">
+    </div>
+    <div class="editor-section">
+      <label for="editRotation">Xoay trái / phải <b id="rotationValue">0°</b></label>
+      <input id="editRotation" type="range" min="-180" max="180" step="1" value="0">
+      <div class="editor-pair"><button type="button" data-rotate="-5">↶ -5°</button><button type="button" data-rotate="5">↷ +5°</button></div>
+    </div>
+    <div class="editor-section">
+      <label for="editLayer">Thứ tự layer <b id="layerValue">10</b></label>
+      <input id="editLayer" type="range" min="2" max="99" step="1" value="10">
+      <div class="editor-layer-buttons">
+        <button type="button" data-layer-action="bottom">Dưới cùng</button>
+        <button type="button" data-layer-action="down">↓ 1 lớp</button>
+        <button type="button" data-layer-action="up">↑ 1 lớp</button>
+        <button type="button" data-layer-action="top">Trên cùng</button>
+      </div>
+      <div id="editorLayerList" class="editor-layer-list"></div>
+    </div>
+    <div class="editor-actions">
+      <button id="resetItemLayoutBtn" type="button">↺ Đặt lại món này</button>
+      <button id="finishEditorBtn" type="button" class="strong">✓ Xong</button>
+    </div>
+  </fieldset>
+</aside>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <div id="confetti" class="confetti" aria-hidden="true"></div>
 <div id="albumModal" class="modal" hidden>
