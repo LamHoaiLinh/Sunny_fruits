@@ -190,7 +190,7 @@ function clampPlacement(p){
   p.x=Math.max(-1024,Math.min(1024,Math.round(Number(p.x)||0)));
   p.y=Math.max(-1536,Math.min(1536,Math.round(Number(p.y)||0)));
   p.scale=Math.max(.3,Math.min(2.5,Math.round((Number(p.scale)||1)*100)/100));
-  p.rotation=Math.max(-180,Math.min(180,Math.round(Number(p.rotation)||0));
+  p.rotation=Math.max(-180,Math.min(180,Math.round(Number(p.rotation)||0)));
   p.z=Math.max(2,Math.min(99,Math.round(Number(p.z)||2)));
   return p
 }
