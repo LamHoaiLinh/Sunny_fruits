@@ -107,14 +107,27 @@
       </div>
       <div id="editorLayerList" class="editor-layer-list"></div>
     </div>
+    <div class="editor-item-actions">
+      <button id="unequipEditorBtn" type="button">👗 Cởi món này</button>
+      <button id="hideItemBtn" type="button" class="danger">🗑 Ẩn khỏi game</button>
+    </div>
     <div class="editor-actions">
       <button id="resetItemLayoutBtn" type="button">↺ Đặt lại món này</button>
       <button id="finishEditorBtn" type="button" class="strong">✓ Xong</button>
     </div>
   </fieldset>
+  <button id="manageHiddenBtn" class="manage-hidden-btn" type="button">👁 Món đã ẩn <b id="hiddenCount">0</b></button>
 </aside>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <div id="confetti" class="confetti" aria-hidden="true"></div>
+<div id="hiddenItemsModal" class="modal" hidden>
+  <section class="modal-card hidden-items-card" role="dialog" aria-modal="true" aria-labelledby="hiddenItemsTitle">
+    <header><h2 id="hiddenItemsTitle">👁 Món đồ đã ẩn</h2><button class="close-btn" data-close="hiddenItemsModal">×</button></header>
+    <p class="hidden-items-copy">Các món này không xuất hiện trong tủ đồ, Phối nhanh hoặc Thử thách. Bạn có thể khôi phục bất kỳ lúc nào.</p>
+    <div id="hiddenItemsList" class="hidden-items-list"></div>
+    <button id="restoreAllHiddenBtn" class="primary-btn" type="button">↺ Khôi phục tất cả</button>
+  </section>
+</div>
 <div id="albumModal" class="modal" hidden>
   <section class="modal-card album-card" role="dialog" aria-modal="true" aria-labelledby="albumTitle">
     <header><h2 id="albumTitle">📸 Album của Sunny</h2><button class="close-btn" data-close="albumModal">×</button></header>
