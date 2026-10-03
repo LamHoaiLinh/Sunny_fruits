@@ -9,7 +9,32 @@ const friendly=[
 ['Tắt Bất tử để chinh phục kỷ lục thật.','Bạn hãy tắt Bất tử để chinh phục kỷ lục thật.'],
 ['Thử đổi tay lái để chơi theo một phong cách hoàn toàn khác.','Bạn thử đổi tay lái để chơi theo một phong cách hoàn toàn khác.']
 ];for(const [a,b] of friendly)txt=txt.replaceAll(a,b);
-(0,eval)(txt);installSunnyHelp();delete window.__rushGz}boot().catch(e=>{console.error(e);document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;display:grid;place-items:center;background:#111;color:#fff;z-index:9999;font:16px sans-serif">Không thể khởi động game. Hãy dùng Chrome/Android mới.</div>')})
+
+// TRAFFIC_FAIRNESS_V2
+const trafficFixes=[
+["return clamp(Math.round(64 * densityRamp(progress) * DIFF.density), 28, NPC_MAX);","return clamp(Math.round(52 * densityRamp(progress) * DIFF.density), 24, NPC_MAX);"],
+["chaoyang: [['scooter', 0.7], ['car', 0.1], ['bus', 0.1], ['ped', 0.1]],","chaoyang: [['scooter', 0.74], ['car', 0.1], ['bus', 0.06], ['ped', 0.1]],"],
+["minzu: [['scooter', 0.62], ['car', 0.18], ['taxi', 0.1], ['bus', 0.1]],","minzu: [['scooter', 0.66], ['car', 0.18], ['taxi', 0.1], ['bus', 0.06]],"],
+["bridge: [['car', 0.38], ['taxi', 0.16], ['bus', 0.2], ['scooter', 0.26]],","bridge: [['car', 0.38], ['taxi', 0.16], ['bus', 0.12], ['scooter', 0.34]],"],
+["qingxiu: [['scooter', 0.6], ['car', 0.14], ['ped', 0.16], ['bus', 0.1]],","qingxiu: [['scooter', 0.64], ['car', 0.14], ['ped', 0.16], ['bus', 0.06]],"],
+["function laneBlocked(z, center, ignoreNpc = null, gap = 1050) {","function laneBlocked(z, center, ignoreNpc = null, gap = 1350) {"],
+["const WALL_WINDOW = 820;","const WALL_WINDOW = 1150;"],
+["for (let attempt = 0; attempt < 20; attempt++) {","for (let attempt = 0; attempt < 36; attempt++) {"],
+["      type = pickType(zoneAt(segIdx).key);\n      lane = type === 'ped' ? { c: 0, i: -1 } : chooseFairLane(z, npc);",
+"      type = pickType(zoneAt(segIdx).key);\n      if (type === 'bus' && g.npcs.some(other => other !== npc && other.active && !other.popped && other.type === 'bus' && Math.abs(other.z - z) < 3000)) continue;\n      lane = type === 'ped' ? { c: 0, i: -1 } : chooseFairLane(z, npc);"],
+["              if (next !== npc.laneIndex && !laneBlocked(npc.z, target, npc, 900)) {",
+"              if (next !== npc.laneIndex && !laneBlocked(npc.z, target, npc, 1250) && !wouldCloseCorridor(npc.z, next, nz, npc)) {"],
+["          npc.z = oldNpcZ;\n          npc.offset = oldNpcOffset;",
+"          npc.z = oldNpcZ + Math.max(0, npc.z - oldNpcZ) * 0.28;\n          npc.speed = Math.min(npc.speed, char.topSpeed * 0.48);\n          npc.offset = oldNpcOffset;"]
+];
+for(const [a,b] of trafficFixes){if(!txt.includes(a))throw new Error("Traffic patch không tìm thấy mẫu: "+a.slice(0,80));txt=txt.replace(a,b);}
+
+const moveNeedle="      npc.z += npc.speed * dt;\n\n      if (npc.type === 'ped') {";
+const movePatch="      npc.z += npc.speed * dt;\n\n      if (npc.type !== 'ped') {\n        const followZone = zoneAt(clamp(Math.floor(npc.z / SEG_LEN), 0, segments.length - 1));\n        const followCenters = laneCenters(followZone.lanes);\n        const followLane = nearestLaneIndex(npc.offset, followCenters);\n        let leader = null, leaderDz = Infinity;\n        for (const other of g.npcs) {\n          if (other === npc || !other.active || other.popped || other.type === 'ped' || other.z <= npc.z) continue;\n          const oz = zoneAt(clamp(Math.floor(other.z / SEG_LEN), 0, segments.length - 1));\n          if (oz.key !== followZone.key || nearestLaneIndex(other.offset, followCenters) !== followLane) continue;\n          const dz = other.z - npc.z;\n          if (dz < leaderDz) { leaderDz = dz; leader = other; }\n        }\n        if (leader) {\n          const large = ['car','taxi','bus'].includes(npc.type) || ['car','taxi','bus'].includes(leader.type);\n          const safe = (npc.type === 'bus' || leader.type === 'bus') ? 1250 : (large ? 900 : 650);\n          if (leader.z - npc.z < safe) npc.z = Math.max(oldNpcZ, leader.z - safe);\n          if (leader.z - oldNpcZ < safe * 1.6) npc.speed = Math.min(npc.speed, leader.speed * 0.96);\n        }\n        if (npc.type === 'bus') {\n          let busAhead = null, busDz = Infinity;\n          for (const other of g.npcs) {\n            if (other === npc || !other.active || other.popped || other.type !== 'bus' || other.z <= npc.z) continue;\n            const oz = zoneAt(clamp(Math.floor(other.z / SEG_LEN), 0, segments.length - 1));\n            if (oz.key !== followZone.key) continue;\n            const dz = other.z - npc.z;\n            if (dz < busDz) { busDz = dz; busAhead = other; }\n          }\n          if (busAhead && busAhead.z - npc.z < 2600) {\n            npc.z = Math.max(oldNpcZ, busAhead.z - 2600);\n            npc.speed = Math.min(npc.speed, busAhead.speed * 0.94);\n          }\n        }\n      }\n\n      if (npc.type === 'ped') {";
+if(!txt.includes(moveNeedle))throw new Error("Traffic patch không tìm thấy đoạn di chuyển NPC");
+txt=txt.replace(moveNeedle,movePatch);
+
+(0,eval)(txt);window.__rushStarted=true;installSunnyHelp();delete window.__rushGz}boot().catch(e=>{console.error(e);document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;display:grid;place-items:center;background:#111;color:#fff;z-index:9999;font:16px sans-serif">Không thể khởi động game. Hãy dùng Chrome/Android mới.</div>')})
 function installSunnyHelp(){
   const SUNNY_HELP_V1=true;
   const modal=document.createElement('div');
