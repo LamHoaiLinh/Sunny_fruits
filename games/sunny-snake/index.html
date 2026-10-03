@@ -212,6 +212,31 @@ img{ -webkit-user-drag:none; user-drag:none; }
   .topbar h1{font-size:21px}
 }
 
+/* ===== Stage clear summary ===== */
+.stage-clear-modal{background:rgba(15,23,42,.34);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.stage-clear-card{width:min(520px,92vw);text-align:center;padding:22px;animation:stageClearIn .18s ease-out}
+.stage-clear-card.boss-clear{border:2px solid #f1b4a6;box-shadow:0 24px 80px rgba(122,43,25,.22)}
+.stage-clear-icon{font-size:44px;line-height:1;margin-bottom:2px}
+.stage-clear-card h2{margin:4px 0 5px;font-size:clamp(24px,5vw,32px)}
+.stage-clear-sub{margin:0 0 15px;color:#64748b;font-size:13px;font-weight:700}
+.stage-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
+.stage-summary-item{background:#f8fafc;border:1.5px solid #dce5ec;border-radius:13px;padding:10px 12px;text-align:left}
+.stage-summary-item span{display:block;color:#64748b;font-size:11px;font-weight:800;margin-bottom:3px}
+.stage-summary-item b{font-size:18px;color:#172033}
+.stage-summary-item.highlight{background:#ecfdf5;border-color:#a7e6ca}
+.stage-summary-item.highlight b{color:#176f64}
+.stage-clear-reward{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:4px 0 14px}
+.stage-clear-pill{border-radius:999px;padding:6px 10px;background:#fff8dc;border:1px solid #efd36f;color:#775d00;font-size:12px;font-weight:900}
+.stage-clear-pill.dna{background:#eef2ff;border-color:#c7d2fe;color:#4f46e5}
+.stage-clear-next{min-width:180px;font-size:15px}
+@keyframes stageClearIn{from{opacity:0;transform:scale(.965) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@media(max-width:520px){
+  .stage-clear-card{padding:18px 14px}
+  .stage-summary-grid{gap:6px}
+  .stage-summary-item{padding:9px 10px}
+  .stage-summary-item b{font-size:16px}
+}
+
 </style>
 </head>
 <body>
@@ -322,6 +347,28 @@ img{ -webkit-user-drag:none; user-drag:none; }
     </div>
   </div>
 
+  <div id="stageClearModal" class="modal stage-clear-modal hidden" role="dialog" aria-modal="true" aria-labelledby="stageClearTitle">
+    <div id="stageClearCard" class="modal-card stage-clear-card">
+      <div id="stageClearIcon" class="stage-clear-icon">✨</div>
+      <div id="stageClearEyebrow" class="overlay-eyebrow">HOÀN THÀNH MÀN</div>
+      <h2 id="stageClearTitle">Qua màn!</h2>
+      <p id="stageClearSub" class="stage-clear-sub"></p>
+      <div class="stage-summary-grid">
+        <div class="stage-summary-item"><span>Thời gian</span><b id="stageClearTime">00:00</b></div>
+        <div class="stage-summary-item"><span>Số bước</span><b id="stageClearMoves">0</b></div>
+        <div class="stage-summary-item"><span>Điểm ăn số</span><b id="stageClearFoodPoints">+0</b></div>
+        <div class="stage-summary-item"><span>Boost</span><b id="stageClearBoosts">0</b></div>
+        <div class="stage-summary-item"><span>Độ dài cuối</span><b id="stageClearLength">0</b></div>
+        <div class="stage-summary-item highlight"><span>Tổng điểm nhận</span><b id="stageClearTotalPoints">+0</b></div>
+      </div>
+      <div class="stage-clear-reward">
+        <span id="stageClearBonus" class="stage-clear-pill">Thưởng +0</span>
+        <span id="stageClearDna" class="stage-clear-pill dna">DNA +0</span>
+      </div>
+      <button id="btnStageContinue" class="btn btn-primary stage-clear-next" type="button">Màn tiếp theo</button>
+    </div>
+  </div>
+
   <div id="skinModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="skinTitle">
     <div class="modal-card skin-modal-card">
       <div class="overlay-eyebrow">BỘ SƯU TẬP 1.0</div>
@@ -414,6 +461,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
   const overlayButton = document.getElementById('overlayButton');
   const perkModal = document.getElementById('perkModal');
   const perkChoices = document.getElementById('perkChoices');
+  const stageClearModal = document.getElementById('stageClearModal');
+  const stageClearCard = document.getElementById('stageClearCard');
   const toast = document.getElementById('toast');
 
   let state;
@@ -445,6 +494,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
     scorePct: 0, extraLives: 0, runActive: true, choosingPerk: false, moveCount: 0,
     currentWallCount: 0, currentDir: { r: 0, c: 1 }, desiredDir: { r: 0, c: 1 },
     paused: false, awaitingStart: true, boostStepsLeft: 0, bossMapVersion: 0,
+    floorElapsedMs: 0, floorScoreStart: 0, floorDnaStart: 0, floorMoveStart: 0,
+    floorBoostCount: 0, stageSummary: null,
     walls: emptyWalls(), snake: [], offer: [0,0,0]
   });
 
@@ -1232,8 +1283,15 @@ img{ -webkit-user-drag:none; user-drag:none; }
     state.paused = false;
     state.awaitingStart = true;
     state.choosingPerk = false;
+    state.stageSummary = null;
+    state.floorElapsedMs = 0;
+    state.floorScoreStart = Number(state.score) || 0;
+    state.floorDnaStart = Number(state.dna) || 0;
+    state.floorMoveStart = Number(state.moveCount) || 0;
+    state.floorBoostCount = 0;
     state.boostStepsLeft = 0;
     state.offer = [0,0,0];
+    hideStageSummary();
     initSnake();
     buildPlayableFloor();
     const now = performance.now();
@@ -1319,6 +1377,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
     const now = performance.now();
     if (visual.lastBoostAt > 0 && now - visual.lastBoostAt < 48) return;
     visual.lastBoostAt = now;
+    state.floorBoostCount = Math.max(0, Number(state.floorBoostCount) || 0) + 1;
 
     // V2.4: boost KHÔNG nhảy logic sang ô kế tiếp ngay khi đầu rắn còn đang
     // ở giữa một bước. Cách cũ làm đầu/thân phải "đuổi" tới một trạng thái
@@ -1426,24 +1485,63 @@ img{ -webkit-user-drag:none; user-drag:none; }
 
     function completeFloor() {
     state.runActive = false;
+    state.paused = false;
+    state.awaitingStart = false;
+    nextMoveAt = Number.POSITIVE_INFINITY;
+
     const cleared = state.floorNum;
     const info = stageInfo(cleared);
+    const foodPoints = Math.max(0, state.score - (Number(state.floorScoreStart) || 0));
+    const foodDna = Math.max(0, state.dna - (Number(state.floorDnaStart) || 0));
+    const stageMoves = Math.max(0, state.moveCount - (Number(state.floorMoveStart) || 0));
+    const elapsedMs = Math.max(0, Number(state.floorElapsedMs) || 0);
+    const finalLength = state.snake.length;
+    const boostCount = Math.max(0, Number(state.floorBoostCount) || 0);
+
     let bonus = 120 + info.ante * 35 + info.slot * 20;
     if (info.isBoss) bonus += 220 + info.ante * 45;
     if (!info.campaign) bonus += info.endlessDepth * 18;
     bonus = Math.round(bonus * (100 + state.scorePct) / 100);
     const dnaGain = info.isBoss ? 8 : 4;
+
     state.score += bonus;
     state.dna += dnaGain;
     state.bestScore = Math.max(state.bestScore, state.score);
     state.bestFloor = Math.max(state.bestFloor, state.floorNum);
+
+    state.stageSummary = {
+      cleared: cleared,
+      label: stageLabel(cleared),
+      isBoss: !!info.isBoss,
+      campaignCleared: cleared === CAMPAIGN_STAGES,
+      elapsedMs: elapsedMs,
+      moves: stageMoves,
+      boosts: boostCount,
+      finalLength: finalLength,
+      foodPoints: foodPoints,
+      bonus: bonus,
+      totalPoints: foodPoints + bonus,
+      foodDna: foodDna,
+      bonusDna: dnaGain,
+      totalDna: foodDna + dnaGain,
+      totalScore: state.score,
+      target: targetCountForFloor(),
+      nextNeedsPerk: cleared % STAGES_PER_ANTE === 0
+    };
+
     state.floorNum++;
-    if (cleared === CAMPAIGN_STAGES) {
-      showToast(`Phá đảo 8 Ải · mở Vô hạn · +${bonus} điểm · +${dnaGain} DNA`);
-    } else {
-      showToast(`Qua ${stageLabel(cleared)} · +${bonus} điểm · +${dnaGain} DNA`);
-    }
-    if (cleared % STAGES_PER_ANTE === 0) offerPerks(); else setupFloor();
+    syncUI();
+    saveGame(true);
+  }
+
+  function continueStageSummary() {
+    if (!state.stageSummary) return;
+    const summary = clone(state.stageSummary);
+    state.stageSummary = null;
+    hideStageSummary();
+    if (summary.campaignCleared) showToast('Phá đảo 8 Ải · đã mở chế độ Vô hạn!');
+    if (summary.nextNeedsPerk) offerPerks();
+    else setupFloor();
     saveGame(true);
   }
 
@@ -1547,6 +1645,12 @@ img{ -webkit-user-drag:none; user-drag:none; }
     merged.offer = Array.isArray(merged.offer) ? merged.offer.slice(0,3) : [0,0,0];
     merged.awaitingStart = Boolean(merged.awaitingStart);
     merged.bossMapVersion = Number(merged.bossMapVersion) || 0;
+    merged.floorElapsedMs = Math.max(0, Number(merged.floorElapsedMs) || 0);
+    merged.floorBoostCount = Math.max(0, Number(merged.floorBoostCount) || 0);
+    merged.stageSummary = merged.stageSummary && typeof merged.stageSummary === 'object' ? merged.stageSummary : null;
+    if (!s || !Number.isFinite(Number(s.floorScoreStart))) merged.floorScoreStart = Number(merged.score) || 0;
+    if (!s || !Number.isFinite(Number(s.floorDnaStart))) merged.floorDnaStart = Number(merged.dna) || 0;
+    if (!s || !Number.isFinite(Number(s.floorMoveStart))) merged.floorMoveStart = Number(merged.moveCount) || 0;
     return merged;
   }
 
@@ -1560,7 +1664,12 @@ img{ -webkit-user-drag:none; user-drag:none; }
         visual.prevSnake = clone(state.snake);
         visual.animStart = performance.now();
         visual.animDuration = 1;
-        if (state.runActive && !state.choosingPerk) {
+        if (state.stageSummary) {
+          state.runActive = false;
+          state.paused = false;
+          state.awaitingStart = false;
+          nextMoveAt = Number.POSITIVE_INFINITY;
+        } else if (state.runActive && !state.choosingPerk) {
           state.paused = false;
           state.awaitingStart = true;
           nextMoveAt = Number.POSITIVE_INFINITY;
@@ -1857,7 +1966,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
   function syncUI() {
-    const status = state.choosingPerk ? TEXT.statusPerk : !state.runActive ? TEXT.statusDead : state.paused ? TEXT.statusPaused : state.awaitingStart ? TEXT.statusReady : TEXT.statusRunning;
+    const status = state.stageSummary ? 'Hoàn thành màn – xem tổng kết' : state.choosingPerk ? TEXT.statusPerk : !state.runActive ? TEXT.statusDead : state.paused ? TEXT.statusPaused : state.awaitingStart ? TEXT.statusReady : TEXT.statusRunning;
     document.getElementById('statusLine').textContent = status;
     const info = stageInfo();
     const floorBadge = document.getElementById('floorBadge');
@@ -1881,15 +1990,52 @@ img{ -webkit-user-drag:none; user-drag:none; }
     document.getElementById('colorDot').style.background = `linear-gradient(135deg,${skin.stops.join(',')})`;
 
     const pauseBtn = document.getElementById('btnPause');
-    pauseBtn.textContent = !state.runActive && !state.choosingPerk ? 'Lượt mới (Space)' : state.awaitingStart ? 'Chờ hướng…' : state.paused ? 'Tiếp tục' : 'Tạm dừng';
-    pauseBtn.disabled = Boolean(state.awaitingStart || state.choosingPerk);
+    pauseBtn.textContent = state.stageSummary ? 'Đã qua màn' : !state.runActive && !state.choosingPerk ? 'Lượt mới (Space)' : state.awaitingStart ? 'Chờ hướng…' : state.paused ? 'Tiếp tục' : 'Tạm dừng';
+    pauseBtn.disabled = Boolean(state.stageSummary || state.awaitingStart || state.choosingPerk);
     renderMeta();
 
-    if (state.choosingPerk) showPerks();
+    if (state.stageSummary) showStageSummary();
+    else if (state.choosingPerk) showPerks();
     else if (state.paused && state.runActive) showOverlay('TẠM DỪNG','Game đang tạm dừng','Nhấn SPACE hoặc P để tiếp tục.','Tiếp tục',() => togglePause(false));
     else if (state.awaitingStart && state.runActive) showOverlay('SẴN SÀNG','Chọn hướng để bắt đầu','Bấm mũi tên / WASD hoặc nút điều hướng trên điện thoại. Rắn chỉ chạy sau lần bấm đầu tiên.',null,null,'ready');
     else if (!state.runActive && !state.choosingPerk) showOverlay('GAME OVER','Rắn đã chết',deathText(state.deathReason),'Lượt mới',() => newRun(true));
     else if (state.runActive) hideOverlay();
+  }
+
+
+  function formatStageTime(ms) {
+    const total = Math.max(0, Math.floor((Number(ms) || 0) / 100));
+    const tenths = total % 10;
+    const sec = Math.floor(total / 10) % 60;
+    const min = Math.floor(total / 600);
+    return String(min).padStart(2,'0') + ':' + String(sec).padStart(2,'0') + '.' + tenths;
+  }
+
+  function showStageSummary() {
+    const x=state.stageSummary;
+    if (!x) { hideStageSummary(); return; }
+    hideOverlay();
+    hidePerks();
+    stageClearCard.classList.toggle('boss-clear', !!x.isBoss);
+    document.getElementById('stageClearIcon').textContent = x.campaignCleared ? '🏆' : x.isBoss ? '👑' : '✨';
+    document.getElementById('stageClearEyebrow').textContent = x.campaignCleared ? 'PHÁ ĐẢO 8 ẢI' : x.isBoss ? 'TRÙM ĐÃ BỊ VƯỢT QUA' : 'HOÀN THÀNH MÀN';
+    document.getElementById('stageClearTitle').textContent = x.campaignCleared ? 'Đã mở Vô hạn!' : 'Qua màn!';
+    document.getElementById('stageClearSub').textContent = x.label + ' · ăn đủ ' + x.target + ' mục tiêu · tổng điểm ' + formatNum(x.totalScore);
+    document.getElementById('stageClearTime').textContent = formatStageTime(x.elapsedMs);
+    document.getElementById('stageClearMoves').textContent = formatNum(x.moves);
+    document.getElementById('stageClearFoodPoints').textContent = '+' + formatNum(x.foodPoints);
+    document.getElementById('stageClearBoosts').textContent = formatNum(x.boosts);
+    document.getElementById('stageClearLength').textContent = formatNum(x.finalLength);
+    document.getElementById('stageClearTotalPoints').textContent = '+' + formatNum(x.totalPoints);
+    document.getElementById('stageClearBonus').textContent = 'Thưởng qua màn +' + formatNum(x.bonus);
+    document.getElementById('stageClearDna').textContent = 'DNA +' + formatNum(x.totalDna);
+    const btn=document.getElementById('btnStageContinue');
+    btn.textContent = x.campaignCleared ? 'Chọn nâng cấp → Vô hạn' : x.nextNeedsPerk ? 'Chọn nâng cấp' : 'Màn tiếp theo';
+    stageClearModal.classList.remove('hidden');
+  }
+
+  function hideStageSummary() {
+    if (stageClearModal) stageClearModal.classList.add('hidden');
   }
 
   function renderMeta() {
@@ -1958,6 +2104,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
       if (state && state.runActive && !state.paused && !state.awaitingStart && !state.choosingPerk) {
         const normalMs = Math.max(60, moveIntervalSec() * 1000);
         const frameGap = Math.max(0, now - lastFrame);
+        state.floorElapsedMs = Math.max(0, Number(state.floorElapsedMs) || 0) + Math.min(frameGap, 250);
 
         // Tab bị treo/throttle hoặc máy vừa thức dậy: đồng bộ lại lịch nhịp một cách
         // im lặng, không dựng lại game và không hiện cảnh báo giả.
@@ -2004,8 +2151,12 @@ img{ -webkit-user-drag:none; user-drag:none; }
 
   function keyHandler(e) {
     const key=e.key.toLowerCase();
-    const handled=['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','p','n','c','1','2','3'].includes(key);
+    const handled=['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','enter','p','n','c','1','2','3'].includes(key);
     if (handled) e.preventDefault();
+    if (state.stageSummary) {
+      if ((key===' ' || key==='enter') && !e.repeat) continueStageSummary();
+      return;
+    }
     if (e.repeat && ['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','p','n'].includes(key)) return;
     if (state.choosingPerk && ['1','2','3'].includes(key)) return choosePerk(Number(key));
     if (key==='arrowup'||key==='w') setDirection(-1,0);
@@ -2052,6 +2203,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   document.getElementById('btnColor').addEventListener('click', openSkinPicker);
   document.getElementById('skinStatButton').addEventListener('click', openSkinPicker);
   document.getElementById('btnSkinClose').addEventListener('click', closeSkinPicker);
+  document.getElementById('btnStageContinue').addEventListener('click', continueStageSummary);
   document.getElementById('skinModal').addEventListener('pointerdown', e => { if (e.target.id==='skinModal') closeSkinPicker(); });
   document.getElementById('btnExcelSave').addEventListener('click', loadLegacyExcelSave);
   document.getElementById('btnResetSave').addEventListener('click', resetWebSave);
@@ -2087,6 +2239,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
     plannedPathToFood: () => state.food ? reconstructBodySafePath(snakeBodyPathMap(),state.food.r,state.food.c) : null,
     startSafety: () => ({safeDirections:safeStartDirectionCount(),requiredCapacity:requiredStartEscapeCells()}),
     regenerateFloor: () => { buildPlayableFloor(); return clone(state); },
+    stageSummary: () => clone(state.stageSummary),
+    forceComplete: () => { completeFloor(); return clone(state.stageSummary); },
     skins: () => SNAKE_SKINS.map(s=>({id:s.id,name:s.name,group:s.group}))
   };
 
