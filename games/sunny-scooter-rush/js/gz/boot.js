@@ -11,6 +11,90 @@ const friendly=[
 ];for(const [a,b] of friendly)txt=txt.replaceAll(a,b);
 
 // TRAFFIC_FAIRNESS_V2
+// IOS_ROTATION_LAYOUT_V6
+const layoutOld=`let lastVW = 0, lastVH = 0;
+
+function layout() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if (!vw || !vh) return;   // hidden/zero-sized pane — keep previous size
+  lastVW = vw; lastVH = vh;
+  const s = Math.min(vw / 960, vh / 540) * 0.98;
+  canvas.style.width = Math.round(960 * s) + 'px';
+  canvas.style.height = Math.round(540 * s) + 'px';
+  const cr = canvas.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  overlay.style.left = (cr.left - sr.left) + 'px';
+  overlay.style.top = (cr.top - sr.top) + 'px';
+  overlay.style.width = cr.width + 'px';
+  overlay.style.height = cr.height + 'px';
+}
+
+window.addEventListener('resize', layout);
+document.addEventListener('visibilitychange', () => layout());
+layout();`;
+
+const layoutNew=`let lastVW = 0, lastVH = 0;
+
+function viewportSize() {
+  const vv = window.visualViewport;
+  const vw = Math.max(1, Math.round((vv && vv.width) || document.documentElement.clientWidth || window.innerWidth || 1));
+  const vh = Math.max(1, Math.round((vv && vv.height) || document.documentElement.clientHeight || window.innerHeight || 1));
+  return { vw, vh };
+}
+
+function layout() {
+  const { vw, vh } = viewportSize();
+  if (!vw || !vh) return;
+  lastVW = vw; lastVH = vh;
+
+  // Reset stale geometry first. iOS Safari can preserve old inline sizes across rotation.
+  canvas.style.width = '';
+  canvas.style.height = '';
+  overlay.style.left = '0px';
+  overlay.style.top = '0px';
+  overlay.style.width = '0px';
+  overlay.style.height = '0px';
+
+  const s = Math.min(vw / 960, vh / 540) * 0.98;
+  canvas.style.width = Math.max(1, Math.round(960 * s)) + 'px';
+  canvas.style.height = Math.max(1, Math.round(540 * s)) + 'px';
+
+  // Read geometry on the next painted layout state.
+  const cr = canvas.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  overlay.style.left = Math.round(cr.left - sr.left) + 'px';
+  overlay.style.top = Math.round(cr.top - sr.top) + 'px';
+  overlay.style.width = Math.round(cr.width) + 'px';
+  overlay.style.height = Math.round(cr.height) + 'px';
+}
+
+let layoutTimer = 0;
+function queueLayout() {
+  cancelAnimationFrame(layoutTimer);
+  layoutTimer = requestAnimationFrame(() => {
+    layout();
+    requestAnimationFrame(layout);
+  });
+  [60, 140, 280, 520].forEach(ms => setTimeout(layout, ms));
+}
+
+window.addEventListener('resize', queueLayout, { passive: true });
+window.addEventListener('orientationchange', queueLayout, { passive: true });
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', queueLayout, { passive: true });
+  window.visualViewport.addEventListener('scroll', queueLayout, { passive: true });
+}
+document.addEventListener('visibilitychange', queueLayout);
+queueLayout();`;
+
+if(!txt.includes(layoutOld)) throw new Error('Không tìm thấy layout cũ để thay');
+txt=txt.replace(layoutOld,layoutNew);
+
+const stepOld=`  if (window.innerWidth !== lastVW || window.innerHeight !== lastVH) layout();`;
+const stepNew=`  { const v = viewportSize(); if (v.vw !== lastVW || v.vh !== lastVH) layout(); }`;
+if(!txt.includes(stepOld)) throw new Error('Không tìm thấy resize guard trong vòng lặp');
+txt=txt.replace(stepOld,stepNew);
+
 const trafficFixes=[
 ["return clamp(Math.round(64 * densityRamp(progress) * DIFF.density), 28, NPC_MAX);","return clamp(Math.round(52 * densityRamp(progress) * DIFF.density), 24, NPC_MAX);"],
 ["chaoyang: [['scooter', 0.7], ['car', 0.1], ['bus', 0.1], ['ped', 0.1]],","chaoyang: [['scooter', 0.74], ['car', 0.1], ['bus', 0.06], ['ped', 0.1]],"],
