@@ -21,3 +21,59 @@ h2.screen-title{font-size:clamp(20px,4.6vmin,34px);font-weight:900}.roster{displ
 #touch-left,#touch-right{opacity:.42;background:rgba(18,26,38,.34);border-color:rgba(255,255,255,.22);box-shadow:0 4px 12px rgba(0,0,0,.16);transition:opacity 80ms ease,background 80ms ease,transform 80ms ease,border-color 80ms ease}
 #touch-left:active,#touch-right:active{opacity:.88;background:rgba(53,208,127,.58);border-color:rgba(255,255,255,.72)}#touch .pedal{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}#touch .pedal small{font:900 clamp(8px,1.8vmin,11px)/1 var(--font);letter-spacing:.04em}#touch .gas{background:rgba(35,120,74,.70)}#touch-pause,#touch-fullscreen,#touch-horn{width:clamp(42px,8.5vmin,54px)!important;height:clamp(42px,8.5vmin,54px)!important;font-size:clamp(16px,3.6vmin,22px)!important}#rotate-hint{display:none;position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:5;color:#fff;background:rgba(10,15,22,.78);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;pointer-events:none;white-space:nowrap}@media(pointer:coarse) and (orientation:portrait){#rotate-hint{display:block}.utility-group{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 82px)}}@media(max-height:460px){#touch button{width:52px;height:52px;font-size:20px}.steer-group,.pedal-group{bottom:max(5px,env(safe-area-inset-bottom))}.utility-group{top:max(5px,env(safe-area-inset-top))}}@media(max-width:390px) and (orientation:portrait){#touch button{width:56px;height:56px}.touch-group{gap:5px}}
 .card .ability{width:100%;min-height:3.2em;padding:6px 8px;border-radius:9px;background:rgba(116,232,255,.07);border:1px solid rgba(116,232,255,.18);color:#bfefff;font-size:clamp(9px,1.45vmin,11px);line-height:1.35;font-weight:750}.results-head{width:min(96%,760px);display:flex;align-items:center;justify-content:space-between;gap:16px}.results-head .screen-title{margin:0;text-align:left}.rider-result{margin-top:2px;color:var(--ink-dim);font-size:clamp(10px,1.7vmin,13px);text-align:left;font-weight:700}.rank-wrap{display:flex;align-items:center;gap:10px}.results-screen .rank-wrap .rank-badge{font-size:clamp(34px,7vmin,50px)}.results-screen .rank-wrap .rank-title{max-width:170px;text-align:left}.motivation-box{width:min(96%,760px);padding:9px 14px;border-radius:12px;background:linear-gradient(90deg,rgba(255,176,46,.16),rgba(116,232,255,.09));border:1px solid rgba(255,210,62,.28);color:#fff3c2;font-weight:850;font-size:clamp(11px,1.9vmin,14px);line-height:1.35;text-align:left}.result-columns{width:min(96%,760px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(210px,.8fr);gap:10px;align-items:stretch}.result-columns .result-grid{max-width:none;width:100%}.style-panel{background:var(--panel);border:1px solid rgba(116,232,255,.18);border-radius:14px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:5px}.style-label,.progress-title{color:#74e8ff;font-size:10px;letter-spacing:.12em;font-weight:900}.style-name{font-size:14px;font-weight:900}.style-ability{color:#cfe4ec;font-size:11px;line-height:1.35;margin-bottom:3px}.record-mini{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--ink-dim);border-top:1px solid rgba(255,255,255,.07);padding-top:4px}.record-mini b{color:#fff}.progress-panel{width:min(96%,760px);background:rgba(10,15,22,.66);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 10px}.progress-title{text-align:left;margin-bottom:6px}.progress-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.progress-chip{display:flex;justify-content:space-between;gap:5px;padding:5px 7px;border-radius:8px;background:rgba(255,255,255,.05);font-size:10px;color:var(--ink-dim)}.progress-chip b{font-size:11px}.progress-chip.up b{color:#70e5a6}.progress-chip.down b{color:#ff8f8f}.progress-chip.same b{color:#b9c7d0}.progress-empty{color:var(--ink-dim);font-size:11px;text-align:left}@media(max-width:700px){.result-columns{grid-template-columns:1fr}.style-panel{display:none}.progress-chips{grid-template-columns:repeat(2,minmax(0,1fr))}.results-head{align-items:flex-start}}@media(max-height:500px){.style-panel{display:none}.result-columns{grid-template-columns:1fr}.progress-chips{grid-template-columns:repeat(3,minmax(0,1fr))}.motivation-box{padding:6px 10px}.progress-panel{padding:6px 8px}}.screen.dim{overflow-y:auto}.results-screen{background:rgba(7,10,16,.82)!important;backdrop-filter:blur(4px)}
+
+/* BIG ANDROID DRIVE CONTROLS v2 */
+@media (pointer:coarse){
+  /* 4 nút lái chính: mục tiêu gần 2x bản cũ, nhưng tự co nếu màn hình ngang quá hẹp. */
+  #touch-left,#touch-right,#touch-brake,#touch-gas{
+    width:min(156px,29vmin,calc((100vw - 80px)/4))!important;
+    height:min(156px,29vmin,calc((100vw - 80px)/4))!important;
+    min-width:0!important;
+    min-height:0!important;
+    flex:0 0 auto;
+    font-size:min(52px,10vmin)!important;
+  }
+  #touch .steer-group,#touch .pedal-group{
+    gap:16px;
+    max-width:calc(50vw - 20px);
+  }
+  #touch .pedal small{
+    font-size:min(17px,3.2vmin)!important;
+    margin-top:5px;
+  }
+  #touch .pedal span{
+    line-height:.82;
+  }
+}
+
+/* Màn hình dọc: xếp mỗi cặp theo chiều dọc để nút vẫn lớn mà không chồng cụm đối diện. */
+@media (pointer:coarse) and (orientation:portrait){
+  #touch .steer-group,#touch .pedal-group{
+    flex-direction:column;
+    gap:12px;
+    max-width:none;
+  }
+  #touch-left,#touch-right,#touch-brake,#touch-gas{
+    width:min(132px,29vw)!important;
+    height:min(132px,29vw)!important;
+    font-size:min(46px,10vw)!important;
+  }
+  #touch .pedal small{
+    font-size:min(15px,3.4vw)!important;
+  }
+  #touch .utility-group{
+    top:max(10px,env(safe-area-inset-top))!important;
+    bottom:auto!important;
+  }
+}
+
+/* Ghi đè rule màn hình thấp cũ: chỉ thu 3 nút tiện ích, không thu 4 nút lái chính. */
+@media (pointer:coarse) and (max-height:460px){
+  #touch-left,#touch-right,#touch-brake,#touch-gas{
+    width:min(120px,29vmin,calc((100vw - 64px)/4))!important;
+    height:min(120px,29vmin,calc((100vw - 64px)/4))!important;
+    font-size:min(42px,10vmin)!important;
+  }
+  #touch .steer-group,#touch .pedal-group{gap:10px}
+  #touch .pedal small{font-size:min(13px,3vmin)!important}
+}
