@@ -201,7 +201,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   .board-wrap{max-width:100%;margin-inline:auto}
   .touch-controls{position:sticky;bottom:max(6px,env(safe-area-inset-bottom));z-index:35;margin:8px auto 2px;width:206px;height:142px;padding:5px;border-radius:20px;background:rgba(238,247,245,.94);box-shadow:0 7px 22px rgba(15,23,42,.18);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   .dir{background:rgba(255,255,255,.98);border:2px solid #a9c9c2;box-shadow:0 3px 0 rgba(55,88,80,.14)}
-  .dir:active{transform:translateY(2px);background:#dff5ef}
+  .dir:active,.dir.holding{transform:translateY(2px);background:#dff5ef;box-shadow:0 0 0 3px rgba(15,118,110,.15),0 2px 0 rgba(55,88,80,.10)}
   .control-strip{display:none}
   .skin-choices{grid-template-columns:1fr 1fr}
   .skin-modal-card{padding:16px}
@@ -278,7 +278,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
 
         <div class="control-strip">
           <span><b>Mũi tên</b> đổi hướng</span>
-          <span><b>Cùng hướng</b> tăng tốc ×4 một nhịp</span>
+          <span><b>Cùng hướng</b> nhấp để boost ×4 · giữ để boost liên tục</span>
           <span><b>SPACE / P</b> pause · <b>SPACE</b> chơi lại khi thua</span>
           <span><b>C</b> đổi nhanh skin</span>
         </div>
@@ -333,7 +333,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
 
     <section class="info-grid">
       <details open><summary>Luật chơi</summary><p>24 màn = 8 Ải × 3 màn. Màn cuối mỗi Ải là Trùm với maze/choke-point khó hơn. Sau màn 24 mở Vô hạn. Đầu mỗi màn rắn đứng yên, người chơi chọn hướng rồi mới chạy.</p></details>
-      <details><summary>Điều khiển</summary><p>PC: mũi tên/WASD. Android: cụm 4 nút ảo cố định dưới bàn chơi. Bấm cùng hướng để boost ×4. SPACE/P tạm dừng; khi thua SPACE chơi lại; C đổi nhanh skin.</p></details>
+      <details><summary>Điều khiển</summary><p>PC: mũi tên/WASD. Android: cụm 4 nút ảo cố định dưới bàn chơi. Nhấp cùng hướng để boost ×4 từng nhịp; giữ nguyên nút cùng hướng để boost liên tục. SPACE/P tạm dừng; khi thua SPACE chơi lại; C đổi nhanh skin.</p></details>
       <details><summary>Skin 1.0</summary><p>13 skin: 1 skin gốc, 4 skin Sunny, 4 skin Gia Khang và 4 skin trung tính. Skin chỉ thay đổi hình ảnh/hiệu ứng, không ảnh hưởng hitbox hay sức mạnh.</p></details>
     </section>
   </main>
@@ -390,6 +390,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
   const BOOST_MIN_INTERVAL_SEC = 0.055;
   const BOOST_REMAINDER_THRESHOLD_MS = 28;
   const BOOST_QUEUE_MAX = 3;
+  const HOLD_BOOST_DELAY_MS = 180;
+  const HOLD_BOOST_REPEAT_MS = 105;
   const TURN_SNAP_MIN_MS = 28;
   const TURN_SNAP_MAX_MS = 62;
   const CAMPAIGN_STAGES = 24;
@@ -473,6 +475,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   let lastFrame = performance.now();
   let lastMoveStartedAt = performance.now();
   let lastRecoveryToastAt = 0;
+  let heldDirection = null;
   const visual = {
     prevSnake: [],
     animStart: performance.now(),
@@ -1278,6 +1281,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
     function setupFloor() {
+    clearHeldDirection();
     state.foodNum = 1;
     state.runActive = true;
     state.paused = false;
@@ -1370,6 +1374,41 @@ img{ -webkit-user-drag:none; user-drag:none; }
     visual.lastTurnAt = now;
     visual.turnLockUntil = now + snapMs + 12;
     nextMoveAt = now + snapMs;
+  }
+
+  function setHeldDirection(dr, dc, token, button=null) {
+    const now=performance.now();
+    if (heldDirection && heldDirection.button && heldDirection.button !== button) heldDirection.button.classList.remove('holding');
+    heldDirection = { dr, dc, token, button, startedAt: now, nextBoostAt: now + HOLD_BOOST_DELAY_MS };
+    if (button) button.classList.add('holding');
+  }
+
+  function clearHeldDirection(token=null) {
+    if (!heldDirection) return;
+    if (token !== null && heldDirection.token !== token) return;
+    if (heldDirection.button) heldDirection.button.classList.remove('holding');
+    heldDirection = null;
+  }
+
+  function maybeBoostHeldDirection(now) {
+    if (!heldDirection || now < heldDirection.nextBoostAt) return;
+    if (!state || !state.runActive || state.paused || state.awaitingStart || state.choosingPerk || state.stageSummary) {
+      clearHeldDirection();
+      return;
+    }
+    const h=heldDirection;
+    const sameCurrent = h.dr === state.currentDir.r && h.dc === state.currentDir.c;
+    const sameDesired = h.dr === state.desiredDir.r && h.dc === state.desiredDir.c;
+    if (sameCurrent && sameDesired) {
+      triggerImmediateBoost();
+      if (heldDirection) heldDirection.nextBoostAt = now + HOLD_BOOST_REPEAT_MS;
+    } else if (sameDesired) {
+      // Đang hoàn tất cú quẹo vào đúng hướng được giữ: kiểm tra lại sớm để boost
+      // bắt đầu ngay khi đầu rắn vào nhịp mới, không phải chờ thêm cả chu kỳ hold.
+      heldDirection.nextBoostAt = now + 36;
+    } else {
+      clearHeldDirection();
+    }
   }
 
   function triggerImmediateBoost() {
@@ -1484,6 +1523,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
     function completeFloor() {
+    clearHeldDirection();
     state.runActive = false;
     state.paused = false;
     state.awaitingStart = false;
@@ -1548,6 +1588,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
   function handleDeath(reason) {
+    clearHeldDirection();
     if (state.snake && state.snake[0]) burstAtCell(state.snake[0].r, state.snake[0].c, '#ef4444', 24);
     visual.shakeUntil = performance.now() + 360;
     visual.flashUntil = performance.now() + 180;
@@ -1577,6 +1618,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
   function offerPerks() {
+    clearHeldDirection();
     state.runActive = false;
     state.choosingPerk = true;
     const ids = [1,2,3,4,5].sort(() => Math.random() - .5).slice(0,3);
@@ -1603,6 +1645,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
 
   function togglePause(force) {
     if (state.choosingPerk || !state.runActive || state.awaitingStart) return;
+    clearHeldDirection();
     state.paused = typeof force === 'boolean' ? force : !state.paused;
     state.boostStepsLeft = 0;
     visual.boostQueue = 0;
@@ -2118,6 +2161,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
           lastMoveStartedAt = now;
         }
 
+        maybeBoostHeldDirection(now);
+
         if (now >= nextMoveAt) {
           let interval = moveIntervalSec();
           if (visual.boostQueue > 0) {
@@ -2151,6 +2196,14 @@ img{ -webkit-user-drag:none; user-drag:none; }
     }
   }
 
+  function directionFromKey(key) {
+    if (key==='arrowup'||key==='w') return {dr:-1,dc:0};
+    if (key==='arrowdown'||key==='s') return {dr:1,dc:0};
+    if (key==='arrowleft'||key==='a') return {dr:0,dc:-1};
+    if (key==='arrowright'||key==='d') return {dr:0,dc:1};
+    return null;
+  }
+
   function keyHandler(e) {
     const key=e.key.toLowerCase();
     const handled=['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','enter','p','n','c','1','2','3'].includes(key);
@@ -2159,16 +2212,27 @@ img{ -webkit-user-drag:none; user-drag:none; }
       if ((key===' ' || key==='enter') && !e.repeat) continueStageSummary();
       return;
     }
-    if (e.repeat && ['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','p','n'].includes(key)) return;
+
+    const dir=directionFromKey(key);
+    if (dir) {
+      if (!e.repeat) {
+        setHeldDirection(dir.dr,dir.dc,'key:'+key);
+        setDirection(dir.dr,dir.dc);
+      }
+      return;
+    }
+
+    if (e.repeat && [' ','p','n'].includes(key)) return;
     if (state.choosingPerk && ['1','2','3'].includes(key)) return choosePerk(Number(key));
-    if (key==='arrowup'||key==='w') setDirection(-1,0);
-    else if (key==='arrowdown'||key==='s') setDirection(1,0);
-    else if (key==='arrowleft'||key==='a') setDirection(0,-1);
-    else if (key==='arrowright'||key==='d') setDirection(0,1);
-    else if (key===' ') pauseOrRestart();
+    if (key===' ') pauseOrRestart();
     else if (key==='p') togglePause();
     else if (key==='n') newRun(true);
     else if (key==='c') cycleColor();
+  }
+
+  function keyUpHandler(e) {
+    const key=e.key.toLowerCase();
+    if (directionFromKey(key)) clearHeldDirection('key:'+key);
   }
 
   function fitGameToViewport() {
@@ -2200,6 +2264,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
   document.addEventListener('keydown', keyHandler, { passive:false });
+  document.addEventListener('keyup', keyUpHandler, { passive:false });
   document.getElementById('btnPause').addEventListener('click', pauseOrRestart);
   document.getElementById('btnNew').addEventListener('click', () => newRun(true));
   document.getElementById('btnColor').addEventListener('click', openSkinPicker);
@@ -2209,13 +2274,32 @@ img{ -webkit-user-drag:none; user-drag:none; }
   document.getElementById('skinModal').addEventListener('pointerdown', e => { if (e.target.id==='skinModal') closeSkinPicker(); });
   document.getElementById('btnExcelSave').addEventListener('click', loadLegacyExcelSave);
   document.getElementById('btnResetSave').addEventListener('click', resetWebSave);
+  function dirVectorFromButton(btn) {
+    const d=btn.dataset.dir;
+    if (d==='up') return {dr:-1,dc:0};
+    if (d==='down') return {dr:1,dc:0};
+    if (d==='left') return {dr:0,dc:-1};
+    return {dr:0,dc:1};
+  }
+
   function fireVirtualDirection(btn,e) {
     if(e){ if(e.cancelable)e.preventDefault(); e.stopPropagation(); try{btn.setPointerCapture(e.pointerId)}catch(_){} }
-    const d=btn.dataset.dir;
-    if (d==='up') setDirection(-1,0); else if (d==='down') setDirection(1,0); else if (d==='left') setDirection(0,-1); else setDirection(0,1);
+    const v=dirVectorFromButton(btn);
+    setHeldDirection(v.dr,v.dc,'pointer:'+e.pointerId,btn);
+    setDirection(v.dr,v.dc);
   }
+
+  function releaseVirtualDirection(btn,e) {
+    if(e){ if(e.cancelable)e.preventDefault(); e.stopPropagation(); }
+    clearHeldDirection('pointer:'+e.pointerId);
+    btn.classList.remove('holding');
+  }
+
   document.querySelectorAll('[data-dir]').forEach(btn => {
     btn.addEventListener('pointerdown', e => fireVirtualDirection(btn,e), {passive:false});
+    btn.addEventListener('pointerup', e => releaseVirtualDirection(btn,e), {passive:false});
+    btn.addEventListener('pointercancel', e => releaseVirtualDirection(btn,e), {passive:false});
+    btn.addEventListener('lostpointercapture', e => releaseVirtualDirection(btn,e), {passive:false});
     btn.addEventListener('contextmenu', e => e.preventDefault());
     btn.addEventListener('dragstart', e => e.preventDefault());
     btn.addEventListener('selectstart', e => e.preventDefault());
@@ -2226,7 +2310,10 @@ img{ -webkit-user-drag:none; user-drag:none; }
   ['contextmenu','selectstart','dragstart'].forEach(type=>document.getElementById('app').addEventListener(type,e=>e.preventDefault()));
   document.addEventListener('gesturestart',e=>{if(e.cancelable)e.preventDefault();},{passive:false});
   window.addEventListener('resize', fitGameToViewport, { passive:true });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(true); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { clearHeldDirection(); saveGame(true); }
+  });
+  window.addEventListener('blur', () => clearHeldDirection());
   window.addEventListener('beforeunload', () => saveGame(true));
 
 
