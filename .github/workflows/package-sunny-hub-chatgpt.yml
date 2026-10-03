@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - chatgpt/sunny-hub-mobile-3col
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   package:
