@@ -390,8 +390,6 @@ img{ -webkit-user-drag:none; user-drag:none; }
   const BOOST_MIN_INTERVAL_SEC = 0.055;
   const BOOST_REMAINDER_THRESHOLD_MS = 28;
   const BOOST_QUEUE_MAX = 3;
-  const HOLD_BOOST_DELAY_MS = 180;
-  const HOLD_BOOST_REPEAT_MS = 105;
   const TURN_SNAP_MIN_MS = 28;
   const TURN_SNAP_MAX_MS = 62;
   const CAMPAIGN_STAGES = 24;
@@ -1377,9 +1375,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
   }
 
   function setHeldDirection(dr, dc, token, button=null) {
-    const now=performance.now();
     if (heldDirection && heldDirection.button && heldDirection.button !== button) heldDirection.button.classList.remove('holding');
-    heldDirection = { dr, dc, token, button, startedAt: now, nextBoostAt: now + HOLD_BOOST_DELAY_MS };
+    heldDirection = { dr, dc, token, button };
     if (button) button.classList.add('holding');
   }
 
@@ -1390,25 +1387,10 @@ img{ -webkit-user-drag:none; user-drag:none; }
     heldDirection = null;
   }
 
-  function maybeBoostHeldDirection(now) {
-    if (!heldDirection || now < heldDirection.nextBoostAt) return;
-    if (!state || !state.runActive || state.paused || state.awaitingStart || state.choosingPerk || state.stageSummary) {
-      clearHeldDirection();
-      return;
-    }
-    const h=heldDirection;
-    const sameCurrent = h.dr === state.currentDir.r && h.dc === state.currentDir.c;
-    const sameDesired = h.dr === state.desiredDir.r && h.dc === state.desiredDir.c;
-    if (sameCurrent && sameDesired) {
-      triggerImmediateBoost();
-      if (heldDirection) heldDirection.nextBoostAt = now + HOLD_BOOST_REPEAT_MS;
-    } else if (sameDesired) {
-      // Đang hoàn tất cú quẹo vào đúng hướng được giữ: kiểm tra lại sớm để boost
-      // bắt đầu ngay khi đầu rắn vào nhịp mới, không phải chờ thêm cả chu kỳ hold.
-      heldDirection.nextBoostAt = now + 36;
-    } else {
-      clearHeldDirection();
-    }
+  function heldBoostActive() {
+    if (!heldDirection || !state || !state.runActive || state.paused || state.awaitingStart || state.choosingPerk || state.stageSummary) return false;
+    return heldDirection.dr === state.currentDir.r && heldDirection.dc === state.currentDir.c &&
+           heldDirection.dr === state.desiredDir.r && heldDirection.dc === state.desiredDir.c;
   }
 
   function triggerImmediateBoost() {
@@ -2161,14 +2143,14 @@ img{ -webkit-user-drag:none; user-drag:none; }
           lastMoveStartedAt = now;
         }
 
-        maybeBoostHeldDirection(now);
-
         if (now >= nextMoveAt) {
           let interval = moveIntervalSec();
-          if (visual.boostQueue > 0) {
-            visual.boostQueue--;
+          const holdBoost = heldBoostActive();
+          if (visual.boostQueue > 0 || holdBoost) {
+            if (visual.boostQueue > 0) visual.boostQueue--;
             interval = Math.max(BOOST_MIN_INTERVAL_SEC, interval * BOOST_FACTOR);
             visual.boostUntil = now + interval * 1000;
+            if (holdBoost) state.floorBoostCount = Math.max(0, Number(state.floorBoostCount) || 0) + 1;
           } else {
             visual.boostUntil = 0;
           }
