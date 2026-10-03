@@ -1529,7 +1529,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
       nextNeedsPerk: cleared % STAGES_PER_ANTE === 0
     };
 
-    state.floorNum++;
+    // Giữ nguyên floorNum trong lúc bảng tổng kết đang hiện để toàn bộ bàn chơi,
+    // badge và thông số phía sau thật sự "đóng băng" ở màn vừa hoàn thành.
     syncUI();
     saveGame(true);
   }
@@ -1538,6 +1539,7 @@ img{ -webkit-user-drag:none; user-drag:none; }
     if (!state.stageSummary) return;
     const summary = clone(state.stageSummary);
     state.stageSummary = null;
+    state.floorNum = summary.cleared + 1;
     hideStageSummary();
     if (summary.campaignCleared) showToast('Phá đảo 8 Ải · đã mở chế độ Vô hạn!');
     if (summary.nextNeedsPerk) offerPerks();
