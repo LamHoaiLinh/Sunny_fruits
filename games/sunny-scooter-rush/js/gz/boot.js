@@ -97,10 +97,10 @@ txt=txt.replace(stepOld,stepNew);
 
 const trafficFixes=[
 ["return clamp(Math.round(64 * densityRamp(progress) * DIFF.density), 28, NPC_MAX);","return clamp(Math.round(52 * densityRamp(progress) * DIFF.density), 24, NPC_MAX);"],
-["chaoyang: [['scooter', 0.7], ['car', 0.1], ['bus', 0.1], ['ped', 0.1]],","chaoyang: [['scooter', 0.74], ['car', 0.1], ['bus', 0.06], ['ped', 0.1]],"],
-["minzu: [['scooter', 0.62], ['car', 0.18], ['taxi', 0.1], ['bus', 0.1]],","minzu: [['scooter', 0.66], ['car', 0.18], ['taxi', 0.1], ['bus', 0.06]],"],
-["bridge: [['car', 0.38], ['taxi', 0.16], ['bus', 0.2], ['scooter', 0.26]],","bridge: [['car', 0.38], ['taxi', 0.16], ['bus', 0.12], ['scooter', 0.34]],"],
-["qingxiu: [['scooter', 0.6], ['car', 0.14], ['ped', 0.16], ['bus', 0.1]],","qingxiu: [['scooter', 0.64], ['car', 0.14], ['ped', 0.16], ['bus', 0.06]],"],
+["chaoyang: [['scooter', 0.7], ['car', 0.1], ['bus', 0.1], ['ped', 0.1]],","chaoyang: [['scooter', 0.78], ['car', 0.07], ['bus', 0.03], ['ped', 0.12]],"],
+["minzu: [['scooter', 0.62], ['car', 0.18], ['taxi', 0.1], ['bus', 0.1]],","minzu: [['scooter', 0.76], ['car', 0.12], ['taxi', 0.08], ['bus', 0.04]],"],
+["bridge: [['car', 0.38], ['taxi', 0.16], ['bus', 0.2], ['scooter', 0.26]],","bridge: [['car', 0.24], ['taxi', 0.12], ['bus', 0.06], ['scooter', 0.58]],"],
+["qingxiu: [['scooter', 0.6], ['car', 0.14], ['ped', 0.16], ['bus', 0.1]],","qingxiu: [['scooter', 0.72], ['car', 0.08], ['ped', 0.16], ['bus', 0.04]],"],
 ["function laneBlocked(z, center, ignoreNpc = null, gap = 1050) {","function laneBlocked(z, center, ignoreNpc = null, gap = 1350) {"],
 ["const WALL_WINDOW = 820;","const WALL_WINDOW = 1150;"],
 ["for (let attempt = 0; attempt < 20; attempt++) {","for (let attempt = 0; attempt < 36; attempt++) {"],
@@ -118,9 +118,10 @@ const movePatch="      npc.z += npc.speed * dt;\n\n      if (npc.type !== 'ped')
 if(!txt.includes(moveNeedle))throw new Error("Traffic patch không tìm thấy đoạn di chuyển NPC");
 txt=txt.replace(moveNeedle,movePatch);
 
+// TRAFFIC_DENSITY_V4 · giảm ~37% tổng lưu lượng
 // TRAFFIC_FAIRNESS_V3
 const trafficV3=[
-["return clamp(Math.round(52 * densityRamp(progress) * DIFF.density), 24, NPC_MAX);","return clamp(Math.round(46 * densityRamp(progress) * DIFF.density), 22, NPC_MAX);"],
+["return clamp(Math.round(52 * densityRamp(progress) * DIFF.density), 24, NPC_MAX);","return clamp(Math.round(29 * densityRamp(progress) * DIFF.density), 13, 36);"],
 ["function laneBlocked(z, center, ignoreNpc = null, gap = 1350) {","function laneBlocked(z, center, ignoreNpc = null, gap = 1650) {"],
 ["const WALL_WINDOW = 1150;","const WALL_WINDOW = 2200;"],
 ["if (type === 'bus' && g.npcs.some(other => other !== npc && other.active && !other.popped && other.type === 'bus' && Math.abs(other.z - z) < 3000)) continue;","if (type === 'bus' && g.npcs.some(other => other !== npc && other.active && !other.popped && other.type === 'bus' && Math.abs(other.z - z) < 4200)) continue;\n      if (['car','taxi','bus'].includes(type)) {\n        const spawnZone = zoneAt(segIdx);\n        const nearLarge = g.npcs.filter(other => other !== npc && other.active && !other.popped && ['car','taxi','bus'].includes(other.type) && Math.abs(other.z - z) < 2200).length;\n        const maxLarge = spawnZone.lanes >= 4 ? 2 : 1;\n        if (nearLarge >= maxLarge) continue;\n      }"]
