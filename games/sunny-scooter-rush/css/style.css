@@ -158,3 +158,37 @@ h2.screen-title{font-size:clamp(20px,4.6vmin,34px);font-weight:900}.roster{displ
   #overlay>.screen:has(#btn-start) .best-line{display:none}
   #overlay>.screen:has(#btn-start) #btn-start{font-size:14px;padding:.46em 1.7em}
 }
+
+/* v1.3 Progression */
+.wallet-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(7,12,18,.72);border:1px solid rgba(255,210,62,.3);border-radius:999px;padding:6px 12px;color:#ffe28a;font-weight:900;font-size:12px}
+.select-top{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.select-screen{overflow-y:auto}
+.rider-card{position:relative}
+.rider-card.locked{filter:saturate(.62)}
+.rider-card.locked canvas,.rider-card.locked .cbio,.rider-card.locked .ability,.rider-card.locked .stats{opacity:.42}
+.unlock-state{font-size:10px;font-weight:900;color:#70e5a6}
+.lock-panel{position:absolute;inset:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;background:rgba(8,12,18,.58);border-radius:14px;backdrop-filter:blur(2px)}
+.lock-icon{font-size:26px}
+.unlock-btn{border:1px solid #ffd56a;background:#2c2515;color:#ffe89f;border-radius:999px;padding:7px 10px;font-weight:900;font-size:10px}
+.unlock-btn.no-money{background:#4b1e24;color:#ffadb8}
+.mission-brief{width:min(92%,760px);background:rgba(8,14,22,.86);border:1px solid rgba(255,210,62,.25);border-radius:14px;padding:10px}
+.mission-title{font-size:11px;font-weight:900;color:#ffd56a;letter-spacing:.08em;margin-bottom:7px}
+.mission-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.mission-card{display:flex;justify-content:space-between;gap:8px;background:rgba(255,255,255,.055);border-radius:9px;padding:7px 9px;font-size:10px;text-align:left}
+.mission-card b{color:#ffe28a;white-space:nowrap}
+.mission-note{margin-top:6px;font-size:10px;color:#9fb0bc}
+.countdown-screen .mission-brief{margin-top:8px;max-width:680px}
+.reward-panel{background:var(--panel);border:1px solid rgba(255,210,62,.2);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;text-align:left}
+.reward-title{font-weight:900;color:#ffe28a;font-size:12px;letter-spacing:.08em}
+.result-mission,.reward-total,.wallet-total{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:5px 7px;border-radius:8px;background:rgba(255,255,255,.05)}
+.result-mission.done b,.reward-total b{color:#70e5a6}
+.result-mission.fail{opacity:.65}
+.wallet-total b{color:#ffe28a}
+.unlock-progress{font-size:10px;color:#dbe6ec;border-top:1px solid rgba(255,255,255,.08);padding-top:7px}
+.unlock-bar{height:7px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;margin-top:5px}
+.unlock-bar i{display:block;height:100%;background:#ffd23e}
+.unlock-progress.all{color:#70e5a6}
+.no-coin{font-size:11px;color:#ffb0b0}
+.results-screen .result-columns{grid-template-columns:minmax(0,1.05fr) minmax(240px,.95fr)}
+@media(max-width:760px){.mission-list{grid-template-columns:1fr}.mission-brief.compact .mission-list{grid-template-columns:repeat(3,minmax(0,1fr))}.results-screen .result-columns{grid-template-columns:1fr}.reward-panel{font-size:10px}}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:560px){.mission-brief.compact{padding:5px 7px}.mission-brief.compact .mission-title{margin-bottom:4px}.mission-brief.compact .mission-card{padding:4px 6px;font-size:9px}.select-screen .mission-brief{display:none}.select-screen .roster{grid-template-columns:repeat(4,minmax(100px,1fr));}.rider-card{padding:6px}.rider-card .cbio{display:none}.rider-card .ability{font-size:8px;min-height:2.4em}.results-screen .progress-panel{display:none}}
