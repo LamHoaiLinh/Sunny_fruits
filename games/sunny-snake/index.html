@@ -716,7 +716,226 @@ img{ -webkit-user-drag:none; user-drag:none; }
     return terrainDistanceMap()[targetR][targetC] >= 0;
   }
 
-  function tryPlaceWallSegment(segLen, requireAdjacency, interiorOnly=false) {
+  // --- 1.0 safety hotfix: terrain reachability alone is not enough for Snake. ---
+  // A food can be reachable but still sit at the mouth/end of a cul-de-sac. Once the
+  // snake eats it, reversing is illegal and its own body blocks the way back. The old
+  // generator therefore produced "reachable but fatal" food, especially because it
+  // deliberately preferred the farthest cells. These helpers measure whether a food
+  // cell has a genuine continuation route after entering it.
+  function terrainNeighbors(r, c, blockedR=-1, blockedC=-1) {
+    const out=[];
+    for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const rr=r+dr, cc=c+dc;
+      if (!inBounds(rr,cc) || state.walls[rr][cc]) continue;
+      if (rr===blockedR && cc===blockedC) continue;
+      out.push({r:rr,c:cc});
+    }
+    return out;
+  }
+
+  function terrainComponentStats(sr, sc, blockedR=-1, blockedC=-1, cap=GRID_SIZE*GRID_SIZE) {
+    if (!inBounds(sr,sc) || state.walls[sr][sc] || (sr===blockedR && sc===blockedC)) return {size:0,edges:0,hasCycle:false};
+    const seen=emptyWalls();
+    const q=[{r:sr,c:sc}]; seen[sr][sc]=true;
+    let size=0, edgeTwice=0;
+    for (let qi=0; qi<q.length && size<cap; qi++) {
+      const p=q[qi]; size++;
+      const ns=terrainNeighbors(p.r,p.c,blockedR,blockedC);
+      edgeTwice+=ns.length;
+      for (const n of ns) {
+        if (seen[n.r][n.c]) continue;
+        seen[n.r][n.c]=true; q.push(n);
+      }
+    }
+    const edges=Math.floor(edgeTwice/2);
+    return {size,edges,hasCycle:edges>=size};
+  }
+
+  function terrainComponentSize(sr, sc, blockedR=-1, blockedC=-1, cap=GRID_SIZE*GRID_SIZE) {
+    return terrainComponentStats(sr,sc,blockedR,blockedC,cap).size;
+  }
+
+  function snakeBodyPathMap() {
+    const h=state.snake[0];
+    const dist=Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill(-1));
+    const parent=Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill(null));
+    if (!h) return {dist,parent};
+    const blocked=emptyWalls();
+    for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) blocked[r][c]=!!state.walls[r][c];
+    for (let i=1;i<state.snake.length;i++) {
+      const p=state.snake[i]; if (inBounds(p.r,p.c)) blocked[p.r][p.c]=true;
+    }
+    blocked[h.r][h.c]=false;
+    const q=[{...h}]; dist[h.r][h.c]=0;
+    for (let qi=0;qi<q.length;qi++) {
+      const p=q[qi];
+      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const r=p.r+dr,c=p.c+dc;
+        if (!inBounds(r,c) || blocked[r][c] || dist[r][c]>=0) continue;
+        dist[r][c]=dist[p.r][p.c]+1;
+        parent[r][c]={r:p.r,c:p.c};
+        q.push({r,c});
+      }
+    }
+    return {dist,parent};
+  }
+
+  function reconstructBodySafePath(nav, tr, tc) {
+    if (!nav || !inBounds(tr,tc) || nav.dist[tr][tc] < 0) return null;
+    const h=state.snake[0];
+    const rev=[]; let cur={r:tr,c:tc};
+    while (!(cur.r===h.r && cur.c===h.c)) {
+      rev.push({r:cur.r,c:cur.c});
+      const p=nav.parent[cur.r][cur.c];
+      if (!p) return null;
+      cur=p;
+    }
+    rev.reverse();
+    return rev;
+  }
+
+  function simulateSnakeAlongPath(path, growOnLast) {
+    let body=clone(state.snake);
+    if (!Array.isArray(path)) return null;
+    for (let i=0;i<path.length;i++) {
+      const next=path[i];
+      const grow=growOnLast && i===path.length-1;
+      const limit=grow ? body.length : Math.max(1,body.length-1);
+      for (let j=0;j<limit;j++) if (sameCell(body[j],next)) return null;
+      body=[{r:next.r,c:next.c},...body];
+      if (!grow) body.pop();
+    }
+    return body;
+  }
+
+  function snakeCanSurviveSteps(startBody, steps, nodeLimit=3200) {
+    if (!startBody || !startBody.length) return false;
+    const stack=[{body:startBody,depth:0}];
+    const seen=new Set(); let nodes=0;
+    while (stack.length && nodes<nodeLimit) {
+      const cur=stack.pop(); nodes++;
+      if (cur.depth>=steps) return true;
+      const body=cur.body,h=body[0];
+      const key=cur.depth+'|'+body.map(p=>p.r*GRID_SIZE+p.c).join(',');
+      if (seen.has(key)) continue; seen.add(key);
+      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const nr=h.r+dr,nc=h.c+dc;
+        if (!inBounds(nr,nc) || state.walls[nr][nc]) continue;
+        let hit=false;
+        for (let i=0;i<Math.max(1,body.length-1);i++) if (body[i].r===nr && body[i].c===nc) {hit=true;break;}
+        if (hit) continue;
+        const nb=[{r:nr,c:nc},...body]; nb.pop();
+        stack.push({body:nb,depth:cur.depth+1});
+      }
+    }
+    return false;
+  }
+
+  function snakeReachableArea(body) {
+    if (!body || !body.length) return 0;
+    const blocked=emptyWalls();
+    for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) blocked[r][c]=!!state.walls[r][c];
+    for (let i=1;i<body.length;i++) {
+      const p=body[i]; if (inBounds(p.r,p.c)) blocked[p.r][p.c]=true;
+    }
+    const h=body[0]; blocked[h.r][h.c]=false;
+    const seen=emptyWalls(),q=[{...h}]; seen[h.r][h.c]=true; let count=0;
+    for (let qi=0;qi<q.length;qi++) {
+      const p=q[qi]; count++;
+      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const r=p.r+dr,c=p.c+dc;
+        if (!inBounds(r,c) || blocked[r][c] || seen[r][c]) continue;
+        seen[r][c]=true; q.push({r,c});
+      }
+    }
+    return count;
+  }
+
+  function foodCandidatePlayable(r,c,nav=null) {
+    nav=nav || snakeBodyPathMap();
+    if (!inBounds(r,c) || nav.dist[r][c] < 0) return false;
+    const path=reconstructBodySafePath(nav,r,c);
+    if (!path || !path.length) return false;
+    const willGrow=(state.foodNum % effectiveGrowEvery()===0) && state.snake.length < maxLengthForFloor();
+    const bodyAfter=simulateSnakeAlongPath(path,willGrow);
+    if (!bodyAfter) return false;
+    const info=stageInfo();
+    const area=snakeReachableArea(bodyAfter);
+    const minArea=Math.min(24, info.isBoss ? Math.max(6,bodyAfter.length) : Math.max(10,bodyAfter.length+3));
+    if (area < minArea) return false;
+    const horizon=info.isBoss ? 3 : 4;
+    return snakeCanSurviveSteps(bodyAfter,horizon,1800);
+  }
+
+  function requiredFoodEscapeCells() {
+    const info=stageInfo();
+    const ratio=info.isBoss ? .55 : .78;
+    const cap=info.isBoss ? 8 : 10;
+    return Math.max(3, Math.min(cap, Math.ceil(state.snake.length * ratio)));
+  }
+
+  function foodEscapeProfile(r, c) {
+    if (!inBounds(r,c) || state.walls[r][c]) return {capacity:0,cycleSafe:false};
+    const exits=terrainNeighbors(r,c);
+    if (exits.length < 2) return {capacity:0,cycleSafe:false};
+    const stats=exits.map(n => terrainComponentStats(n.r,n.c,r,c));
+    let worstCase=GRID_SIZE*GRID_SIZE;
+    let cycleSafe=true;
+    for (let arrival=0; arrival<exits.length; arrival++) {
+      let bestOther=0, hasCycleExit=false;
+      for (let j=0;j<exits.length;j++) if (j!==arrival) {
+        bestOther=Math.max(bestOther,stats[j].size);
+        if (stats[j].hasCycle) hasCycleExit=true;
+      }
+      worstCase=Math.min(worstCase,bestOther);
+      if (!hasCycleExit) cycleSafe=false;
+    }
+    return {capacity:Number.isFinite(worstCase)?worstCase:0,cycleSafe};
+  }
+
+  function foodEscapeCapacity(r,c) { return foodEscapeProfile(r,c).capacity; }
+
+  function foodCellIsSafe(r, c, relaxed=false, nav=null) {
+    if (!foodCellReachable(r,c) || isSnakeCell(r,c)) return false;
+    nav=nav || snakeBodyPathMap();
+    if (nav.dist[r][c] < 0) return false;
+    const need=requiredFoodEscapeCells();
+    const threshold=relaxed ? Math.max(2, need-2) : need;
+    const profile=foodEscapeProfile(r,c);
+    return terrainOpenNeighbors(r,c) >= 2 && profile.capacity >= threshold && (relaxed || profile.cycleSafe) && foodCandidatePlayable(r,c,nav);
+  }
+
+  function requiredStartEscapeCells() {
+    return Math.max(3, Math.min(8, state.snake.length + 1));
+  }
+
+  function startMoveSafety(dr,dc) {
+    const h=state.snake[0];
+    if (!h) return {ok:false,capacity:0};
+    const nr=h.r+dr,nc=h.c+dc;
+    if (!inBounds(nr,nc) || state.walls[nr][nc] || isSnakeCell(nr,nc)) return {ok:false,capacity:0};
+    const capacity=terrainComponentSize(nr,nc,h.r,h.c);
+    return {ok:capacity>=requiredStartEscapeCells(),capacity};
+  }
+
+  function safeStartDirectionCount() {
+    let n=0;
+    for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) if (startMoveSafety(dr,dc).ok) n++;
+    return n;
+  }
+
+  function headHasSafeContinuation() {
+    const h=state.snake[0];
+    if (!h) return false;
+    for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr=h.r+dr,nc=h.c+dc;
+      if (!inBounds(nr,nc) || state.walls[nr][nc] || isSnakeCell(nr,nc)) continue;
+      if (terrainComponentSize(nr,nc,h.r,h.c) >= 2) return true;
+    }
+    return false;
+  }
+
+    function tryPlaceWallSegment(segLen, requireAdjacency, interiorOnly=false) {
     segLen = Math.max(1, Math.min(6, segLen));
     for (let attempts=0; attempts<260; attempts++) {
       let dr,dc,r,c;
@@ -739,8 +958,8 @@ img{ -webkit-user-drag:none; user-drag:none; }
       if (ok && requireAdjacency && !cells.some(p => adjacentWallCount(p.r,p.c)>0)) ok=false;
       if (!ok) continue;
       cells.forEach(p => state.walls[p.r][p.c]=true);
-      let keep = mapIsConnected() && headOpenNeighbors() >= 2;
-      if (keep && state.food && inBounds(state.food.r,state.food.c)) keep = foodCellReachable(state.food.r,state.food.c);
+      let keep = mapIsConnected() && headOpenNeighbors() >= 2 && headHasSafeContinuation();
+      if (keep && state.food && inBounds(state.food.r,state.food.c)) keep = foodCellIsSafe(state.food.r,state.food.c);
       if (keep) return segLen;
       cells.forEach(p => state.walls[p.r][p.c]=false);
     }
@@ -904,66 +1123,110 @@ img{ -webkit-user-drag:none; user-drag:none; }
 
   function collectFoodCandidates() {
     const info = stageInfo();
-    const dist = terrainDistanceMap();
-    const preferred=[], relaxed=[], emergency=[];
+    const nav = snakeBodyPathMap();
+    const preferred=[], safe=[], relaxed=[], emergency=[];
+    const need=requiredFoodEscapeCells();
     const minPathDist = Math.min(12, info.campaign
       ? 2 + Math.floor(info.ante / 2) + (info.slot === 2 ? 1 : 0) + (info.isBoss ? 2 : 0)
       : 5 + Math.floor(info.endlessDepth / 8) + (info.isBoss ? 2 : 0));
 
     for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) {
-      if (state.walls[r][c] || isSnakeCell(r,c) || dist[r][c] < 0) continue;
-      const cell={r,c,d:dist[r][c]};
-      emergency.push(cell);
-      if (terrainOpenNeighbors(r,c) >= 1) relaxed.push(cell);
-      if (terrainOpenNeighbors(r,c) >= 2 && dist[r][c] >= minPathDist) preferred.push(cell);
+      if (state.walls[r][c] || isSnakeCell(r,c) || nav.dist[r][c] < 0) continue;
+      const exits=terrainOpenNeighbors(r,c);
+      if (exits < 2) continue;
+      const profile=foodEscapeProfile(r,c);
+      const escape=profile.capacity;
+      const cell={r,c,d:nav.dist[r][c],escape,cycleSafe:profile.cycleSafe};
+      if (escape >= 2) emergency.push(cell);
+      if (escape >= Math.max(2,need-2)) relaxed.push(cell);
+      if (escape >= need && profile.cycleSafe) {
+        safe.push(cell);
+        if (nav.dist[r][c] >= minPathDist) preferred.push(cell);
+      }
     }
-    return { preferred, relaxed, emergency };
+    return { preferred, safe, relaxed, emergency, need, nav };
   }
 
-  function spawnFood() {
-    // V2.9: thân rắn chỉ là vật cản tạm thời. Không được xử thua chỉ vì thân đang
-    // nằm đúng một choke-point tại khoảnh khắc vừa ăn. Dùng đường đi của terrain
-    // (tường cố định) để đánh giá khả năng tới mục tiêu, nhưng vẫn không đặt thức ăn
-    // trực tiếp lên thân rắn.
-    const sets = collectFoodCandidates();
-    const pool = sets.preferred.length ? sets.preferred : (sets.relaxed.length ? sets.relaxed : sets.emergency);
-    if (!pool.length) return false;
-
-    // Ưu tiên nhóm xa nhất theo độ dài đường đi thực trong maze, thay vì Manhattan.
-    let maxD = 0;
-    for (const p of pool) if (p.d > maxD) maxD = p.d;
-    const farBand = pool.filter(p => p.d >= Math.max(0, maxD - 3));
-    const chooseFrom = farBand.length >= 3 ? farBand : pool;
-    const pick = chooseFrom[randInt(0, chooseFrom.length-1)];
-    state.food = { r: pick.r, c: pick.c };
-    return true;
+  function scoreFoodPool(pool) {
+    return pool.map(p => ({...p,score:p.d+Math.min(14,p.escape)*.45+Math.random()*1.35})).sort((a,b)=>b.score-a.score);
   }
 
-  function buildPlayableFloor(maxAttempts=24) {
-    state.food = null;
-    for (let attempt=0; attempt<maxAttempts; attempt++) {
-      generateValidWalls();
-      if (mapIsConnected() && headOpenNeighbors() >= 2 && spawnFood()) return true;
-      state.walls = emptyWalls();
-      state.currentWallCount = 0;
-      state.food = null;
-    }
+  function spawnFood(requireSafe=true) {
+    state.food=null;
+    const sets=collectFoodCandidates();
+    let pool;
+    if (sets.preferred.length) pool=sets.preferred;
+    else if (sets.safe.length) pool=sets.safe;
+    else if (!requireSafe && sets.relaxed.length) pool=sets.relaxed;
+    else if (!requireSafe && sets.emergency.length) pool=sets.emergency;
+    else return false;
 
-    // Fallback tuyệt đối: không bao giờ GAME OVER chỉ vì thuật toán sinh map.
-    // Bàn trống vẫn cho phép chơi tiếp; vòng sau engine sẽ sinh map mới bình thường.
-    state.walls = emptyWalls();
-    state.currentWallCount = 0;
-    state.food = null;
-    if (spawnFood()) return true;
-
-    // Với giới hạn chiều dài hiện tại, nhánh này gần như không thể xảy ra.
-    for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) {
-      if (!isSnakeCell(r,c)) { state.food={r,c}; return true; }
+    const ranked=scoreFoodPool(pool);
+    const checkLimit=Math.min(ranked.length,24);
+    for (let i=0;i<checkLimit;i++) {
+      const p=ranked[i];
+      if (!foodCandidatePlayable(p.r,p.c,sets.nav)) continue;
+      state.food={r:p.r,c:p.c};
+      return true;
     }
     return false;
   }
 
-  function setupFloor() {
+  function spawnRecoveryFood() {
+    state.food=null;
+    const nav=snakeBodyPathMap();
+    const candidates=[];
+    for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) {
+      if (state.walls[r][c] || isSnakeCell(r,c) || nav.dist[r][c] <= 0) continue;
+      candidates.push({r,c,d:nav.dist[r][c],exits:terrainOpenNeighbors(r,c)});
+    }
+    candidates.sort((a,b)=>(b.exits-a.exits)||(b.d-a.d));
+    for (const p of candidates.slice(0,30)) {
+      if (!foodCandidatePlayable(p.r,p.c,nav)) continue;
+      state.food={r:p.r,c:p.c};
+      return true;
+    }
+    if (candidates.length) {
+      const p=candidates[0]; state.food={r:p.r,c:p.c}; return true;
+    }
+    return false;
+  }
+
+  function repairTerrainForSafeFood(maxRemovals=14) {
+    const cells=[];
+    for (let r=0;r<GRID_SIZE;r++) for (let c=0;c<GRID_SIZE;c++) if (state.walls[r][c]) cells.push({r,c});
+    cells.sort((a,b)=>adjacentWallCount(b.r,b.c)-adjacentWallCount(a.r,a.c) || Math.random()-.5);
+    let removed=0;
+    for (const p of cells) {
+      if (removed>=maxRemovals) break;
+      state.walls[p.r][p.c]=false;
+      state.currentWallCount=Math.max(0,state.currentWallCount-1);
+      removed++;
+      if (spawnFood(true)) return true;
+    }
+    state.walls=emptyWalls();
+    state.currentWallCount=0;
+    return spawnFood(true) || spawnRecoveryFood();
+  }
+
+  function buildPlayableFloor(maxAttempts=36) {
+    state.food = null;
+    const info=stageInfo();
+    const minStartDirs=info.isBoss ? 1 : 2;
+    for (let attempt=0; attempt<maxAttempts; attempt++) {
+      generateValidWalls();
+      if (mapIsConnected() && headOpenNeighbors() >= 2 && safeStartDirectionCount() >= minStartDirs && spawnFood(true)) return true;
+      state.walls = emptyWalls();
+      state.currentWallCount = 0;
+      state.food = null;
+    }
+    state.walls = emptyWalls();
+    state.currentWallCount = 0;
+    state.food = null;
+    return spawnFood(true);
+  }
+
+    function setupFloor() {
     state.foodNum = 1;
     state.runActive = true;
     state.paused = false;
@@ -990,6 +1253,11 @@ img{ -webkit-user-drag:none; user-drag:none; }
   function startWithDirection(dr, dc) {
     if (!state.awaitingStart || !state.runActive || state.choosingPerk || state.paused) return false;
     if (state.snake.length > 1 && dr === -state.currentDir.r && dc === -state.currentDir.c) return false;
+    const startSafety=startMoveSafety(dr,dc);
+    if (!startSafety.ok) {
+      showToast('Hướng này là ngõ cụt hoặc bị chặn — chọn hướng khác.');
+      return false;
+    }
     state.currentDir = { r: dr, c: dc };
     state.desiredDir = { r: dr, c: dc };
     state.awaitingStart = false;
@@ -1134,24 +1402,29 @@ img{ -webkit-user-drag:none; user-drag:none; }
       completeFloor();
       return;
     }
-    if (eatenNum % dynamicWallEvery() === 0) tryAddDynamicWall();
+
+    state.food=null;
+    const wallsBefore=clone(state.walls);
+    const wallCountBefore=state.currentWallCount;
+    let addedWall=false;
+    if (eatenNum % dynamicWallEvery() === 0) addedWall=tryAddDynamicWall();
+
     state.foodNum = eatenNum + 1;
-    if (!spawnFood()) {
-      // Không xử thua vì lỗi sinh mục tiêu. Giữ nguyên tiến độ và chỉ sửa terrain khi
-      // thật sự không còn ô hợp lệ (trường hợp cực hiếm).
-      const oldWalls = clone(state.walls);
-      const oldCount = state.currentWallCount;
-      state.walls = emptyWalls();
-      state.currentWallCount = 0;
-      if (!spawnFood()) {
-        state.walls = oldWalls;
-        state.currentWallCount = oldCount;
+    if (!spawnFood(true)) {
+      if (addedWall) {
+        state.walls=wallsBefore;
+        state.currentWallCount=wallCountBefore;
+      }
+      if (!spawnFood(true) && !repairTerrainForSafeFood()) {
+        state.walls=emptyWalls();
+        state.currentWallCount=0;
+        if (!spawnFood(true)) spawnRecoveryFood();
       }
     }
     saveGame(true);
   }
 
-  function completeFloor() {
+    function completeFloor() {
     state.runActive = false;
     const cleared = state.floorNum;
     const info = stageInfo(cleared);
@@ -1292,6 +1565,9 @@ img{ -webkit-user-drag:none; user-drag:none; }
           state.awaitingStart = true;
           nextMoveAt = Number.POSITIVE_INFINITY;
           upgradeWeakBossLayoutIfNeeded();
+          if (!state.food || !foodCellIsSafe(state.food.r,state.food.c)) {
+            if (!spawnFood(true)) repairTerrainForSafeFood();
+          }
           visual.prevSnake = clone(state.snake);
         } else {
           nextMoveAt = performance.now() + moveIntervalSec() * 1000;
@@ -1807,6 +2083,10 @@ img{ -webkit-user-drag:none; user-drag:none; }
     spawnFood: () => spawnFood(),
     buildPlayableFloor: () => buildPlayableFloor(),
     setStage: (n) => { state.floorNum = Math.max(1, Number(n) || 1); setupFloor(); return clone(state); },
+    foodSafety: () => state.food ? (()=>{const nav=snakeBodyPathMap();const r=state.food.r,c=state.food.c;const profile=foodEscapeProfile(r,c);return {cell:clone(state.food),capacity:profile.capacity,cycleSafe:profile.cycleSafe,required:requiredFoodEscapeCells(),bodyDist:nav.dist[r][c],onSnake:isSnakeCell(r,c),exits:terrainOpenNeighbors(r,c),playable:foodCandidatePlayable(r,c,nav),safe:foodCellIsSafe(r,c,false,nav)};})() : null,
+    plannedPathToFood: () => state.food ? reconstructBodySafePath(snakeBodyPathMap(),state.food.r,state.food.c) : null,
+    startSafety: () => ({safeDirections:safeStartDirectionCount(),requiredCapacity:requiredStartEscapeCells()}),
+    regenerateFloor: () => { buildPlayableFloor(); return clone(state); },
     skins: () => SNAKE_SKINS.map(s=>({id:s.id,name:s.name,group:s.group}))
   };
 
