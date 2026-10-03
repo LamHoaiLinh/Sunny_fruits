@@ -15,7 +15,7 @@ function installSunnyHelp(){
   const modal=document.createElement('div');
   modal.id='sunny-help-modal';
   modal.hidden=true;
-  modal.innerHTML=\`
+  modal.innerHTML=`
     <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
       <div class="help-head">
         <div><div class="help-kicker">CUỘC ĐUA XE ĐIỆN · ĐÀ NẴNG</div><h2 id="help-title">HƯỚNG DẪN CÁCH CHƠI</h2></div>
@@ -30,7 +30,7 @@ function installSunnyHelp(){
         <section><b>👤 6. CHỌN TAY LÁI</b><p><strong>Minh:</strong> dễ làm quen, hồi phục tốt · <strong>Hạnh:</strong> mạnh về khiên · <strong>Nam:</strong> thưởng Lách sát và nạp Flow nhanh · <strong>Mai:</strong> giữ combo/Flow lâu.</p><p>Chế độ Bất tử dùng để tập và <strong>không tính kỷ lục</strong>.</p></section>
       </div>
       <button id="help-close" class="btn help-done">ĐÃ HIỂU · QUAY LẠI</button>
-    </div>\`;
+    </div>`;
   document.body.appendChild(modal);
   const close=()=>{modal.hidden=true};
   modal.querySelector('#help-close').addEventListener('click',close);
