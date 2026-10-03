@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#ffd6e7">
 <title>Sunny Game Hub</title>
 <link rel="manifest" href="manifest.json">
@@ -13,56 +13,17 @@
 <main class="hub">
   <section class="hero">
     <h1>SUNNY GAME HUB</h1>
-    <p>Chọn trò chơi Sunny muốn chơi hôm nay</p>
+    <p>Chạm vào game để chơi</p>
   </section>
-  <section class="games">
-    <article class="card">
-      <img src="assets/icons/sunny-fruits.svg" alt="Icon Sunny Fruits">
-      <div>
-        <h2>SUNNY FRUITS</h2>
-        <div class="tags"><span class="tag">Xếp trái cây</span><span class="tag">Đường ray</span><span class="tag">Puzzle</span></div>
-        <p>Game xếp trái cây theo cột, dùng đường ray và hai ô để tạm.</p>
-        <a class="play" href="games/sunny-fruits/index.html">▶ Chơi game</a>
-      </div>
-    </article>
-    <article class="card">
-      <img src="assets/icons/sunny-snake.svg" alt="Icon Sunny Snake Roguelite">
-      <div>
-        <h2>SUNNY SNAKE ROGUELITE</h2>
-        <div class="tags"><span class="tag">Snake Grid</span><span class="tag">Roguelite</span><span class="tag">13 skin</span></div>
-        <p>Rắn đi theo ô, thân liền mạch, 8 Ải × 3 màn, boss maze và bộ skin riêng cho Sunny & Gia Khang.</p>
-        <a class="play" href="games/sunny-snake/index.html">▶ Chơi game</a>
-      </div>
-    </article>
-    <article class="card">
-      <img src="assets/icons/sunny-garden.svg" alt="Icon Sunny Garden">
-      <div>
-        <h2>SUNNY GARDEN</h2>
-        <div class="tags"><span class="tag">Trồng cây</span><span class="tag">Merge</span><span class="tag">Bán hàng</span></div>
-        <p>Trồng cây theo lượt, nhặt trái miễn phí trên sân 6×6, ghép trái và bán cho khách để mở rộng kho.</p>
-        <a class="play" href="games/sunny-garden/index.html">▶ Chơi game</a>
-      </div>
-    </article>
-    <article class="card">
-      <img src="assets/icons/sunny-dice-machine.svg" alt="Icon Sunny Dice Machine">
-      <div>
-        <h2>SUNNY DICE MACHINE</h2>
-        <div class="tags"><span class="tag">Xúc xắc thật</span><span class="tag">Vật lý</span><span class="tag">2–4 người</span></div>
-        <p>Tung xúc xắc ngoài đời, chọn mặt vừa ra rồi xem viên bi kích hoạt cỗ máy, tuabin và cuộc đua 30 bậc.</p>
-        <a class="play" href="games/sunny-dice-machine/index.html">▶ Chơi game</a>
-      </div>
-    </article>
-    <article class="card">
-      <img src="games/sunny-princess/assets/chars/thumbs/girl_1.png" alt="Icon Sunny Princess">
-      <div>
-        <h2>SUNNY PRINCESS</h2>
-        <div class="tags"><span class="tag">Thay đồ</span><span class="tag">Công chúa</span><span class="tag">Thử thách</span></div>
-        <p>Chọn công chúa, phối 36 món đồ trong 6 bối cảnh, lưu album và chơi thử thách phối đúng hình để nhận sao.</p>
-        <a class="play" href="games/sunny-princess/index.html">▶ Chơi game</a>
-      </div>
-    </article>
+  <section class="games" aria-label="Danh sách game Sunny">
+    <a class="card" href="games/sunny-fruits/index.html" aria-label="Chơi Sunny Fruits"><img src="assets/icons/sunny-fruits.svg" alt=""><div class="card-body"><h2>SUNNY FRUITS</h2><div class="tags"><span class="tag">Puzzle</span><span class="tag">Trái cây</span></div><p>Xếp trái cây, dùng đường ray và ô tạm.</p><span class="play">▶ Chơi</span></div></a>
+    <a class="card" href="games/sunny-snake/index.html" aria-label="Chơi Sunny Snake Roguelite"><img src="assets/icons/sunny-snake.svg" alt=""><div class="card-body"><h2>SUNNY SNAKE</h2><div class="tags"><span class="tag">Roguelite</span><span class="tag">8 Ải</span></div><p>Rắn theo ô, boss maze và nhiều skin.</p><span class="play">▶ Chơi</span></div></a>
+    <a class="card" href="games/sunny-garden/index.html" aria-label="Chơi Sunny Garden"><img src="assets/icons/sunny-garden.svg" alt=""><div class="card-body"><h2>SUNNY GARDEN</h2><div class="tags"><span class="tag">Trồng cây</span><span class="tag">Merge</span></div><p>Trồng, thu hoạch, ghép trái và bán hàng.</p><span class="play">▶ Chơi</span></div></a>
+    <a class="card" href="games/sunny-dice-machine/index.html" aria-label="Chơi Sunny Dice Machine"><img src="assets/icons/sunny-dice-machine.svg" alt=""><div class="card-body"><h2>DICE MACHINE</h2><div class="tags"><span class="tag">Xúc xắc</span><span class="tag">2–4 người</span></div><p>Tung xúc xắc thật và xem cỗ máy chạy.</p><span class="play">▶ Chơi</span></div></a>
+    <a class="card" href="games/sunny-princess/index.html" aria-label="Chơi Sunny Princess"><img src="games/sunny-princess/assets/chars/thumbs/girl_1.png" alt=""><div class="card-body"><h2>SUNNY PRINCESS</h2><div class="tags"><span class="tag">Thay đồ</span><span class="tag">Công chúa</span></div><p>Phối đồ, lưu album và thử thách thời trang.</p><span class="play">▶ Chơi</span></div></a>
+    <a class="card featured" href="games/sunny-scooter-rush/index.html" aria-label="Chơi Cuộc Đua Xe Điện Đà Nẵng"><img src="assets/icons/sunny-scooter-rush.svg" alt=""><div class="card-body"><h2>ĐUA XE ĐIỆN</h2><div class="tags"><span class="tag">Đà Nẵng</span><span class="tag">Đua xe</span></div><p>Lách xe, giữ combo và kích hoạt Flow.</p><span class="play">▶ Chơi</span></div></a>
   </section>
-  <div class="footer">Sunny Game Hub • Mỗi game có cơ chế và tiến trình riêng</div>
+  <div class="footer">Sunny Game Hub • 6 trò chơi</div>
 </main>
-</body>
-</html>
+<script>(()=>{const stop=e=>e.preventDefault();document.addEventListener('selectstart',stop,{passive:false});document.addEventListener('dragstart',stop,{passive:false});document.addEventListener('contextmenu',stop,{passive:false});})();</script>
+</body></html>
