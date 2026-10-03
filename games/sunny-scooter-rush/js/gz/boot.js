@@ -118,6 +118,20 @@ const movePatch="      npc.z += npc.speed * dt;\n\n      if (npc.type !== 'ped')
 if(!txt.includes(moveNeedle))throw new Error("Traffic patch không tìm thấy đoạn di chuyển NPC");
 txt=txt.replace(moveNeedle,movePatch);
 
+// TRAFFIC_FAIRNESS_V3
+const trafficV3=[
+["return clamp(Math.round(52 * densityRamp(progress) * DIFF.density), 24, NPC_MAX);","return clamp(Math.round(46 * densityRamp(progress) * DIFF.density), 22, NPC_MAX);"],
+["function laneBlocked(z, center, ignoreNpc = null, gap = 1350) {","function laneBlocked(z, center, ignoreNpc = null, gap = 1650) {"],
+["const WALL_WINDOW = 1150;","const WALL_WINDOW = 2200;"],
+["if (type === 'bus' && g.npcs.some(other => other !== npc && other.active && !other.popped && other.type === 'bus' && Math.abs(other.z - z) < 3000)) continue;","if (type === 'bus' && g.npcs.some(other => other !== npc && other.active && !other.popped && other.type === 'bus' && Math.abs(other.z - z) < 4200)) continue;\n      if (['car','taxi','bus'].includes(type)) {\n        const spawnZone = zoneAt(segIdx);\n        const nearLarge = g.npcs.filter(other => other !== npc && other.active && !other.popped && ['car','taxi','bus'].includes(other.type) && Math.abs(other.z - z) < 2200).length;\n        const maxLarge = spawnZone.lanes >= 4 ? 2 : 1;\n        if (nearLarge >= maxLarge) continue;\n      }"]
+];
+for(const [a,b] of trafficV3){if(!txt.includes(a))throw new Error("Traffic V3 không tìm thấy mẫu: "+a.slice(0,90));txt=txt.replace(a,b);}
+
+const largeHook="        if (npc.type === 'bus') {";
+const largePatch="        if (['car','taxi','bus'].includes(npc.type)) {\n          let largeAhead = null, largeDz = Infinity;\n          for (const other of g.npcs) {\n            if (other === npc || !other.active || other.popped || !['car','taxi','bus'].includes(other.type) || other.z <= npc.z) continue;\n            const oz = zoneAt(clamp(Math.floor(other.z / SEG_LEN), 0, segments.length - 1));\n            if (oz.key !== followZone.key) continue;\n            const dz = other.z - npc.z;\n            if (dz < largeDz) { largeDz = dz; largeAhead = other; }\n          }\n          if (largeAhead) {\n            const band = (npc.type === 'bus' || largeAhead.type === 'bus') ? 2200 : 1700;\n            if (largeAhead.z - npc.z < band) npc.z = Math.max(oldNpcZ, largeAhead.z - band);\n            if (largeAhead.z - oldNpcZ < band * 1.5) npc.speed = Math.min(npc.speed, largeAhead.speed * 0.95);\n          }\n        }\n        if (npc.type === 'bus') {";
+if(!txt.includes(largeHook))throw new Error("Traffic V3 không tìm thấy largeHook");
+txt=txt.replace(largeHook,largePatch);
+
 (0,eval)(txt);window.__rushStarted=true;installSunnyHelp();delete window.__rushGz}boot().catch(e=>{console.error(e);document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;display:grid;place-items:center;background:#111;color:#fff;z-index:9999;font:16px sans-serif">Không thể khởi động game. Hãy dùng Chrome/Android mới.</div>')})
 function installSunnyHelp(){
   const SUNNY_HELP_V1=true;
