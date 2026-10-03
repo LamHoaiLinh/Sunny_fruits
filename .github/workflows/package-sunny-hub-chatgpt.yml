@@ -1,0 +1,25 @@
+name: Package Sunny Hub Mobile
+on:
+  push:
+    branches:
+      - chatgpt/sunny-hub-mobile-3col
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare complete Hub package
+        shell: bash
+        run: |
+          mkdir -p package/Sunny_Game_Hub
+          rsync -a --exclude='.git' --exclude='package' ./ package/Sunny_Game_Hub/
+      - name: Upload complete Hub
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sunny_Game_Hub_Mobile_3Col
+          path: package/Sunny_Game_Hub
+          include-hidden-files: true
+          if-no-files-found: error
