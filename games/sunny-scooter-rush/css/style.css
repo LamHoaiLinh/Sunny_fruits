@@ -95,3 +95,66 @@ h2.screen-title{font-size:clamp(20px,4.6vmin,34px);font-weight:900}.roster{displ
 @media(pointer:coarse) and (orientation:landscape) and (max-height:460px){
   #touch{--drive-size-land:min(120px,29vmin,calc((100vw - 64px)/4))}
 }
+
+/* MOBILE LANDSCAPE HOME MENU v5 */
+@media (pointer:coarse) and (orientation:landscape) and (max-height:760px){
+  /* Màn hình chính: luôn giữ nút CHƠI trong vùng nhìn thấy. */
+  #overlay>.screen:has(#btn-start){
+    justify-content:flex-start;
+    gap:6px;
+    padding:clamp(10px,2.2vh,16px) clamp(16px,3vw,28px) 12px;
+    overflow:hidden;
+  }
+  #overlay>.screen:has(#btn-start) .chip-row{top:8px;right:10px}
+  #overlay>.screen:has(#btn-start) .kicker{
+    margin-top:4px;
+    font-size:clamp(9px,1.7vh,12px);
+    letter-spacing:.28em;
+  }
+  #overlay>.screen:has(#btn-start) h1.game-title{
+    font-size:clamp(28px,8.2vh,50px);
+    line-height:.98;
+    margin:0;
+  }
+  #overlay>.screen:has(#btn-start) h1.game-title .en{
+    font-size:.30em;
+    margin-top:.22em;
+    letter-spacing:.14em;
+  }
+  #overlay>.screen:has(#btn-start) .tagline{
+    max-width:46em;
+    font-size:clamp(11px,2.15vh,15px);
+    line-height:1.25;
+    margin:0 auto 2px;
+  }
+  #overlay>.screen:has(#btn-start) #btn-start{
+    flex:none;
+    font-size:clamp(15px,2.8vh,19px);
+    padding:.52em 2em;
+    margin-top:2px;
+  }
+  #overlay>.screen:has(#btn-start) .best-line{
+    font-size:clamp(10px,1.8vh,12px);
+    margin-top:1px;
+  }
+  /* Điện thoại đã có nút ảo nên không cần dòng hướng dẫn bàn phím chiếm chiều cao. */
+  #overlay>.screen:has(#btn-start) .hint{display:none}
+  /* Nút hướng dẫn luôn nhìn thấy, tách khỏi cột nội dung chính. */
+  #overlay>.screen:has(#btn-start) .game-help-open{
+    position:absolute;
+    right:max(12px,env(safe-area-inset-right));
+    bottom:max(12px,env(safe-area-inset-bottom));
+    z-index:8;
+    font-size:12px;
+    padding:.55em 1em;
+    border-radius:999px;
+  }
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:520px){
+  #overlay>.screen:has(#btn-start){gap:3px;padding-top:6px}
+  #overlay>.screen:has(#btn-start) .kicker{display:none}
+  #overlay>.screen:has(#btn-start) h1.game-title{font-size:clamp(24px,9vh,38px)}
+  #overlay>.screen:has(#btn-start) .tagline{font-size:10px;line-height:1.16;max-width:54em}
+  #overlay>.screen:has(#btn-start) .best-line{display:none}
+  #overlay>.screen:has(#btn-start) #btn-start{font-size:14px;padding:.46em 1.7em}
+}
