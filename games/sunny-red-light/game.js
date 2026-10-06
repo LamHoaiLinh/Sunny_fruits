@@ -928,10 +928,12 @@ function update(ts){
     state.playerY+=(state.targetY-state.playerY)*Math.min(1,dt*(moving?8.5:11));
     state.playerX+=(state.targetLaneX-state.playerX)*Math.min(1,dt*(laneMoving?11:16));
     const seen=visionContainsPlayer();pad.classList.toggle('danger',seen);laneControls?.classList.toggle('danger',seen);
-    if((moving||laneMoving)&&seen)lose();
   }else{
     pad.classList.remove('danger');laneControls?.classList.remove('danger');
   }
+
+  captureReplayFrame(ts);
+  evaluateHostHits(ts);
   broadcastPlayer(false);evaluateRoundEnd();
   for(const [id,p] of state.remotePlayers){
     if(ts-p.t>12000&&!state.activeParticipants.some(x=>x.id===id))state.remotePlayers.delete(id);
@@ -1056,13 +1058,16 @@ function drawFinish(){
   const y=H*.238;ctx.strokeStyle='rgba(242,66,77,.9)';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(W*.20,y);ctx.lineTo(W*.80,y);ctx.stroke();
 }
 function draw(){
+  const now=performance.now();
+  if(drawReplay(now))return;
   ctx.clearRect(0,0,W,H);
   drawSkyGround();drawFinish();drawVisionCone();drawObstacles();drawNpcs();drawRemotePlayers();drawBoss();drawPlayer();
-  drawShotEffects(performance.now());
+  drawShotEffects(now);
 }
 function loop(ts){update(ts);draw();if(state.running)requestAnimationFrame(loop)}
 
 function handleHostChange(info){
+  state.hitCandidates.clear();
   if(info?.isHost){
     state.scanSegmentStart=0;state.scanPlan=[];buildScanPlan();
     beep(700,.06,'triangle',.025);
@@ -1079,6 +1084,7 @@ function wireNetwork(){
   net.onBossState=receiveBoss;
   net.onPlayerState=receivePlayer;
   net.onRescue=receiveRescue;
+  net.onHitConfirm=receiveHitConfirm;
   net.onRoundResult=showRoundResult;
   net.onHostChange=handleHostChange;
   net.onResumeRound=resumeSpectatorRound;
