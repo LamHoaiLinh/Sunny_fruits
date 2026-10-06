@@ -12,17 +12,17 @@ button,a{font:inherit}
 .combo-token.active{transform:translateY(-5px) scale(1.08);border-color:#ffcf3e;box-shadow:0 5px 0 #e6af00,0 8px 16px rgba(0,0,0,.10)}
 .combo-token.done{background:#3fce70;color:#fff;border-color:#25ac55;transform:scale(.96);box-shadow:0 4px 0 #21994c}
 .gesture-wrap{position:absolute;z-index:16;left:0;right:0;bottom:max(8px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
-.gesture-pad{pointer-events:auto;position:relative;width:min(164px,42vw,19vh);aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.92);border:7px solid rgba(51,64,92,.16);box-shadow:0 9px 0 rgba(51,64,92,.11),0 15px 30px rgba(0,0,0,.14);touch-action:none;outline:none;transition:transform .09s ease,border-color .1s ease,box-shadow .1s ease}
-.gesture-pad::before,.gesture-pad::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(63,78,108,.08);border-radius:999px;pointer-events:none}
-.gesture-pad::before{width:70%;height:3px}.gesture-pad::after{height:70%;width:3px}
-.pad-arrow,.pad-dot{position:absolute;display:grid;place-items:center;color:#52617f;font-weight:1000;line-height:1;pointer-events:none;text-shadow:0 2px 0 rgba(255,255,255,.8)}
-.pad-arrow{font-size:clamp(29px,7vw,39px)}
-.pad-arrow.up{top:7%;left:50%;transform:translateX(-50%)}
-.pad-arrow.right{right:8%;top:50%;transform:translateY(-50%)}
-.pad-arrow.down{bottom:7%;left:50%;transform:translateX(-50%)}
-.pad-arrow.left{left:8%;top:50%;transform:translateY(-50%)}
-.pad-dot{left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(28px,6vw,36px);color:#ffb62f}
-.gesture-pad.good{border-color:#3fce70;transform:scale(.97);box-shadow:0 8px 0 #269e50,0 14px 30px rgba(0,0,0,.12)}
+.gesture-pad{pointer-events:auto;position:relative;width:min(164px,42vw,19vh);aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.92);border:7px solid rgba(51,64,92,.16);box-shadow:0 9px 0 rgba(51,64,92,.11),0 15px 30px rgba(0,0,0,.14);touch-action:manipulation;outline:none;transition:border-color .1s ease,box-shadow .1s ease}
+.gesture-pad::before,.gesture-pad::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(63,78,108,.07);border-radius:999px;pointer-events:none}
+.gesture-pad::before{width:62%;height:2px}.gesture-pad::after{height:62%;width:2px}
+.pad-key{position:absolute;width:48px;height:48px;padding:0;border:0;border-radius:15px;display:grid;place-items:center;background:rgba(255,255,255,.96);color:#52617f;font-size:34px;font-weight:1000;line-height:1;box-shadow:0 4px 0 rgba(51,64,92,.13),0 6px 12px rgba(40,50,70,.10);touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;cursor:pointer}
+.pad-key:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(51,64,92,.13),0 3px 8px rgba(40,50,70,.10);background:#eef4ff}
+.pad-key.up{top:5%;left:50%;transform:translateX(-50%)}.pad-key.up:active{transform:translate(-50%,3px)}
+.pad-key.right{right:5%;top:50%;transform:translateY(-50%)}.pad-key.right:active{transform:translateY(calc(-50% + 3px))}
+.pad-key.down{bottom:5%;left:50%;transform:translateX(-50%)}.pad-key.down:active{transform:translate(-50%,3px)}
+.pad-key.left{left:5%;top:50%;transform:translateY(-50%)}.pad-key.left:active{transform:translateY(calc(-50% + 3px))}
+.pad-key.tap{left:50%;top:50%;transform:translate(-50%,-50%);background:#ffbd32;color:#fff;font-size:30px;border-radius:50%;box-shadow:0 4px 0 #dc9212,0 6px 12px rgba(40,50,70,.10)}.pad-key.tap:active{transform:translate(-50%,calc(-50% + 3px));box-shadow:0 1px 0 #dc9212}
+.gesture-pad.good{border-color:#3fce70;box-shadow:0 8px 0 #269e50,0 14px 30px rgba(0,0,0,.12)}
 .gesture-pad.bad{border-color:#f45262;animation:shake .22s linear}
 .gesture-pad.danger{box-shadow:0 0 0 9px rgba(238,55,72,.25),0 11px 0 rgba(122,20,35,.16),0 18px 36px rgba(0,0,0,.18)}
 @keyframes shake{25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}

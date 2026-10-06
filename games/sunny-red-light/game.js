@@ -5,6 +5,7 @@ const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
 const comboEl=document.getElementById('combo');
 const pad=document.getElementById('gesturePad');
+const padKeys=[...document.querySelectorAll('.pad-key')];
 const laneControls=document.getElementById('laneControls');
 const laneButtons=[...document.querySelectorAll('.lane-btn')];
 const gameRoot=document.getElementById('game');
@@ -414,13 +415,19 @@ function startRescue(){
 function finishRescue(){
   const target=state.remotePlayers.get(state.rescueTarget);
   if(!target){state.rescueMode=false;comboEl.classList.remove('rescue');newCombo();return}
-  state.rescueUsed=true;state.rescueMode=false;comboEl.classList.remove('rescue');
+  const now=performance.now(),net=window.SRLNet;
+  state.rescueUsed=true;state.rescueMode=false;state.rescueTarget=null;comboEl.classList.remove('rescue');
+  state.running=true;
+  if(net?.matchState==='round')state.roundEnding=false;
+  state.actionUntil=0;state.graceUntil=Math.max(state.graceUntil,now+1400);
+  state.hitCandidates.delete(net?.clientId);state.confirmedHits.delete(net?.clientId);
   state.progress=Math.max(0,state.progress-.12);
   state.targetY=progressToY(state.progress);
   state.playerY=Math.max(state.playerY,state.targetY);
   progressFill.style.width=(state.progress*100).toFixed(1)+'%';
-  target.alive=true;target.revived=true;target.progress=.32;target.hitAt=0;target.movingUntil=performance.now()+420;
-  window.SRLNet?.broadcastRescue?.({targetId:target.id,targetName:target.name,progress:.32});
+  target.alive=true;target.won=false;target.spectating=false;target.revived=true;target.progress=.32;target.hitAt=0;
+  target.dangerUntil=0;target.moving=false;target.laneMoving=false;target.acting=false;target.movingUntil=now+420;target.t=now;
+  net?.broadcastRescue?.({targetId:target.id,targetName:target.name,progress:.32,graceMs:1800});
   beep(1040,.11,'triangle',.04);vibrate([25,20,25]);broadcastPlayer(true);newCombo();updateRescueButton();
 }
 function inputGesture(kind){
@@ -505,19 +512,24 @@ function showRoundResult(p){
 }
 function receiveRescue(p){
   if(!p?.targetId)return;
-  const now=performance.now();
-  if(p.targetId===window.SRLNet?.clientId){
-    if(!state.eliminated||state.revivedOnce||state.roundEnding)return;
+  const now=performance.now(),net=window.SRLNet;
+  if(p.targetId===net?.clientId){
+    if(!state.eliminated||state.revivedOnce)return;
+    if(state.roundEnding&&net?.matchState!=='round')return;
+    state.running=true;state.roundEnding=false;
     state.revivedOnce=true;state.eliminated=false;state.alive=true;state.won=false;state.hitAt=0;
+    state.actionUntil=0;state.movingUntil=0;state.laneMovingUntil=0;
     state.confirmedHits.delete(p.targetId);state.hitCandidates.delete(p.targetId);cancelReplay();
     state.progress=clamp(Number(p.progress)||.32,.22,.42);state.targetY=progressToY(state.progress);state.playerY=state.targetY;
-    state.graceUntil=now+1600;progressFill.style.width=(state.progress*100).toFixed(1)+'%';
+    state.graceUntil=now+Math.max(1600,Number(p.graceMs)||0);progressFill.style.width=(state.progress*100).toFixed(1)+'%';
+    pad.classList.remove('danger','bad','good');laneControls?.classList.remove('danger');
     setSpectator(false,false);newCombo();beep(1050,.12,'triangle',.04);vibrate([30,20,30]);broadcastPlayer(true);
   }else{
     const t=state.remotePlayers.get(p.targetId);
     if(t&&!t.revived){
       state.confirmedHits.delete(p.targetId);state.hitCandidates.delete(p.targetId);
-      t.revived=true;t.alive=true;t.won=false;t.hitAt=0;t.progress=clamp(Number(p.progress)||.32,.22,.42);t.movingUntil=now+420;t.t=now;
+      t.revived=true;t.alive=true;t.won=false;t.spectating=false;t.hitAt=0;t.progress=clamp(Number(p.progress)||.32,.22,.42);
+      t.moving=false;t.laneMoving=false;t.acting=false;t.dangerUntil=0;t.movingUntil=now+420;t.t=now;
     }
   }
   updateRescueButton();
@@ -881,29 +893,22 @@ function stopRound(){
   cancelReplay();resultOverlay.classList.remove('show');pad.classList.remove('danger');
 }
 
-function pointerStart(e){
-  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
-  const r=pad.getBoundingClientRect();
-  if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
-  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
-  state.actionUntil=performance.now()+190;
-  broadcastPlayer(true);
-  try{pad.setPointerCapture(e.pointerId)}catch(_){}
-  e.preventDefault();
+function pressInput(kind){
+  if(!INPUTS.includes(kind))return;
+  inputGesture(kind);
 }
-function pointerEnd(e){
-  if(!pointer||pointer.id!==e.pointerId)return;
-  const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y,d=Math.hypot(dx,dy);pointer=null;e.preventDefault();
-  const threshold=Math.max(24,Math.min(W,H)*.04);
-  if(d<threshold)return inputGesture('tap');
-  if(Math.abs(dx)>Math.abs(dy))inputGesture(dx>0?'right':'left');
-  else inputGesture(dy>0?'down':'up');
-}
-pad.addEventListener('pointerdown',pointerStart,{passive:false});
-pad.addEventListener('pointerup',pointerEnd,{passive:false});
-pad.addEventListener('pointercancel',()=>pointer=null,{passive:true});
-pad.addEventListener('contextmenu',e=>e.preventDefault());
-pad.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inputGesture('tap')}});
+padKeys.forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.preventDefault();e.stopPropagation();
+    pressInput(btn.dataset.input);
+  });
+  btn.addEventListener('contextmenu',e=>e.preventDefault());
+});
+document.addEventListener('keydown',e=>{
+  const map={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+  if(map[e.key]){e.preventDefault();pressInput(map[e.key]);return}
+  if((e.key==='Enter'||e.key===' ')&&state.running){e.preventDefault();pressInput('tap')}
+});
 
 laneButtons.forEach((b,i)=>b.addEventListener('click',()=>changeLane(i)));
 rescueBtn.addEventListener('click',startRescue);
@@ -935,13 +940,19 @@ function evaluateRoundEnd(){
     // Do not crown a finish while the host is still inside the 140 ms hit-validation window.
     if(state.hitCandidates.has(winner.id))return;
     state.roundEnding=true;
-    setTimeout(()=>net.finishRound(winner.id,winner.name),350);
+    setTimeout(async()=>{
+      const result=await net.finishRound(winner.id,winner.name);
+      if(!result&&net.matchState==='round')state.roundEnding=false;
+    },350);
     return;
   }
   if(racers.length&&racers.every(x=>!x.alive)){
     const best=[...racers].sort((a,b)=>b.progress-a.progress)[0];
     state.roundEnding=true;
-    setTimeout(()=>net.finishRound(best.id,best.name),450);
+    setTimeout(async()=>{
+      const result=await net.finishRound(best.id,best.name);
+      if(!result&&net.matchState==='round')state.roundEnding=false;
+    },450);
   }
 }
 function update(ts){
