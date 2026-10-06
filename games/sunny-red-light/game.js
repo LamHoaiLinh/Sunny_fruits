@@ -302,7 +302,8 @@ function finishRescue(){
 }
 function inputGesture(kind){
   if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
-  if(dangerousNow())return lose();
+  state.actionUntil=performance.now()+190;
+  broadcastPlayer(true);
   const expected=state.combo[state.comboIndex];
   if(kind!==expected)return resetComboWrong();
   state.comboIndex++;renderCombo();padClass('good');beep(720+state.comboIndex*65,.045,'sine',.025);vibrate(10);
@@ -324,7 +325,7 @@ function changeLane(nextLane){
   if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   const lane=clamp(Number(nextLane)||0,0,2);
   if(lane===state.playerLane)return;
-  if(dangerousNow())return lose();
+  state.actionUntil=performance.now()+190;
   state.playerLane=lane;state.targetLaneX=LANE_X[lane];
   state.laneMovingUntil=performance.now()+380;
   laneButtons.forEach((b,i)=>b.classList.toggle('selected',i===lane));
@@ -660,6 +661,8 @@ function pointerStart(e){
   const r=pad.getBoundingClientRect();
   if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
   pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
+  state.actionUntil=performance.now()+190;
+  broadcastPlayer(true);
   try{pad.setPointerCapture(e.pointerId)}catch(_){}
   e.preventDefault();
 }
