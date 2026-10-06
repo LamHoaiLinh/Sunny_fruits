@@ -946,10 +946,17 @@ function update(ts){
   broadcastBoss(ts);
 
   if(state.alive&&!state.won&&!state.spectating&&!state.roundEnding){
-    const moving=ts<state.movingUntil,laneMoving=ts<state.laneMovingUntil;
+    const moving=ts<state.movingUntil,laneMoving=ts<state.laneMovingUntil,acting=ts<state.actionUntil;
     state.playerY+=(state.targetY-state.playerY)*Math.min(1,dt*(moving?8.5:11));
     state.playerX+=(state.targetLaneX-state.playerX)*Math.min(1,dt*(laneMoving?11:16));
     const seen=visionContainsPlayer();pad.classList.toggle('danger',seen);laneControls?.classList.toggle('danger',seen);
+    if(!window.SRLNet?.isHost&&(moving||laneMoving||acting)&&seen&&state.lastBossSampleT&&ts-state.lastHitClaim>=85){
+      state.lastHitClaim=ts;
+      window.SRLNet?.broadcastHitClaim?.({
+        lane:state.playerLane,progress:state.progress,bossT:state.lastBossSampleT,
+        observedAngle:state.scanAngle,observedHalf:state.scanHalf
+      });
+    }
   }else{
     pad.classList.remove('danger');laneControls?.classList.remove('danger');
   }
@@ -1106,6 +1113,7 @@ function wireNetwork(){
   net.onBossState=receiveBoss;
   net.onPlayerState=receivePlayer;
   net.onRescue=receiveRescue;
+  net.onHitClaim=receiveHitClaim;
   net.onHitConfirm=receiveHitConfirm;
   net.onRoundResult=showRoundResult;
   net.onHostChange=handleHostChange;
