@@ -653,22 +653,50 @@ pad.addEventListener('contextmenu',e=>e.preventDefault());
 pad.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inputGesture('tap')}});
 
 laneButtons.forEach((b,i)=>b.addEventListener('click',()=>changeLane(i)));
+rescueBtn.addEventListener('click',startRescue);
 
 restartBtn.addEventListener('click',async()=>{
-  stopRound();
-  await window.SRLNet?.backToRoom?.();
-  resetRound();
+  if(!window.SRLNet?.isHost)return;
+  resultOverlay.classList.remove('show');
+  if(window.SRLNet.matchState==='finished')await window.SRLNet.resetMatch();
+  else await window.SRLNet.startRound();
 });
 
+function npcProgress(n){return clamp((.84-n.y)/(.84-.245),0,1)}
+function evaluateRoundEnd(){
+  const net=window.SRLNet;
+  if(!net?.isHost||state.roundEnding||!state.running)return;
+  const human=[];
+  for(const p of state.activeParticipants){
+    if(p.id===net.clientId)human.push({id:p.id,name:p.name,progress:state.progress,alive:state.alive,won:state.won});
+    else{
+      const r=state.remotePlayers.get(p.id);
+      human.push({id:p.id,name:p.name,progress:r?.progress||0,alive:r?.alive!==false,won:!!r?.won});
+    }
+  }
+  const bot=state.npcs.map(n=>({id:n.id,name:n.name,progress:npcProgress(n),alive:n.alive,won:n.finished}));
+  const racers=[...human,...bot];
+  const winner=racers.find(x=>x.won);
+  if(winner){
+    state.roundEnding=true;
+    setTimeout(()=>net.finishRound(winner.id,winner.name),350);
+    return;
+  }
+  if(racers.length&&racers.every(x=>!x.alive)){
+    const best=[...racers].sort((a,b)=>b.progress-a.progress)[0];
+    state.roundEnding=true;
+    setTimeout(()=>net.finishRound(best.id,best.name),450);
+  }
+}
 function update(ts){
   const dt=Math.min(.04,(ts-(state.lastTs||ts))/1000);state.lastTs=ts;
   if(!state.running)return;
   if(window.SRLNet?.isHost)updateScannerHost(ts,dt);else updateScannerRemote(dt);
-  broadcastBoss(ts);updateNpcs(ts,dt);
+  if(window.SRLNet?.isHost)updateNpcs(ts,dt);
+  broadcastBoss(ts);
 
-  if(state.alive&&!state.won){
-    const moving=ts<state.movingUntil;
-    const laneMoving=ts<state.laneMovingUntil;
+  if(state.alive&&!state.won&&!state.spectating&&!state.roundEnding){
+    const moving=ts<state.movingUntil,laneMoving=ts<state.laneMovingUntil;
     state.playerY+=(state.targetY-state.playerY)*Math.min(1,dt*(moving?8.5:11));
     state.playerX+=(state.targetLaneX-state.playerX)*Math.min(1,dt*(laneMoving?11:16));
     const seen=visionContainsPlayer();pad.classList.toggle('danger',seen);laneControls?.classList.toggle('danger',seen);
@@ -676,10 +704,11 @@ function update(ts){
   }else{
     pad.classList.remove('danger');laneControls?.classList.remove('danger');
   }
-  broadcastPlayer(false);
-  for(const [id,p] of state.remotePlayers)if(ts-p.t>4500)state.remotePlayers.delete(id);
+  broadcastPlayer(false);evaluateRoundEnd();
+  for(const [id,p] of state.remotePlayers){
+    if(ts-p.t>12000&&!state.activeParticipants.some(x=>x.id===id))state.remotePlayers.delete(id);
+  }
 }
-
 function roundedRect(x,y,w,h,r,fill){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill()}
 function drawSkyGround(){
   const horizon=H*.35;
@@ -776,6 +805,7 @@ function drawRemotePlayer(p){
 }
 function drawRemotePlayers(){for(const p of state.remotePlayers.values())drawRemotePlayer(p)}
 function drawPlayer(){
+  if(state.spectating&&!state.eliminated)return;
   const p=playerWorld(),danger=state.running&&state.alive&&visionContainsPlayer(),now=performance.now();
   const size=Math.max(58,Math.min(W,H)*.098);
   ctx.save();
@@ -804,13 +834,29 @@ function draw(){
 }
 function loop(ts){update(ts);draw();if(state.running)requestAnimationFrame(loop)}
 
+function handleHostChange(info){
+  if(info?.isHost){
+    state.scanSegmentStart=0;state.scanPlan=[];buildScanPlan();
+    beep(700,.06,'triangle',.025);
+  }
+  if(state.roundResult)restartBtn.style.display=window.SRLNet?.isHost?'grid':'none';
+}
+function handleRoomReset(){
+  stopRound();resetRound();resultOverlay.classList.remove('show');
+}
 function wireNetwork(){
   const net=window.SRLNet;
   if(!net)return setTimeout(wireNetwork,50);
   net.onRoundStart=scheduleRound;
   net.onBossState=receiveBoss;
   net.onPlayerState=receivePlayer;
-  net.onRoomReset=()=>{stopRound();resetRound()};
+  net.onRescue=receiveRescue;
+  net.onRoundResult=showRoundResult;
+  net.onHostChange=handleHostChange;
+  net.onResumeRound=resumeSpectatorRound;
+  net.onRoomReset=handleRoomReset;
+  const pending=net.consumePendingResume?.();
+  if(pending)resumeSpectatorRound(pending);
 }
 wireNetwork();
 resetRound();
