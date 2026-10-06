@@ -909,6 +909,8 @@ function evaluateRoundEnd(){
   const racers=[...human,...bot];
   const winner=racers.find(x=>x.won);
   if(winner){
+    // Do not crown a finish while the host is still inside the 140 ms hit-validation window.
+    if(state.hitCandidates.has(winner.id))return;
     state.roundEnding=true;
     setTimeout(()=>net.finishRound(winner.id,winner.name),350);
     return;
