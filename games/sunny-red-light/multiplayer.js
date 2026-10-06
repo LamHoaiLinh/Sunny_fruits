@@ -52,7 +52,9 @@ function normalizeRoom(raw={}){
     scoreNames:normalizeScores(raw.score_names||raw.scoreNames),
     lastRoundWinner:raw.last_round_winner||raw.lastRoundWinner||null,
     roundSeed:Number(raw.round_seed||raw.roundSeed||0),
-    roundStartedAt:raw.round_started_at||raw.roundStartedAt||null
+    roundStartedAt:raw.round_started_at||raw.roundStartedAt||null,
+    roundRoster:Array.isArray(raw.round_roster||raw.roundRoster)?(raw.round_roster||raw.roundRoster):[],
+    botCount:Number(raw.bot_count??raw.botCount??0)
   };
 }
 function randomSkinForName(name){
@@ -246,7 +248,8 @@ async function enterRoom(raw,resumed=false){
   await setupChannel();
   startHeartbeat();
   if(resumed&&room.matchState==='round'){
-    pendingResume={roomId:room.id,seed:room.roundSeed,startAt:room.roundStartedAt,roundNumber:room.roundNumber,scores:room.scores,scoreNames:room.scoreNames,spectator:true};
+    pendingResume={roomId:room.id,seed:room.roundSeed,startAt:room.roundStartedAt,roundNumber:room.roundNumber,
+      scores:room.scores,scoreNames:room.scoreNames,participants:room.roundRoster,botCount:room.botCount,spectator:true};
     setTimeout(()=>{
       if(net.onResumeRound&&pendingResume){const p=pendingResume;pendingResume=null;net.onResumeRound(p)}
     },60);
@@ -378,15 +381,19 @@ async function startRound(){
   busy=true;roomStartBtn.disabled=true;
   try{
     const seed=Math.floor(Math.random()*2000000000)+1;
-    const r=await rpc('srl_start_round',{p_room_id:room.id,p_client_id:clientId,p_token:clientToken,p_seed:seed});
-    applyRoomState(r);
     const participants=currentParticipants();
     const targetTotal=Math.min(room.maxPlayers,6);
     const botCount=Math.max(0,Math.min(5,targetTotal-participants.length));
+    const r=await rpc('srl_start_round_v2',{
+      p_room_id:room.id,p_client_id:clientId,p_token:clientToken,p_seed:seed,
+      p_roster:participants,p_bot_count:botCount
+    });
+    applyRoomState(r);
     const payload={
       roomId:room.id,seed:Number(r.round_seed||seed),startAt:r.round_started_at,hostId:clientId,
       roundNumber:Number(r.round_number||1),scores:normalizeScores(r.scores),scoreNames:normalizeScores(r.score_names),
-      participants,botCount
+      participants:Array.isArray(r.round_roster)?r.round_roster:participants,
+      botCount:Number(r.bot_count??botCount)
     };
     await channel.send({type:'broadcast',event:'round_start',payload});
   }catch(e){renderRoomState()}
@@ -474,6 +481,8 @@ function startHeartbeat(){
       room.status=r.status||room.status;room.matchState=r.match_state||room.matchState;
       room.roundNumber=Number(r.round_number??room.roundNumber);
       room.scores=normalizeScores(r.scores||room.scores);room.scoreNames=normalizeScores(r.score_names||room.scoreNames);
+      room.roundRoster=Array.isArray(r.round_roster)?r.round_roster:room.roundRoster;
+      room.botCount=Number(r.bot_count??room.botCount);
       renderRoomState();scheduleHostClaim();
     }catch(e){setStatus(false,'○');scheduleHostClaim()}
   },5000);
