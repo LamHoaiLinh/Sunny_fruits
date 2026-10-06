@@ -512,15 +512,17 @@ function updateScannerRemote(dt){
   if(fresh){
     state.scanAngle+=normalizeAngle(state.remoteBossAngle-state.scanAngle)*Math.min(1,dt*14);
     state.scanHalf+=(state.remoteBossHalf-state.scanHalf)*Math.min(1,dt*10);
-  }else{
-    updateScannerHost(performance.now(),dt);
   }
 }
 function broadcastBoss(ts){
   const net=window.SRLNet;
-  if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<95)return;
+  if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<110)return;
   state.lastBossBroadcast=ts;
-  net.broadcastBoss({angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now()});
+  net.broadcastBoss({
+    angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now(),
+    bots:state.npcs.map(n=>({id:n.id,name:n.name,skin:n.skin,lane:n.lane,x:n.x,y:n.y,targetY:n.targetY,
+      alive:n.alive,finished:n.finished,moving:ts<n.movingUntil}))
+  });
 }
 function broadcastPlayer(force=false){
   const net=window.SRLNet,now=performance.now();
@@ -528,31 +530,41 @@ function broadcastPlayer(force=false){
   state.lastPlayerBroadcast=now;
   net.broadcastPlayer({
     progress:state.progress,alive:state.alive,won:state.won,y:state.playerY,lane:state.playerLane,
-    skin:localSkin(),t:Date.now()
+    skin:localSkin(),spectating:state.spectating,revived:state.revivedOnce,rescueUsed:state.rescueUsed,t:Date.now()
   });
 }
 function receiveBoss(p){
   if(!p||!Number.isFinite(Number(p.angle)))return;
-  state.remoteBossAngle=Number(p.angle);
-  state.remoteBossHalf=clamp(Number(p.half)||.20,.12,.32);
-  state.remoteBossAt=performance.now();
+  state.remoteBossAngle=Number(p.angle);state.remoteBossHalf=clamp(Number(p.half)||.20,.12,.32);state.remoteBossAt=performance.now();
   if(Number(p.cueSeq)>state.lastRemoteCueSeq)triggerBossCue(String(p.cueKind||'dash'),Number(p.cueSeq));
+  if(Array.isArray(p.bots)){
+    const old=new Map(state.npcs.map(n=>[n.id,n])),now=performance.now();
+    state.npcs=p.bots.map((b,i)=>{
+      const prev=old.get(b.id)||{},died=prev.alive===true&&b.alive===false;
+      const n={...prev,...b,lane:Number(b.lane??i%3),x:Number(b.x??LANE_X[i%3]),y:Number(b.y??.84),
+        targetY:Number(b.targetY??b.y??.84),alive:b.alive!==false,finished:!!b.finished,
+        movingUntil:b.moving?now+180:0,hitAt:died?now:(prev.hitAt||0)};
+      if(died)spawnShot(n.x*W,n.y*H,false);
+      return n;
+    });
+  }
 }
 function receivePlayer(p){
   if(!p||!p.clientId)return;
   const now=performance.now(),old=state.remotePlayers.get(p.clientId);
   const progress=clamp(Number(p.progress)||0,0,1);
   const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):1;
-  const alive=p.alive!==false;
-  const moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
-  const diedNow=!!old&&old.alive&&!alive;
-  const hitAt=diedNow?now:(!alive?(old?.hitAt||now-700):0);
+  const alive=p.alive!==false,moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
+  const diedNow=!!old&&old.alive&&!alive,revivedNow=!!old&&!old.alive&&alive;
+  const hitAt=diedNow?now:(alive?0:(old?.hitAt||now-700));
   if(diedNow)spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
   state.remotePlayers.set(p.clientId,{
     id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:!!p.won,
-    skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),
+    skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),spectating:!!p.spectating,
+    revived:!!p.revived||revivedNow||!!old?.revived,rescueUsed:!!p.rescueUsed,
     hitAt,movingUntil:moved?now+520:(old?.movingUntil||0),t:now
   });
+  updateRescueButton();
 }
 function progressToY(p){return .84-(.84-.245)*clamp(p,0,1)}
 
