@@ -83,6 +83,7 @@ let hostClaimTimer=0;
 let busy=false;
 let roundFinishing=false;
 let pendingResume=null;
+let resumeCandidate=null;
 
 const api=window.supabase?.createClient
   ? window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
@@ -214,13 +215,23 @@ async function refreshRooms(){
 }
 function renderRooms(list,failed=false){
   roomsList.innerHTML='';
+  if(resumeCandidate){
+    const b=document.createElement('button');b.className='room-card resume-room';
+    const title=document.createElement('span');title.className='room-card-title';title.textContent='↩ '+resumeCandidate.name;
+    const count=document.createElement('span');count.className='room-card-count';
+    count.textContent=resumeCandidate.matchState==='round'?'👀 R'+Math.max(1,resumeCandidate.roundNumber)+'/3':'↩';
+    b.append(title,count);b.addEventListener('click',resumeSavedRoom);roomsList.appendChild(b);
+  }
   if(failed){
-    const d=document.createElement('div');d.className='room-empty';d.textContent='↻';roomsList.appendChild(d);return;
+    if(!resumeCandidate){const d=document.createElement('div');d.className='room-empty';d.textContent='↻';roomsList.appendChild(d)}
+    return;
   }
   if(!list.length){
-    const d=document.createElement('div');d.className='room-empty';d.textContent='＋';roomsList.appendChild(d);return;
+    if(!resumeCandidate){const d=document.createElement('div');d.className='room-empty';d.textContent='＋';roomsList.appendChild(d)}
+    return;
   }
   list.forEach(r=>{
+    if(resumeCandidate&&r.id===resumeCandidate.id)return;
     const b=document.createElement('button');b.className='room-card';
     const title=document.createElement('span');title.className='room-card-title';title.textContent=r.room_name;
     const count=document.createElement('span');count.className='room-card-count';count.textContent='👥 '+r.player_count+'/'+r.max_players;
@@ -524,13 +535,32 @@ function startHeartbeat(){
   },5000);
 }
 function stopHeartbeat(){if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=0}}
-async function resumeSavedRoom(){
+async function loadResumeCandidate(){
   const saved=localStorage.getItem('srl_room_id');
+  resumeCandidate=null;
+  if(!saved||!playerName)return;
+  try{
+    const raw=await rpc('srl_room_state',{p_room_id:saved,p_client_id:clientId,p_token:clientToken});
+    const candidate=normalizeRoom(raw);
+    if(candidate?.id)resumeCandidate=candidate;
+  }catch(e){
+    localStorage.removeItem('srl_room_id');
+    resumeCandidate=null;
+  }
+}
+async function resumeSavedRoom(){
+  const saved=resumeCandidate?.id||localStorage.getItem('srl_room_id');
   if(!saved||!playerName)return false;
   try{
     const raw=await rpc('srl_resume_room',{p_room_id:saved,p_client_id:clientId,p_token:clientToken});
+    resumeCandidate=null;
     await enterRoom(raw,true);return true;
-  }catch(e){localStorage.removeItem('srl_room_id');return false}
+  }catch(e){
+    localStorage.removeItem('srl_room_id');
+    resumeCandidate=null;
+    await refreshRooms();
+    return false;
+  }
 }
 async function init(){
   renderNameButtons();
@@ -540,8 +570,11 @@ async function init(){
   roomLeaveBtn.addEventListener('click',leaveRoom);
   if(!api){setStatus(false,'○');renderRooms([],true);return}
   setStatus(true,'●');
-  const resumed=await resumeSavedRoom();
-  if(!resumed)refreshRooms();
+  // Always land in the lobby. Reconnect stays available as an explicit one-tap room card.
+  lobbyOverlay.classList.add('show');
+  roomOverlay.classList.remove('show');
+  await loadResumeCandidate();
+  await refreshRooms();
   roomsTimer=setInterval(refreshRooms,3000);
 }
 init();
