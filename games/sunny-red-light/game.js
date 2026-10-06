@@ -250,29 +250,70 @@ function applyLaneEffect(oldProgress,newProgress){
   }
   return extraMoveMs;
 }
+function makeInputCombo(n){
+  const arr=[];
+  while(arr.length<n){
+    const v=rngItem(INPUTS);
+    if(arr.length&&arr[arr.length-1]===v&&Math.random()<.65)continue;
+    arr.push(v);
+  }
+  return arr;
+}
+function findRescueTarget(){
+  const allowed=new Set(state.activeParticipants.map(p=>p.id));
+  for(const p of state.remotePlayers.values()){
+    if(allowed.has(p.id)&&!p.alive&&!p.won&&!p.revived)return p;
+  }
+  return null;
+}
+function updateRescueButton(){
+  const t=state.alive&&!state.won&&!state.spectating&&!state.rescueUsed&&!state.rescueMode?findRescueTarget():null;
+  state.rescueTarget=t?.id||null;
+  rescueBtn.classList.toggle('show',!!t);
+  rescueBtn.textContent=t?'❤️ '+String(t.name||'').slice(0,8):'❤️';
+}
+function startRescue(){
+  const t=findRescueTarget();
+  if(!t||state.rescueUsed||!state.alive||state.spectating||state.roundEnding)return;
+  state.rescueTarget=t.id;state.rescueMode=true;
+  state.combo=makeInputCombo(5);state.comboIndex=0;
+  comboEl.classList.add('rescue');rescueBtn.classList.remove('show');renderCombo();
+  beep(660,.07,'triangle',.03);vibrate(18);
+}
+function finishRescue(){
+  const target=state.remotePlayers.get(state.rescueTarget);
+  if(!target){state.rescueMode=false;comboEl.classList.remove('rescue');newCombo();return}
+  state.rescueUsed=true;state.rescueMode=false;comboEl.classList.remove('rescue');
+  state.progress=Math.max(0,state.progress-.12);
+  state.targetY=progressToY(state.progress);
+  state.playerY=Math.max(state.playerY,state.targetY);
+  progressFill.style.width=(state.progress*100).toFixed(1)+'%';
+  target.alive=true;target.revived=true;target.progress=.32;target.hitAt=0;target.movingUntil=performance.now()+420;
+  window.SRLNet?.broadcastRescue?.({targetId:target.id,targetName:target.name,progress:.32});
+  beep(1040,.11,'triangle',.04);vibrate([25,20,25]);broadcastPlayer(true);newCombo();updateRescueButton();
+}
 function inputGesture(kind){
-  if(!state.running||!state.alive)return;
+  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   if(dangerousNow())return lose();
   const expected=state.combo[state.comboIndex];
   if(kind!==expected)return resetComboWrong();
   state.comboIndex++;renderCombo();padClass('good');beep(720+state.comboIndex*65,.045,'sine',.025);vibrate(10);
   if(state.comboIndex>=state.combo.length){
+    if(state.rescueMode)return finishRescue();
     state.comboIndex=0;state.comboDoneCount++;
     const oldProgress=state.progress;
     const step=state.combo.length===3?.098:state.combo.length===4?.112:.126;
     state.progress=Math.min(1,state.progress+step);
     const extraMoveMs=applyLaneEffect(oldProgress,state.progress);
     progressFill.style.width=(state.progress*100).toFixed(1)+'%';
-    const finishY=.245;
-    state.targetY=.84-(.84-finishY)*state.progress;
+    state.targetY=progressToY(state.progress);
     state.movingUntil=performance.now()+460+extraMoveMs;
-    beep(980,.08,'triangle',.035);
-    broadcastPlayer(true);
+    beep(980,.08,'triangle',.035);broadcastPlayer(true);
     if(state.progress>=1)setTimeout(()=>{if(state.alive)win()},480);else newCombo();
   }
 }
 function changeLane(nextLane){
-  if(!state.running||!state.alive)return;
+  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   const lane=clamp(Number(nextLane)||0,0,2);
   if(lane===state.playerLane)return;
   if(dangerousNow())return lose();
