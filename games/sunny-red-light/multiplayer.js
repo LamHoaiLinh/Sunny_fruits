@@ -285,6 +285,8 @@ async function setupChannel(){
       room.status='playing';room.matchState='round';room.roundNumber=Number(p.roundNumber||room.roundNumber||1);
       room.roundSeed=Number(p.seed||0);room.roundStartedAt=p.startAt||null;
       room.scores=normalizeScores(p.scores||room.scores);room.scoreNames=normalizeScores(p.scoreNames||room.scoreNames);
+      room.roundRoster=Array.isArray(p.participants)?p.participants:room.roundRoster;
+      room.botCount=Number(p.botCount??room.botCount);
       roundFinishing=false;localSpectator=false;trackPresence();
       roomOverlay.classList.remove('show');
       if(net.onRoundStart)net.onRoundStart(p);
