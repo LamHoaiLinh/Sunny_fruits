@@ -26,6 +26,9 @@ const INPUTS=['up','down','left','right','tap'];
 const SYMBOL={up:'↑',down:'↓',left:'←',right:'→',tap:'●'};
 const NPC_COLORS=['#ef6a7a','#5c82ff','#f0aa32','#7a63d5','#45b986','#e6763f','#4e9ac8','#d463aa'];
 const LANE_X=[.34,.50,.66];
+const TRACK_START_Y=.60;
+const TRACK_FINISH_Y=.245;
+const TRACK_BOTTOM_Y=.68;
 const BOT_NAMES=['Mèo Máy','Gà Máy','Hổ Máy','Voi Máy','Cá Sấu Máy'];
 const BOT_SKINS=['cat','chicken','tiger','elephant','crocodile'];
 const HIT_CONFIRM_MS=140;
@@ -51,7 +54,7 @@ let spritesReady=false;
 
 const state={
   running:false,alive:true,won:false,progress:0,combo:[],comboIndex:0,comboDoneCount:0,
-  playerLane:1,playerX:LANE_X[1],targetLaneX:LANE_X[1],playerY:.84,targetY:.84,
+  playerLane:1,playerX:LANE_X[1],targetLaneX:LANE_X[1],playerY:TRACK_START_Y,targetY:TRACK_START_Y,
   movingUntil:0,laneMovingUntil:0,actionUntil:0,lastTs:0,graceUntil:0,
   scanAngle:-.56,scanHalf:.20,scanPlan:[],scanIndex:0,scanSegmentStart:0,scanSegmentFrom:-.56,lastPattern:-1,
   remoteBossAngle:-.56,remoteBossHalf:.20,remoteBossAt:0,lastBossSampleT:0,lastHitClaim:0,bossHistory:[],
@@ -348,7 +351,7 @@ function pointInVisionAt(px,py,scanAngle,scanHalf){
   const b=bossWorld(),dx=px-b.x,dy=py-b.y;
   if(dy<0)return false;
   const angle=Math.atan2(dx,dy),d=Math.hypot(dx,dy);
-  return d<H*.84&&Math.abs(normalizeAngle(angle-scanAngle))<=scanHalf;
+  return d<H*.53&&Math.abs(normalizeAngle(angle-scanAngle))<=scanHalf;
 }
 function pointInVision(px,py){
   return pointInVisionAt(px,py,state.scanAngle,state.scanHalf);
@@ -523,7 +526,7 @@ function receiveRescue(p){
 function createNpcs(count=0,seed=0){
   const r=seeded((Number(seed)||987654321)^0x6d2b79f5);
   state.npcs=Array.from({length:Math.max(0,Math.min(5,Number(count)||0))},(_,i)=>{
-    const lane=i%3,x=LANE_X[lane]+(r()-.5)*.035,y=.78+r()*.13;
+    const lane=i%3,x=LANE_X[lane]+(r()-.5)*.035,y=(TRACK_START_Y-.045)+r()*.065;
     return {
       id:'bot:'+i,name:BOT_NAMES[i%BOT_NAMES.length],skin:BOT_SKINS[i%BOT_SKINS.length],
       lane,x,y,targetY:y,alive:true,finished:false,revived:false,
@@ -538,7 +541,7 @@ function updateNpcs(ts,dt){
     if(!n.alive||n.finished)continue;
     const moving=ts<n.movingUntil;
     n.y+=(n.targetY-n.y)*Math.min(1,dt*(moving?7.2:9.5));
-    if(n.y<=.245){n.y=.245;n.targetY=.245;n.finished=true;continue}
+    if(n.y<=TRACK_FINISH_Y){n.y=TRACK_FINISH_Y;n.targetY=TRACK_FINISH_Y;n.finished=true;continue}
     if(moving&&npcSeen(n)){
       n.alive=false;n.movingUntil=0;n.hitAt=ts;
       spawnShot(n.x*W,n.y*H,false);
@@ -547,7 +550,7 @@ function updateNpcs(ts,dt){
     if(ts>=n.nextMoveAt){
       const seen=npcSeen(n),willRisk=n.reckless?Math.random()<.58:Math.random()<.12;
       if(!seen||willRisk){
-        n.targetY=Math.max(.245,n.y-rand(.018,.040));
+        n.targetY=Math.max(TRACK_FINISH_Y,n.y-rand(.018,.040));
         n.movingUntil=ts+rand(290,520);n.nextMoveAt=ts+rand(720,1500);
       }else n.nextMoveAt=ts+rand(320,760);
     }
@@ -719,7 +722,7 @@ function receivePlayer(p){
   });
   updateRescueButton();
 }
-function progressToY(p){return .84-(.84-.245)*clamp(p,0,1)}
+function progressToY(p){return TRACK_START_Y-(TRACK_START_Y-TRACK_FINISH_Y)*clamp(p,0,1)}
 
 function remoteCovered(p){
   return state.obstacles.some(o=>o.type==='cover'&&o.lane===p.lane&&Math.abs(p.progress-o.progress)<=o.radius);
@@ -816,7 +819,7 @@ function setupParticipants(list=[]){
 }
 function resetRound(seed=0,config={}){
   state.running=false;state.alive=true;state.won=false;state.progress=0;state.comboIndex=0;state.comboDoneCount=0;
-  state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=.84;state.targetY=.84;
+  state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=TRACK_START_Y;state.targetY=TRACK_START_Y;
   state.movingUntil=0;state.laneMovingUntil=0;state.actionUntil=0;state.lastTs=0;state.graceUntil=0;
   state.scanAngle=-.56;state.scanHalf=.20;state.scanPlan=[];state.scanIndex=0;state.scanSegmentStart=0;state.scanSegmentFrom=-.56;state.lastPattern=-1;
   state.remoteBossAngle=-.56;state.remoteBossHalf=.20;state.remoteBossAt=0;state.lastBossSampleT=0;state.lastHitClaim=0;state.bossHistory=[];
@@ -912,7 +915,7 @@ restartBtn.addEventListener('click',async()=>{
   else await window.SRLNet.startRound();
 });
 
-function npcProgress(n){return clamp((.84-n.y)/(.84-.245),0,1)}
+function npcProgress(n){return clamp((TRACK_START_Y-n.y)/(TRACK_START_Y-TRACK_FINISH_Y),0,1)}
 function evaluateRoundEnd(){
   const net=window.SRLNet;
   if(!net?.isHost||state.roundEnding||!state.running)return;
@@ -973,16 +976,16 @@ function update(ts){
 }
 function roundedRect(x,y,w,h,r,fill){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill()}
 function drawSkyGround(){
-  const horizon=H*.35;
+  const horizon=H*.35,roadBottom=H*TRACK_BOTTOM_Y;
   const g=ctx.createLinearGradient(0,0,0,horizon);g.addColorStop(0,'#8edcff');g.addColorStop(1,'#dbf6ff');ctx.fillStyle=g;ctx.fillRect(0,0,W,horizon);
   const gg=ctx.createLinearGradient(0,horizon,0,H);gg.addColorStop(0,'#f5d88f');gg.addColorStop(1,'#e7bd6d');ctx.fillStyle=gg;ctx.fillRect(0,horizon,W,H-horizon);
   ctx.fillStyle='#7da954';ctx.fillRect(0,horizon-8,W,13);
-  ctx.beginPath();ctx.moveTo(W*.24,H);ctx.lineTo(W*.40,horizon);ctx.lineTo(W*.60,horizon);ctx.lineTo(W*.76,H);ctx.closePath();ctx.fillStyle='rgba(207,117,91,.56)';ctx.fill();
+  ctx.beginPath();ctx.moveTo(W*.24,roadBottom);ctx.lineTo(W*.40,horizon);ctx.lineTo(W*.60,horizon);ctx.lineTo(W*.76,roadBottom);ctx.closePath();ctx.fillStyle='rgba(207,117,91,.56)';ctx.fill();
   drawLaneGuides(horizon);
   ctx.strokeStyle='rgba(255,255,255,.82)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,H*.275);ctx.lineTo(W,H*.275);ctx.stroke();
 }
 function drawLaneGuides(horizon){
-  const y0=H*.245,y1=H*.98;
+  const y0=H*TRACK_FINISH_Y,y1=H*TRACK_BOTTOM_Y;
   for(const frac of [.42,.58]){
     const topX=W*(.5+(frac-.5)*.52),bottomX=W*(.5+(frac-.5)*1.92);
     ctx.save();ctx.setLineDash([12,12]);ctx.strokeStyle='rgba(255,255,255,.34)';ctx.lineWidth=3;
@@ -991,7 +994,7 @@ function drawLaneGuides(horizon){
 }
 function drawVisionCone(){
   if(!state.running)return;
-  const b=bossWorld(),len=H*.79,a1=state.scanAngle-state.scanHalf,a2=state.scanAngle+state.scanHalf;
+  const b=bossWorld(),len=H*.52,a1=state.scanAngle-state.scanHalf,a2=state.scanAngle+state.scanHalf;
   const x1=b.x+Math.sin(a1)*len,y1=b.y+Math.cos(a1)*len,x2=b.x+Math.sin(a2)*len,y2=b.y+Math.cos(a2)*len;
   const grad=ctx.createRadialGradient(b.x,b.y,10,b.x,b.y,len);
   grad.addColorStop(0,'rgba(255,45,62,.35)');grad.addColorStop(.62,'rgba(255,40,56,.22)');grad.addColorStop(1,'rgba(255,40,56,.035)');
