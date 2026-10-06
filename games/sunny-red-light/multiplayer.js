@@ -108,11 +108,13 @@ const net={
   onRoomReset:null,
   onHostChange:null,
   onRescue:null,
+  onHitClaim:null,
   onHitConfirm:null,
   onResumeRound:null,
   broadcastBoss,
   broadcastPlayer,
   broadcastRescue,
+  broadcastHitClaim,
   broadcastHitConfirm,
   finishRound,
   startRound,
@@ -304,6 +306,10 @@ async function setupChannel(){
     .on('broadcast',{event:'rescue'},msg=>{
       const p=msg.payload||{};if(net.onRescue)net.onRescue(p);
     })
+    .on('broadcast',{event:'hit_claim'},msg=>{
+      const p=msg.payload||{};
+      if(net.onHitClaim)net.onHitClaim(p);
+    })
     .on('broadcast',{event:'hit_confirm'},msg=>{
       const p=msg.payload||{};
       if(net.onHitConfirm)net.onHitConfirm(p);
@@ -458,6 +464,14 @@ async function broadcastPlayer(payload){
 async function broadcastRescue(payload){
   if(!channelReady||!channel)return;
   try{await channel.send({type:'broadcast',event:'rescue',payload:{...payload,fromId:clientId,fromName:playerName}})}catch(e){}
+}
+async function broadcastHitClaim(payload){
+  if(isHost||!channelReady||!channel)return;
+  try{
+    await channel.send({type:'broadcast',event:'hit_claim',payload:{
+      ...payload,targetId:clientId,targetName:playerName,claimedAt:Date.now()
+    }});
+  }catch(e){}
 }
 async function broadcastHitConfirm(payload){
   if(!isHost||!channelReady||!channel)return;
