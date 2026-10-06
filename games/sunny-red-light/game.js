@@ -334,6 +334,7 @@ function setSpectator(on,showEye=true){
 function lose(){
   if(!state.alive||state.won||state.roundEnding)return;
   state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
+  state.rescueMode=false;state.rescueTarget=null;comboEl.classList.remove('rescue');rescueBtn.classList.remove('show');
   const p=playerWorld();spawnShot(p.x,p.y,true);
   broadcastPlayer(true);
   setTimeout(()=>{if(state.eliminated&&!state.roundEnding)setSpectator(true,true)},720);
@@ -623,7 +624,7 @@ function resumeSpectatorRound(payload){
   resetRound(payload?.seed||0,{participants:payload?.participants||[],botCount:payload?.botCount||0});
   lobbyOverlay?.classList.remove('show');roomOverlay?.classList.remove('show');resultOverlay.classList.remove('show');countdownOverlay.classList.remove('show');
   state.running=true;state.roundStartPerf=performance.now();state.lastTs=0;state.alive=false;state.eliminated=false;
-  setSpectator(true,true);
+  setSpectator(true,true);broadcastPlayer(true);
   if(window.SRLNet?.isHost){
     try{
       const snap=JSON.parse(localStorage.getItem('srl_boss_snapshot')||'null');
