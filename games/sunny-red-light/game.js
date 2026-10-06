@@ -208,12 +208,14 @@ function prepareReplayForHit(hit={}){
   }));
   if(!frames.length){
     frames=[{
-      t:now,angle:Number(hit.bossAngle)||state.scanAngle,half:Number(hit.bossHalf)||state.scanHalf,
+      t:now,angle:Number.isFinite(Number(hit.bossAngle))?Number(hit.bossAngle):state.scanAngle,
+      half:Number.isFinite(Number(hit.bossHalf))?Number(hit.bossHalf):state.scanHalf,
       x:state.playerX,y:state.playerY,moving:true,remotes:[],bots:[]
     }];
   }
   frames.push({
-    t:now,angle:Number(hit.bossAngle)||state.scanAngle,half:Number(hit.bossHalf)||state.scanHalf,
+    t:now,angle:Number.isFinite(Number(hit.bossAngle))?Number(hit.bossAngle):state.scanAngle,
+    half:Number.isFinite(Number(hit.bossHalf))?Number(hit.bossHalf):state.scanHalf,
     x:state.playerX,y:state.playerY,moving:true,
     remotes:[...state.remotePlayers.values()].map(p=>({
       id:p.id,name:p.name,skin:p.skin,progress:p.progress,lane:p.lane,alive:p.alive,won:p.won,
@@ -695,7 +697,8 @@ function receivePlayer(p){
   const now=performance.now(),old=state.remotePlayers.get(p.clientId);
   const progress=clamp(Number(p.progress)||0,0,1);
   const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):1;
-  const alive=p.alive!==false,moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
+  const alive=(state.confirmedHits.has(p.clientId)&&!p.revived)?false:p.alive!==false;
+  const moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
   const diedNow=!!old&&old.alive&&!alive,revivedNow=!!old&&!old.alive&&alive;
   const hitAt=diedNow?now:(alive?0:(old?.hitAt||now-700));
   if(diedNow&&!state.confirmedHits.has(p.clientId))spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
