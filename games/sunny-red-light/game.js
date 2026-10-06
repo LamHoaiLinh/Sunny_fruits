@@ -767,6 +767,9 @@ function receiveHitClaim(p){
   if(!net?.isHost||!p?.targetId||state.confirmedHits.has(p.targetId)||state.roundEnding)return;
   const player=state.remotePlayers.get(p.targetId);
   if(!player||!player.alive||player.won||player.spectating)return;
+  const now=performance.now();
+  const movementVerified=(player.moving||player.laneMoving||player.acting)&&now<=player.dangerUntil+HIT_CONFIRM_MS;
+  if(!movementVerified)return;
   const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):player.lane;
   const progress=clamp(Number(p.progress)||player.progress||0,0,1);
   if(state.obstacles.some(o=>o.type==='cover'&&o.lane===lane&&Math.abs(progress-o.progress)<=o.radius))return;
