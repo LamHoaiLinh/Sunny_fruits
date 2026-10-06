@@ -7,9 +7,14 @@ const comboEl=document.getElementById('combo');
 const pad=document.getElementById('gesturePad');
 const laneControls=document.getElementById('laneControls');
 const laneButtons=[...document.querySelectorAll('.lane-btn')];
+const gameRoot=document.getElementById('game');
 const resultOverlay=document.getElementById('resultOverlay');
 const resultIcon=document.getElementById('resultIcon');
+const resultText=document.getElementById('resultText');
+const resultScore=document.getElementById('resultScore');
 const restartBtn=document.getElementById('restartBtn');
+const spectatorBadge=document.getElementById('spectatorBadge');
+const rescueBtn=document.getElementById('rescueBtn');
 const progressFill=document.getElementById('progressFill');
 const countdownOverlay=document.getElementById('countdownOverlay');
 const countdownValue=document.getElementById('countdownValue');
@@ -21,6 +26,8 @@ const INPUTS=['up','down','left','right','tap'];
 const SYMBOL={up:'↑',down:'↓',left:'←',right:'→',tap:'●'};
 const NPC_COLORS=['#ef6a7a','#5c82ff','#f0aa32','#7a63d5','#45b986','#e6763f','#4e9ac8','#d463aa'];
 const LANE_X=[.34,.50,.66];
+const BOT_NAMES=['Mèo Máy','Gà Máy','Hổ Máy','Voi Máy','Cá Sấu Máy'];
+const BOT_SKINS=['cat','chicken','tiger','elephant','crocodile'];
 const SPRITE_CELL=24;
 const SPRITE_META={
   rabbit:{walkStart:0,walkCount:5,fallStart:5,fallCount:5},
@@ -45,6 +52,8 @@ const state={
   cueKind:'',cueUntil:0,cueSeq:0,lastRemoteCueSeq:0,
   lastBossBroadcast:0,lastPlayerBroadcast:0,
   npcs:[],remotePlayers:new Map(),obstacles:[],shots:[],
+  activeParticipants:[],botCount:0,roundEnding:false,roundResult:null,
+  spectating:false,eliminated:false,revivedOnce:false,rescueUsed:false,rescueMode:false,rescueTarget:null,
   roundSeed:0,roundStartPerf:0,resultShown:false,hitAt:0
 };
 
