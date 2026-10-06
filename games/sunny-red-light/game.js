@@ -518,11 +518,18 @@ function broadcastBoss(ts){
   const net=window.SRLNet;
   if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<110)return;
   state.lastBossBroadcast=ts;
-  net.broadcastBoss({
+  const snapshot={
     angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now(),
     bots:state.npcs.map(n=>({id:n.id,name:n.name,skin:n.skin,lane:n.lane,x:n.x,y:n.y,targetY:n.targetY,
       alive:n.alive,finished:n.finished,moving:ts<n.movingUntil}))
-  });
+  };
+  net.broadcastBoss(snapshot);
+  try{
+    if(ts-(broadcastBoss.lastSaved||0)>450){
+      broadcastBoss.lastSaved=ts;
+      localStorage.setItem('srl_boss_snapshot',JSON.stringify({...snapshot,roomId:net.room?.id||'',savedAt:Date.now()}));
+    }
+  }catch(e){}
 }
 function broadcastPlayer(force=false){
   const net=window.SRLNet,now=performance.now();
@@ -617,7 +624,16 @@ function resumeSpectatorRound(payload){
   lobbyOverlay?.classList.remove('show');roomOverlay?.classList.remove('show');resultOverlay.classList.remove('show');countdownOverlay.classList.remove('show');
   state.running=true;state.roundStartPerf=performance.now();state.lastTs=0;state.alive=false;state.eliminated=false;
   setSpectator(true,true);
-  if(window.SRLNet?.isHost){state.scanPlan=[];buildScanPlan()}
+  if(window.SRLNet?.isHost){
+    try{
+      const snap=JSON.parse(localStorage.getItem('srl_boss_snapshot')||'null');
+      if(snap&&snap.roomId===window.SRLNet.room?.id&&Date.now()-Number(snap.savedAt||0)<20000){
+        state.scanAngle=Number(snap.angle)||state.scanAngle;state.scanHalf=clamp(Number(snap.half)||state.scanHalf,.12,.32);
+        state.cueKind=String(snap.cueKind||'');state.cueSeq=Number(snap.cueSeq||0);
+      }
+    }catch(e){}
+    state.scanPlan=[];buildScanPlan();
+  }
   requestAnimationFrame(loop);
 }
 function beginRound(){
@@ -667,11 +683,12 @@ function evaluateRoundEnd(){
   const net=window.SRLNet;
   if(!net?.isHost||state.roundEnding||!state.running)return;
   const human=[];
+  const present=new Set((net.getParticipants?.()||[]).map(p=>p.client_id||p.id));
   for(const p of state.activeParticipants){
     if(p.id===net.clientId)human.push({id:p.id,name:p.name,progress:state.progress,alive:state.alive,won:state.won});
     else{
-      const r=state.remotePlayers.get(p.id);
-      human.push({id:p.id,name:p.name,progress:r?.progress||0,alive:r?.alive!==false,won:!!r?.won});
+      const r=state.remotePlayers.get(p.id),stale=!present.has(p.id)&&r&&(performance.now()-r.t>9000);
+      human.push({id:p.id,name:p.name,progress:r?.progress||0,alive:stale?false:(r?.alive!==false),won:!!r?.won});
     }
   }
   const bot=state.npcs.map(n=>({id:n.id,name:n.name,progress:npcProgress(n),alive:n.alive,won:n.finished}));
