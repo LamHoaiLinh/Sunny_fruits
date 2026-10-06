@@ -5,13 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#bdeeff">
 <title>Sunny Red Light</title>
-<link rel="stylesheet" href="style.css?v=20261006-command3">
+<link rel="stylesheet" href="style.css?v=20261006-command45">
 </head>
 <body>
 <main id="game" aria-label="Sunny Red Light">
   <canvas id="canvas"></canvas>
   <a class="home" href="../../index.html" aria-label="Về Sunny Game Hub">⌂</a>
   <div class="progress" aria-hidden="true"><div id="progressFill"></div></div>
+
+  <section id="laneControls" class="lane-controls" aria-label="Chọn làn">
+    <button class="lane-btn" data-lane="0" aria-label="Làn trái">◀</button>
+    <button class="lane-btn selected" data-lane="1" aria-label="Làn giữa">●</button>
+    <button class="lane-btn" data-lane="2" aria-label="Làn phải">▶</button>
+  </section>
 
   <section class="combo-wrap" aria-label="Chuỗi thao tác">
     <div id="combo" class="combo"></div>
@@ -69,6 +75,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="multiplayer.js?v=20261006-command3"></script>
-<script src="game.js?v=20261006-command3"></script>
+<script src="game.js?v=20261006-command45"></script>
 </body>
 </html>
