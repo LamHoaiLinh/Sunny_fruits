@@ -352,7 +352,7 @@ function renderRoomPlayers(){
   });
 }
 function scheduleHostClaim(){
-  if(!room||isHost||room.matchState==='finished')return;
+  if(!room||isHost)return;
   if(presencePlayers.has(room.hostClientId)){if(hostClaimTimer){clearTimeout(hostClaimTimer);hostClaimTimer=0}return}
   if(hostClaimTimer)return;
   hostClaimTimer=setTimeout(()=>{hostClaimTimer=0;maybeClaimHost()},2600);
