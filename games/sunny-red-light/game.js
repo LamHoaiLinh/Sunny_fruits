@@ -486,7 +486,7 @@ function renderScoreBoard(scores={},names={}){
 }
 function showRoundResult(p){
   state.running=false;state.roundEnding=true;state.roundResult=p;state.resultShown=true;
-  setSpectator(false,false);rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
+  cancelReplay();setSpectator(false,false);rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
   resultIcon.textContent=p.matchState==='finished'?'🏆':'🥇';
   resultText.textContent=(p.winnerName||'—')+(p.matchState==='finished'?'  ★★':'  R'+(p.roundNumber||''));
   renderScoreBoard(p.scores||{},p.scoreNames||{});
@@ -501,12 +501,14 @@ function receiveRescue(p){
   if(p.targetId===window.SRLNet?.clientId){
     if(!state.eliminated||state.revivedOnce||state.roundEnding)return;
     state.revivedOnce=true;state.eliminated=false;state.alive=true;state.won=false;state.hitAt=0;
+    state.confirmedHits.delete(p.targetId);state.hitCandidates.delete(p.targetId);cancelReplay();
     state.progress=clamp(Number(p.progress)||.32,.22,.42);state.targetY=progressToY(state.progress);state.playerY=state.targetY;
     state.graceUntil=now+1600;progressFill.style.width=(state.progress*100).toFixed(1)+'%';
     setSpectator(false,false);newCombo();beep(1050,.12,'triangle',.04);vibrate([30,20,30]);broadcastPlayer(true);
   }else{
     const t=state.remotePlayers.get(p.targetId);
     if(t&&!t.revived){
+      state.confirmedHits.delete(p.targetId);state.hitCandidates.delete(p.targetId);
       t.revived=true;t.alive=true;t.won=false;t.hitAt=0;t.progress=clamp(Number(p.progress)||.32,.22,.42);t.movingUntil=now+420;t.t=now;
     }
   }
@@ -785,17 +787,20 @@ function setupParticipants(list=[]){
   for(const p of state.activeParticipants){
     if(p.id===me)continue;
     state.remotePlayers.set(p.id,{id:p.id,name:p.name,skin:p.skin,progress:0,lane:1,alive:true,won:false,revived:false,
-      spectating:false,rescueUsed:false,hitAt:0,movingUntil:0,t:performance.now()});
+      spectating:false,rescueUsed:false,moving:false,laneMoving:false,acting:false,dangerUntil:0,
+      hitAt:0,movingUntil:0,t:performance.now()});
   }
 }
 function resetRound(seed=0,config={}){
   state.running=false;state.alive=true;state.won=false;state.progress=0;state.comboIndex=0;state.comboDoneCount=0;
   state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=.84;state.targetY=.84;
-  state.movingUntil=0;state.laneMovingUntil=0;state.lastTs=0;state.graceUntil=0;
+  state.movingUntil=0;state.laneMovingUntil=0;state.actionUntil=0;state.lastTs=0;state.graceUntil=0;
   state.scanAngle=-.56;state.scanHalf=.20;state.scanPlan=[];state.scanIndex=0;state.scanSegmentStart=0;state.scanSegmentFrom=-.56;state.lastPattern=-1;
   state.remoteBossAngle=-.56;state.remoteBossHalf=.20;state.remoteBossAt=0;
   state.cueKind='';state.cueUntil=0;state.cueSeq=0;state.lastRemoteCueSeq=0;
   state.lastBossBroadcast=0;state.lastPlayerBroadcast=0;state.remotePlayers.clear();state.shots=[];
+  state.hitCandidates.clear();state.confirmedHits.clear();
+  state.replay.buffer=[];state.replay.frames=[];state.replay.active=false;state.replay.pending=false;state.replay.started=0;state.replay.lastCapture=0;
   state.roundSeed=Number(seed)||0;state.roundStartPerf=0;state.resultShown=false;state.hitAt=0;
   state.roundEnding=false;state.roundResult=null;state.spectating=false;state.eliminated=false;state.revivedOnce=false;
   state.rescueUsed=false;state.rescueMode=false;state.rescueTarget=null;state.botCount=Number(config.botCount||0);
@@ -847,7 +852,7 @@ function beginRound(){
 }
 function stopRound(){
   state.running=false;cancelAnimationFrame(countdownRaf);countdownOverlay.classList.remove('show');
-  resultOverlay.classList.remove('show');pad.classList.remove('danger');
+  cancelReplay();resultOverlay.classList.remove('show');pad.classList.remove('danger');
 }
 
 function pointerStart(e){
