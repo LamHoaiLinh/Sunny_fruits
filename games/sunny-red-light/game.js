@@ -543,11 +543,12 @@ function broadcastBoss(ts){
 }
 function broadcastPlayer(force=false){
   const net=window.SRLNet,now=performance.now();
-  if(!net||!net.connected||(!force&&now-state.lastPlayerBroadcast<120))return;
+  if(!net||!net.connected||(!force&&now-state.lastPlayerBroadcast<95))return;
   state.lastPlayerBroadcast=now;
   net.broadcastPlayer({
     progress:state.progress,alive:state.alive,won:state.won,y:state.playerY,lane:state.playerLane,
-    skin:localSkin(),spectating:state.spectating,revived:state.revivedOnce,rescueUsed:state.rescueUsed,t:Date.now()
+    skin:localSkin(),spectating:state.spectating,revived:state.revivedOnce,rescueUsed:state.rescueUsed,
+    moving:now<state.movingUntil,laneMoving:now<state.laneMovingUntil,acting:now<state.actionUntil,t:Date.now()
   });
 }
 function receiveBoss(p){
@@ -574,12 +575,14 @@ function receivePlayer(p){
   const alive=p.alive!==false,moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
   const diedNow=!!old&&old.alive&&!alive,revivedNow=!!old&&!old.alive&&alive;
   const hitAt=diedNow?now:(alive?0:(old?.hitAt||now-700));
-  if(diedNow)spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
+  if(diedNow&&!state.confirmedHits.has(p.clientId))spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
+  const danger=!!p.moving||!!p.laneMoving||!!p.acting;
   state.remotePlayers.set(p.clientId,{
     id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:!!p.won,
     skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),spectating:!!p.spectating,
     revived:!!p.revived||revivedNow||!!old?.revived,rescueUsed:!!p.rescueUsed,
-    hitAt,movingUntil:moved?now+520:(old?.movingUntil||0),t:now
+    moving:!!p.moving,laneMoving:!!p.laneMoving,acting:!!p.acting,dangerUntil:danger?now+REMOTE_DANGER_TTL:0,
+    hitAt,movingUntil:(!!p.moving||moved)?now+260:(old?.movingUntil||0),t:now
   });
   updateRescueButton();
 }
