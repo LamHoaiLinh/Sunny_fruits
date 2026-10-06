@@ -58,14 +58,18 @@ function normalizeRoom(raw={}){
   };
 }
 function randomSkinForName(name){
+  const n=String(name||'').trim().toLowerCase();
+  const fixed={sunny:'rabbit','nít':'cat',nit:'cat','bố':'tiger',bo:'tiger','mẹ':'elephant',me:'elephant'};
+  if(fixed[n])return fixed[n];
   const skins=['rabbit','cat','dog','elephant','crocodile','chicken','toad','tiger'];
-  let h=2166136261,s=String(name||'');
-  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}
+  let h=2166136261;
+  for(let i=0;i<n.length;i++){h^=n.charCodeAt(i);h=Math.imul(h,16777619)}
   return skins[(h>>>0)%skins.length];
 }
 
 const clientId=ensureLocal('srl_client_id',()=>crypto.randomUUID?crypto.randomUUID():randomHex(16));
 const clientToken=ensureLocal('srl_client_token',()=>randomHex(24));
+const presenceJoinedAt=Date.now();
 let playerName=localStorage.getItem('srl_player_name')||'';
 let room=null;
 let isHost=false;
@@ -160,12 +164,16 @@ async function rpc(name,args){
 async function fetchRoomState(roomId){
   return normalizeRoom(await rpc('srl_room_state',{p_room_id:roomId,p_client_id:clientId,p_token:clientToken}));
 }
-function applyRoomState(raw){
+function applyRoomState(raw={}){
+  const prev=room||{};
   const next=normalizeRoom(raw);
-  if(!next.id&&room)next.id=room.id;
-  if(!next.name&&room)next.name=room.name;
-  if(!next.maxPlayers&&room)next.maxPlayers=room.maxPlayers;
-  room={...(room||{}),...next};
+  if(!('room_id' in raw)&&!('id' in raw))next.id=prev.id||next.id;
+  if(!('room_name' in raw)&&!('name' in raw))next.name=prev.name||next.name;
+  if(!('max_players' in raw)&&!('maxPlayers' in raw))next.maxPlayers=prev.maxPlayers||next.maxPlayers;
+  if(!('host_client_id' in raw)&&!('hostClientId' in raw))next.hostClientId=prev.hostClientId||next.hostClientId;
+  if(!('host_name' in raw)&&!('hostName' in raw))next.hostName=prev.hostName||next.hostName;
+  if(!('last_round_winner' in raw)&&!('lastRoundWinner' in raw))next.lastRoundWinner=prev.lastRoundWinner||null;
+  room={...prev,...next};
   isHost=room.hostClientId===clientId;
   renderRoomState();
 }
@@ -260,7 +268,7 @@ async function trackPresence(){
   try{
     await channel.track({
       client_id:clientId,name:playerName,is_host:isHost,spectator:localSpectator,
-      skin:randomSkinForName(playerName),joined_at:Date.now()
+      skin:randomSkinForName(playerName),joined_at:presenceJoinedAt
     });
   }catch(e){}
 }
