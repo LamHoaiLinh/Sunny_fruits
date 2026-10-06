@@ -458,8 +458,8 @@ function setSpectator(on,showEye=true){
   window.SRLNet?.setSpectating?.(state.spectating);
 }
 function lose(hit={}){
-  if(!state.alive||state.won||state.roundEnding)return;
-  state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
+  if(!state.alive||state.roundEnding)return;
+  state.won=false;state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
   state.rescueMode=false;state.rescueTarget=null;comboEl.classList.remove('rescue');rescueBtn.classList.remove('show');
   prepareReplayForHit(hit);
   const p=playerWorld();spawnShot(p.x,p.y,true);
@@ -704,7 +704,7 @@ function receivePlayer(p){
   if(diedNow&&!state.confirmedHits.has(p.clientId))spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
   const danger=!!p.moving||!!p.laneMoving||!!p.acting;
   state.remotePlayers.set(p.clientId,{
-    id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:!!p.won,
+    id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:alive&&!!p.won,
     skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),spectating:!!p.spectating,
     revived:!!p.revived||revivedNow||!!old?.revived,rescueUsed:!!p.rescueUsed,
     moving:!!p.moving,laneMoving:!!p.laneMoving,acting:!!p.acting,dangerUntil:danger?now+REMOTE_DANGER_TTL:0,
@@ -777,7 +777,7 @@ function receiveHitConfirm(p){
   }
   const old=state.remotePlayers.get(p.targetId);
   if(!old||old.alive===false)return;
-  old.alive=false;old.hitAt=now;old.moving=false;old.laneMoving=false;old.acting=false;old.dangerUntil=0;old.t=now;
+  old.alive=false;old.won=false;old.hitAt=now;old.moving=false;old.laneMoving=false;old.acting=false;old.dangerUntil=0;old.t=now;
   old.progress=clamp(Number(p.progress)||old.progress||0,0,1);
   old.lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):old.lane;
   spawnShot(LANE_X[old.lane]*W,progressToY(old.progress)*H,false);
