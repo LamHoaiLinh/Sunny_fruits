@@ -324,21 +324,62 @@ function changeLane(nextLane){
   broadcastPlayer(true);
 }
 
+function setSpectator(on,showEye=true){
+  state.spectating=!!on;
+  gameRoot.classList.toggle('spectating',state.spectating);
+  spectatorBadge.classList.toggle('show',state.spectating&&showEye);
+  if(state.spectating)rescueBtn.classList.remove('show');
+  window.SRLNet?.setSpectating?.(state.spectating);
+}
 function lose(){
-  if(!state.alive||state.won)return;
-  state.alive=false;state.hitAt=performance.now();pad.classList.remove('danger');
+  if(!state.alive||state.won||state.roundEnding)return;
+  state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
   const p=playerWorld();spawnShot(p.x,p.y,true);
-  broadcastPlayer(true);showResult('💥',900);
+  broadcastPlayer(true);
+  setTimeout(()=>{if(state.eliminated&&!state.roundEnding)setSpectator(true,true)},720);
 }
 function win(){
-  if(!state.alive||state.won)return;
+  if(!state.alive||state.won||state.roundEnding)return;
   state.won=true;beep(880,.15,'triangle',.05);setTimeout(()=>beep(1180,.18,'triangle',.05),100);vibrate([35,30,35]);
-  broadcastPlayer(true);showResult('🏁⭐');
+  rescueBtn.classList.remove('show');broadcastPlayer(true);
 }
-function showResult(icon,delay=360){
-  if(state.resultShown)return;
-  state.resultShown=true;resultIcon.textContent=icon;
-  setTimeout(()=>resultOverlay.classList.add('show'),delay);
+function renderScoreBoard(scores={},names={}){
+  resultScore.innerHTML='';
+  const arr=Object.entries(scores).map(([key,val])=>({key,score:Number(val)||0,name:String(names[key]||key).slice(0,18)}))
+    .sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,'vi'));
+  for(const x of arr.slice(0,8)){
+    const chip=document.createElement('span');chip.className='score-chip';
+    chip.textContent=x.name+' '+('⭐'.repeat(Math.max(0,Math.min(2,x.score)))||'☆');
+    resultScore.appendChild(chip);
+  }
+}
+function showRoundResult(p){
+  state.running=false;state.roundEnding=true;state.roundResult=p;state.resultShown=true;
+  setSpectator(false,false);rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
+  resultIcon.textContent=p.matchState==='finished'?'🏆':'🥇';
+  resultText.textContent=(p.winnerName||'—')+(p.matchState==='finished'?'  ★★':'  R'+(p.roundNumber||''));
+  renderScoreBoard(p.scores||{},p.scoreNames||{});
+  restartBtn.style.display=window.SRLNet?.isHost?'grid':'none';
+  restartBtn.textContent=p.matchState==='finished'?'↻':'▶';
+  resultOverlay.classList.add('show');
+  beep(p.matchState==='finished'?1180:920,.14,'triangle',.045);
+}
+function receiveRescue(p){
+  if(!p?.targetId)return;
+  const now=performance.now();
+  if(p.targetId===window.SRLNet?.clientId){
+    if(!state.eliminated||state.revivedOnce||state.roundEnding)return;
+    state.revivedOnce=true;state.eliminated=false;state.alive=true;state.won=false;state.hitAt=0;
+    state.progress=clamp(Number(p.progress)||.32,.22,.42);state.targetY=progressToY(state.progress);state.playerY=state.targetY;
+    state.graceUntil=now+1600;progressFill.style.width=(state.progress*100).toFixed(1)+'%';
+    setSpectator(false,false);newCombo();beep(1050,.12,'triangle',.04);vibrate([30,20,30]);broadcastPlayer(true);
+  }else{
+    const t=state.remotePlayers.get(p.targetId);
+    if(t&&!t.revived){
+      t.revived=true;t.alive=true;t.won=false;t.hitAt=0;t.progress=clamp(Number(p.progress)||.32,.22,.42);t.movingUntil=now+420;t.t=now;
+    }
+  }
+  updateRescueButton();
 }
 
 function createNpcs(){
