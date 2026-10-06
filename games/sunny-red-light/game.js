@@ -54,7 +54,7 @@ const state={
   playerLane:1,playerX:LANE_X[1],targetLaneX:LANE_X[1],playerY:.84,targetY:.84,
   movingUntil:0,laneMovingUntil:0,actionUntil:0,lastTs:0,graceUntil:0,
   scanAngle:-.56,scanHalf:.20,scanPlan:[],scanIndex:0,scanSegmentStart:0,scanSegmentFrom:-.56,lastPattern:-1,
-  remoteBossAngle:-.56,remoteBossHalf:.20,remoteBossAt:0,
+  remoteBossAngle:-.56,remoteBossHalf:.20,remoteBossAt:0,lastBossSampleT:0,lastHitClaim:0,bossHistory:[],
   cueKind:'',cueUntil:0,cueSeq:0,lastRemoteCueSeq:0,
   lastBossBroadcast:0,lastPlayerBroadcast:0,
   npcs:[],remotePlayers:new Map(),obstacles:[],shots:[],
@@ -344,11 +344,14 @@ function bossWorld(){return{x:W*.5,y:H*.155}}
 function currentCover(){
   return state.obstacles.find(o=>o.type==='cover'&&o.lane===state.playerLane&&Math.abs(state.progress-o.progress)<=o.radius);
 }
-function pointInVision(px,py){
+function pointInVisionAt(px,py,scanAngle,scanHalf){
   const b=bossWorld(),dx=px-b.x,dy=py-b.y;
   if(dy<0)return false;
   const angle=Math.atan2(dx,dy),d=Math.hypot(dx,dy);
-  return d<H*.84&&Math.abs(normalizeAngle(angle-state.scanAngle))<=state.scanHalf;
+  return d<H*.84&&Math.abs(normalizeAngle(angle-scanAngle))<=scanHalf;
+}
+function pointInVision(px,py){
+  return pointInVisionAt(px,py,state.scanAngle,state.scanHalf);
 }
 function visionContainsPlayer(){
   if(performance.now()<state.graceUntil)return false;
@@ -653,11 +656,14 @@ function broadcastBoss(ts){
   const net=window.SRLNet;
   if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<110)return;
   state.lastBossBroadcast=ts;
+  const wallT=Date.now();
   const snapshot={
-    angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now(),
+    angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:wallT,
     bots:state.npcs.map(n=>({id:n.id,name:n.name,skin:n.skin,lane:n.lane,x:n.x,y:n.y,targetY:n.targetY,
       alive:n.alive,finished:n.finished,moving:ts<n.movingUntil}))
   };
+  state.bossHistory.push({t:wallT,angle:state.scanAngle,half:state.scanHalf});
+  while(state.bossHistory.length&&state.bossHistory[0].t<wallT-2500)state.bossHistory.shift();
   net.broadcastBoss(snapshot);
   try{
     if(ts-(broadcastBoss.lastSaved||0)>450){
@@ -679,6 +685,7 @@ function broadcastPlayer(force=false){
 function receiveBoss(p){
   if(!p||!Number.isFinite(Number(p.angle)))return;
   state.remoteBossAngle=Number(p.angle);state.remoteBossHalf=clamp(Number(p.half)||.20,.12,.32);state.remoteBossAt=performance.now();
+  state.lastBossSampleT=Number(p.t)||Date.now();
   if(Number(p.cueSeq)>state.lastRemoteCueSeq)triggerBossCue(String(p.cueKind||'dash'),Number(p.cueSeq));
   if(Array.isArray(p.bots)){
     const old=new Map(state.npcs.map(n=>[n.id,n])),now=performance.now();
@@ -754,15 +761,25 @@ function evaluateHostHits(ts){
     (ts<state.movingUntil||ts<state.laneMovingUntil||ts<state.actionUntil);
   updateHitCandidate(net.clientId,net.playerName,state.playerLane,state.progress,
     localDanger,localDanger&&visionContainsPlayer(),ts);
-
-  const allowed=new Set(state.activeParticipants.map(p=>p.id));
-  for(const p of state.remotePlayers.values()){
-    if(!allowed.has(p.id)||!p.alive||p.won||p.spectating){
-      state.hitCandidates.delete(p.id);continue;
-    }
-    const danger=ts<p.dangerUntil&&(p.moving||p.laneMoving||p.acting);
-    updateHitCandidate(p.id,p.name,p.lane,p.progress,danger,danger&&remoteSeen(p),ts);
+}
+function receiveHitClaim(p){
+  const net=window.SRLNet;
+  if(!net?.isHost||!p?.targetId||state.confirmedHits.has(p.targetId)||state.roundEnding)return;
+  const player=state.remotePlayers.get(p.targetId);
+  if(!player||!player.alive||player.won||player.spectating)return;
+  const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):player.lane;
+  const progress=clamp(Number(p.progress)||player.progress||0,0,1);
+  if(state.obstacles.some(o=>o.type==='cover'&&o.lane===lane&&Math.abs(progress-o.progress)<=o.radius))return;
+  const bossT=Number(p.bossT)||0;
+  let sample=null,best=Infinity;
+  for(const h of state.bossHistory){
+    const d=Math.abs(h.t-bossT);
+    if(d<best){best=d;sample=h}
   }
+  if(!sample||best>HIT_CONFIRM_MS)return;
+  const x=LANE_X[lane]*W,y=progressToY(progress)*H;
+  if(!pointInVisionAt(x,y,sample.angle,sample.half))return;
+  hostConfirmTarget(p.targetId,p.targetName||player.name,lane,progress,performance.now());
 }
 function receiveHitConfirm(p){
   const net=window.SRLNet;
@@ -799,7 +816,7 @@ function resetRound(seed=0,config={}){
   state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=.84;state.targetY=.84;
   state.movingUntil=0;state.laneMovingUntil=0;state.actionUntil=0;state.lastTs=0;state.graceUntil=0;
   state.scanAngle=-.56;state.scanHalf=.20;state.scanPlan=[];state.scanIndex=0;state.scanSegmentStart=0;state.scanSegmentFrom=-.56;state.lastPattern=-1;
-  state.remoteBossAngle=-.56;state.remoteBossHalf=.20;state.remoteBossAt=0;
+  state.remoteBossAngle=-.56;state.remoteBossHalf=.20;state.remoteBossAt=0;state.lastBossSampleT=0;state.lastHitClaim=0;state.bossHistory=[];
   state.cueKind='';state.cueUntil=0;state.cueSeq=0;state.lastRemoteCueSeq=0;
   state.lastBossBroadcast=0;state.lastPlayerBroadcast=0;state.remotePlayers.clear();state.shots=[];
   state.hitCandidates.clear();state.confirmedHits.clear();
