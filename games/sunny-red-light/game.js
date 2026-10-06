@@ -28,6 +28,12 @@ const NPC_COLORS=['#ef6a7a','#5c82ff','#f0aa32','#7a63d5','#45b986','#e6763f','#
 const LANE_X=[.34,.50,.66];
 const BOT_NAMES=['Mèo Máy','Gà Máy','Hổ Máy','Voi Máy','Cá Sấu Máy'];
 const BOT_SKINS=['cat','chicken','tiger','elephant','crocodile'];
+const HIT_CONFIRM_MS=140;
+const REMOTE_DANGER_TTL=260;
+const REPLAY_BUFFER_MS=3600;
+const REPLAY_HISTORY_MS=2300;
+const REPLAY_FALL_MS=700;
+const REPLAY_TOTAL_MS=REPLAY_HISTORY_MS+REPLAY_FALL_MS;
 const SPRITE_CELL=24;
 const SPRITE_META={
   rabbit:{walkStart:0,walkCount:5,fallStart:5,fallCount:5},
@@ -46,14 +52,16 @@ let spritesReady=false;
 const state={
   running:false,alive:true,won:false,progress:0,combo:[],comboIndex:0,comboDoneCount:0,
   playerLane:1,playerX:LANE_X[1],targetLaneX:LANE_X[1],playerY:.84,targetY:.84,
-  movingUntil:0,laneMovingUntil:0,lastTs:0,graceUntil:0,
+  movingUntil:0,laneMovingUntil:0,actionUntil:0,lastTs:0,graceUntil:0,
   scanAngle:-.56,scanHalf:.20,scanPlan:[],scanIndex:0,scanSegmentStart:0,scanSegmentFrom:-.56,lastPattern:-1,
-  remoteBossAngle:-.56,remoteBossHalf:.20,remoteBossAt:0,
+  remoteBossAngle:-.56,remoteBossHalf:.20,remoteBossAt:0,lastBossSampleT:0,lastHitClaim:0,bossHistory:[],
   cueKind:'',cueUntil:0,cueSeq:0,lastRemoteCueSeq:0,
   lastBossBroadcast:0,lastPlayerBroadcast:0,
   npcs:[],remotePlayers:new Map(),obstacles:[],shots:[],
   activeParticipants:[],botCount:0,roundEnding:false,roundResult:null,
   spectating:false,eliminated:false,revivedOnce:false,rescueUsed:false,rescueMode:false,rescueTarget:null,
+  hitCandidates:new Map(),confirmedHits:new Set(),
+  replay:{buffer:[],frames:[],active:false,pending:false,started:0,lastCapture:0},
   roundSeed:0,roundStartPerf:0,resultShown:false,hitAt:0
 };
 
@@ -174,6 +182,123 @@ function drawShotEffects(now){
   }
 }
 
+function captureReplayFrame(ts){
+  if(!state.running||state.spectating||state.replay.active||!state.alive||state.won)return;
+  if(ts-state.replay.lastCapture<50)return;
+  state.replay.lastCapture=ts;
+  const moving=ts<state.movingUntil||ts<state.laneMovingUntil||ts<state.actionUntil;
+  state.replay.buffer.push({
+    t:ts,angle:state.scanAngle,half:state.scanHalf,x:state.playerX,y:state.playerY,moving,
+    remotes:[...state.remotePlayers.values()].map(p=>({
+      id:p.id,name:p.name,skin:p.skin,progress:p.progress,lane:p.lane,alive:p.alive,won:p.won,
+      moving:ts<p.movingUntil
+    })),
+    bots:state.npcs.map(n=>({
+      id:n.id,name:n.name,skin:n.skin,x:n.x,y:n.y,alive:n.alive,finished:n.finished,
+      moving:ts<n.movingUntil
+    }))
+  });
+  const cutoff=ts-REPLAY_BUFFER_MS;
+  while(state.replay.buffer.length&&state.replay.buffer[0].t<cutoff)state.replay.buffer.shift();
+}
+function prepareReplayForHit(hit={}){
+  const now=performance.now(),cutoff=now-REPLAY_HISTORY_MS;
+  let frames=state.replay.buffer.filter(f=>f.t>=cutoff).map(f=>({
+    ...f,remotes:f.remotes.map(p=>({...p})),bots:f.bots.map(n=>({...n}))
+  }));
+  if(!frames.length){
+    frames=[{
+      t:now,angle:Number.isFinite(Number(hit.bossAngle))?Number(hit.bossAngle):state.scanAngle,
+      half:Number.isFinite(Number(hit.bossHalf))?Number(hit.bossHalf):state.scanHalf,
+      x:state.playerX,y:state.playerY,moving:true,remotes:[],bots:[]
+    }];
+  }
+  frames.push({
+    t:now,angle:Number.isFinite(Number(hit.bossAngle))?Number(hit.bossAngle):state.scanAngle,
+    half:Number.isFinite(Number(hit.bossHalf))?Number(hit.bossHalf):state.scanHalf,
+    x:state.playerX,y:state.playerY,moving:true,
+    remotes:[...state.remotePlayers.values()].map(p=>({
+      id:p.id,name:p.name,skin:p.skin,progress:p.progress,lane:p.lane,alive:p.alive,won:p.won,
+      moving:now<p.movingUntil
+    })),
+    bots:state.npcs.map(n=>({
+      id:n.id,name:n.name,skin:n.skin,x:n.x,y:n.y,alive:n.alive,finished:n.finished,
+      moving:now<n.movingUntil
+    }))
+  });
+  state.replay.frames=frames;state.replay.pending=true;state.replay.active=false;
+}
+function startReplayPlayback(){
+  if(!state.replay.pending||!state.replay.frames.length||state.roundEnding)return;
+  state.replay.pending=false;state.replay.active=true;state.replay.started=performance.now();
+  spectatorBadge.textContent='↺ 3s';spectatorBadge.classList.add('show');
+}
+function cancelReplay(){
+  state.replay.active=false;state.replay.pending=false;state.replay.frames=[];
+  spectatorBadge.textContent='👀';
+}
+function replayFrameAt(target){
+  const frames=state.replay.frames;
+  if(!frames.length)return null;
+  let best=frames[0],bestD=Math.abs(frames[0].t-target);
+  for(let i=1;i<frames.length;i++){
+    const d=Math.abs(frames[i].t-target);
+    if(d<bestD){best=frames[i];bestD=d}else if(frames[i].t>target&&d>bestD)break;
+  }
+  return best;
+}
+function drawReplayRacers(frame,falling=false,fallAt=0){
+  for(const n of frame.bots||[]){
+    const size=Math.max(36,Math.min(W,H)*.055),mode=!n.alive?'fall':(n.moving?'walk':'idle');
+    drawSpriteCharacter(n.skin||'dog',n.x*W,n.y*H,size,mode,!n.alive?fallAt:0,n.alive?1:.82);
+  }
+  for(const p of frame.remotes||[]){
+    const size=Math.max(45,Math.min(W,H)*.075),x=LANE_X[p.lane]*W,y=progressToY(p.progress)*H;
+    const mode=!p.alive?'fall':(p.moving?'walk':'idle');
+    drawSpriteCharacter(p.skin||skinFor(p.id,p.name),x,y,size,mode,!p.alive?fallAt:0,p.alive?1:.84);
+  }
+  const size=Math.max(58,Math.min(W,H)*.098),mode=falling?'fall':(frame.moving?'walk':'idle');
+  drawSpriteCharacter(localSkin(),frame.x*W,frame.y*H,size,mode,falling?fallAt:0,falling?.88:1);
+}
+function drawReplayImpact(frame,age){
+  if(age<0||age>360)return;
+  const b=bossWorld(),tx=frame.x*W,ty=frame.y*H-12,p=age/360;
+  ctx.save();
+  if(age<125){
+    const a=1-age/125;
+    ctx.globalAlpha=.82*a;ctx.strokeStyle='#ff334d';ctx.lineWidth=7;
+    ctx.beginPath();ctx.moveTo(b.x,b.y+8);ctx.lineTo(tx,ty);ctx.stroke();
+    ctx.globalAlpha=a;ctx.strokeStyle='#fff7d6';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(b.x,b.y+8);ctx.lineTo(tx,ty);ctx.stroke();
+  }
+  ctx.globalAlpha=Math.max(0,1-p)*.9;ctx.strokeStyle='#ff5b48';ctx.lineWidth=4*(1-p)+1;
+  ctx.beginPath();ctx.arc(tx,ty,8+p*30,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
+function drawReplay(now){
+  if(!state.replay.active)return false;
+  const elapsed=now-state.replay.started;
+  if(elapsed>=REPLAY_TOTAL_MS){
+    state.replay.active=false;state.replay.frames=[];spectatorBadge.textContent='👀';
+    return false;
+  }
+  const frames=state.replay.frames,first=frames[0],last=frames[frames.length-1];
+  const historySpan=Math.max(1,last.t-first.t);
+  const historyElapsed=Math.min(REPLAY_HISTORY_MS,elapsed);
+  const target=first.t+historySpan*(historyElapsed/REPLAY_HISTORY_MS);
+  const frame=replayFrameAt(target)||last;
+  const falling=elapsed>=REPLAY_HISTORY_MS,fallAt=state.replay.started+REPLAY_HISTORY_MS;
+  const oldAngle=state.scanAngle,oldHalf=state.scanHalf,oldCue=state.cueUntil;
+  state.scanAngle=frame.angle;state.scanHalf=frame.half;state.cueUntil=0;
+  ctx.clearRect(0,0,W,H);
+  drawSkyGround();drawFinish();drawVisionCone();drawObstacles();drawBoss();
+  drawReplayRacers(frame,falling,fallAt);
+  if(falling)drawReplayImpact(last,elapsed-REPLAY_HISTORY_MS);
+  ctx.save();ctx.fillStyle='rgba(20,26,42,.12)';ctx.fillRect(0,0,W,H);ctx.restore();
+  state.scanAngle=oldAngle;state.scanHalf=oldHalf;state.cueUntil=oldCue;
+  return true;
+}
+
 function comboLength(){
   if(state.progress<.32)return 3;
   if(state.progress<.82)return 4;
@@ -219,11 +344,14 @@ function bossWorld(){return{x:W*.5,y:H*.155}}
 function currentCover(){
   return state.obstacles.find(o=>o.type==='cover'&&o.lane===state.playerLane&&Math.abs(state.progress-o.progress)<=o.radius);
 }
-function pointInVision(px,py){
+function pointInVisionAt(px,py,scanAngle,scanHalf){
   const b=bossWorld(),dx=px-b.x,dy=py-b.y;
   if(dy<0)return false;
   const angle=Math.atan2(dx,dy),d=Math.hypot(dx,dy);
-  return d<H*.84&&Math.abs(normalizeAngle(angle-state.scanAngle))<=state.scanHalf;
+  return d<H*.84&&Math.abs(normalizeAngle(angle-scanAngle))<=scanHalf;
+}
+function pointInVision(px,py){
+  return pointInVisionAt(px,py,state.scanAngle,state.scanHalf);
 }
 function visionContainsPlayer(){
   if(performance.now()<state.graceUntil)return false;
@@ -294,7 +422,8 @@ function finishRescue(){
 }
 function inputGesture(kind){
   if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
-  if(dangerousNow())return lose();
+  state.actionUntil=performance.now()+190;
+  broadcastPlayer(true);
   const expected=state.combo[state.comboIndex];
   if(kind!==expected)return resetComboWrong();
   state.comboIndex++;renderCombo();padClass('good');beep(720+state.comboIndex*65,.045,'sine',.025);vibrate(10);
@@ -316,7 +445,7 @@ function changeLane(nextLane){
   if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   const lane=clamp(Number(nextLane)||0,0,2);
   if(lane===state.playerLane)return;
-  if(dangerousNow())return lose();
+  state.actionUntil=performance.now()+190;
   state.playerLane=lane;state.targetLaneX=LANE_X[lane];
   state.laneMovingUntil=performance.now()+380;
   laneButtons.forEach((b,i)=>b.classList.toggle('selected',i===lane));
@@ -331,13 +460,19 @@ function setSpectator(on,showEye=true){
   if(state.spectating)rescueBtn.classList.remove('show');
   window.SRLNet?.setSpectating?.(state.spectating);
 }
-function lose(){
-  if(!state.alive||state.won||state.roundEnding)return;
-  state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
+function lose(hit={}){
+  if(!state.alive||state.roundEnding)return;
+  state.won=false;state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
   state.rescueMode=false;state.rescueTarget=null;comboEl.classList.remove('rescue');rescueBtn.classList.remove('show');
+  prepareReplayForHit(hit);
   const p=playerWorld();spawnShot(p.x,p.y,true);
   broadcastPlayer(true);
-  setTimeout(()=>{if(state.eliminated&&!state.roundEnding)setSpectator(true,true)},720);
+  setTimeout(()=>{
+    if(state.eliminated&&!state.roundEnding){
+      setSpectator(true,true);
+      startReplayPlayback();
+    }
+  },720);
 }
 function win(){
   if(!state.alive||state.won||state.roundEnding)return;
@@ -356,7 +491,7 @@ function renderScoreBoard(scores={},names={}){
 }
 function showRoundResult(p){
   state.running=false;state.roundEnding=true;state.roundResult=p;state.resultShown=true;
-  setSpectator(false,false);rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
+  cancelReplay();setSpectator(false,false);rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
   resultIcon.textContent=p.matchState==='finished'?'🏆':'🥇';
   resultText.textContent=(p.winnerName||'—')+(p.matchState==='finished'?'  ★★':'  R'+(p.roundNumber||''));
   renderScoreBoard(p.scores||{},p.scoreNames||{});
@@ -371,12 +506,14 @@ function receiveRescue(p){
   if(p.targetId===window.SRLNet?.clientId){
     if(!state.eliminated||state.revivedOnce||state.roundEnding)return;
     state.revivedOnce=true;state.eliminated=false;state.alive=true;state.won=false;state.hitAt=0;
+    state.confirmedHits.delete(p.targetId);state.hitCandidates.delete(p.targetId);cancelReplay();
     state.progress=clamp(Number(p.progress)||.32,.22,.42);state.targetY=progressToY(state.progress);state.playerY=state.targetY;
     state.graceUntil=now+1600;progressFill.style.width=(state.progress*100).toFixed(1)+'%';
     setSpectator(false,false);newCombo();beep(1050,.12,'triangle',.04);vibrate([30,20,30]);broadcastPlayer(true);
   }else{
     const t=state.remotePlayers.get(p.targetId);
     if(t&&!t.revived){
+      state.confirmedHits.delete(p.targetId);state.hitCandidates.delete(p.targetId);
       t.revived=true;t.alive=true;t.won=false;t.hitAt=0;t.progress=clamp(Number(p.progress)||.32,.22,.42);t.movingUntil=now+420;t.t=now;
     }
   }
@@ -519,11 +656,14 @@ function broadcastBoss(ts){
   const net=window.SRLNet;
   if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<110)return;
   state.lastBossBroadcast=ts;
+  const wallT=Date.now();
   const snapshot={
-    angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now(),
+    angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:wallT,
     bots:state.npcs.map(n=>({id:n.id,name:n.name,skin:n.skin,lane:n.lane,x:n.x,y:n.y,targetY:n.targetY,
       alive:n.alive,finished:n.finished,moving:ts<n.movingUntil}))
   };
+  state.bossHistory.push({t:wallT,angle:state.scanAngle,half:state.scanHalf});
+  while(state.bossHistory.length&&state.bossHistory[0].t<wallT-2500)state.bossHistory.shift();
   net.broadcastBoss(snapshot);
   try{
     if(ts-(broadcastBoss.lastSaved||0)>450){
@@ -534,16 +674,18 @@ function broadcastBoss(ts){
 }
 function broadcastPlayer(force=false){
   const net=window.SRLNet,now=performance.now();
-  if(!net||!net.connected||(!force&&now-state.lastPlayerBroadcast<120))return;
+  if(!net||!net.connected||(!force&&now-state.lastPlayerBroadcast<95))return;
   state.lastPlayerBroadcast=now;
   net.broadcastPlayer({
     progress:state.progress,alive:state.alive,won:state.won,y:state.playerY,lane:state.playerLane,
-    skin:localSkin(),spectating:state.spectating,revived:state.revivedOnce,rescueUsed:state.rescueUsed,t:Date.now()
+    skin:localSkin(),spectating:state.spectating,revived:state.revivedOnce,rescueUsed:state.rescueUsed,
+    moving:now<state.movingUntil,laneMoving:now<state.laneMovingUntil,acting:now<state.actionUntil,t:Date.now()
   });
 }
 function receiveBoss(p){
   if(!p||!Number.isFinite(Number(p.angle)))return;
   state.remoteBossAngle=Number(p.angle);state.remoteBossHalf=clamp(Number(p.half)||.20,.12,.32);state.remoteBossAt=performance.now();
+  state.lastBossSampleT=Number(p.t)||Date.now();
   if(Number(p.cueSeq)>state.lastRemoteCueSeq)triggerBossCue(String(p.cueKind||'dash'),Number(p.cueSeq));
   if(Array.isArray(p.bots)){
     const old=new Map(state.npcs.map(n=>[n.id,n])),now=performance.now();
@@ -562,19 +704,105 @@ function receivePlayer(p){
   const now=performance.now(),old=state.remotePlayers.get(p.clientId);
   const progress=clamp(Number(p.progress)||0,0,1);
   const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):1;
-  const alive=p.alive!==false,moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
+  const alive=(state.confirmedHits.has(p.clientId)&&!p.revived)?false:p.alive!==false;
+  const moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
   const diedNow=!!old&&old.alive&&!alive,revivedNow=!!old&&!old.alive&&alive;
   const hitAt=diedNow?now:(alive?0:(old?.hitAt||now-700));
-  if(diedNow)spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
+  if(diedNow&&!state.confirmedHits.has(p.clientId))spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
+  const danger=!!p.moving||!!p.laneMoving||!!p.acting;
   state.remotePlayers.set(p.clientId,{
-    id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:!!p.won,
+    id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:alive&&!!p.won,
     skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),spectating:!!p.spectating,
     revived:!!p.revived||revivedNow||!!old?.revived,rescueUsed:!!p.rescueUsed,
-    hitAt,movingUntil:moved?now+520:(old?.movingUntil||0),t:now
+    moving:!!p.moving,laneMoving:!!p.laneMoving,acting:!!p.acting,dangerUntil:danger?now+REMOTE_DANGER_TTL:0,
+    hitAt,movingUntil:(!!p.moving||moved)?now+260:(old?.movingUntil||0),t:now
   });
   updateRescueButton();
 }
 function progressToY(p){return .84-(.84-.245)*clamp(p,0,1)}
+
+function remoteCovered(p){
+  return state.obstacles.some(o=>o.type==='cover'&&o.lane===p.lane&&Math.abs(p.progress-o.progress)<=o.radius);
+}
+function remoteSeen(p){
+  if(remoteCovered(p))return false;
+  return pointInVision(LANE_X[p.lane]*W,progressToY(p.progress)*H);
+}
+function hostConfirmTarget(targetId,targetName,lane,progress,ts){
+  const net=window.SRLNet;
+  if(!net?.isHost||state.confirmedHits.has(targetId))return;
+  state.confirmedHits.add(targetId);
+  state.hitCandidates.delete(targetId);
+  const payload={
+    targetId,targetName:String(targetName||'Player').slice(0,24),
+    lane:Number(lane)||0,progress:clamp(Number(progress)||0,0,1),
+    bossAngle:state.scanAngle,bossHalf:state.scanHalf,fairnessMs:HIT_CONFIRM_MS,
+    hostId:net.clientId,hitAt:Date.now()
+  };
+  receiveHitConfirm(payload);
+  net.broadcastHitConfirm?.(payload);
+}
+function updateHitCandidate(targetId,targetName,lane,progress,danger,seen,ts){
+  if(!danger||!seen){
+    state.hitCandidates.delete(targetId);
+    return;
+  }
+  const first=state.hitCandidates.get(targetId);
+  if(!first){
+    state.hitCandidates.set(targetId,ts);
+    return;
+  }
+  if(ts-first>=HIT_CONFIRM_MS)hostConfirmTarget(targetId,targetName,lane,progress,ts);
+}
+function evaluateHostHits(ts){
+  const net=window.SRLNet;
+  if(!net?.isHost||!state.running||state.roundEnding||ts<state.graceUntil)return;
+  const localDanger=state.alive&&!state.won&&!state.spectating&&
+    (ts<state.movingUntil||ts<state.laneMovingUntil||ts<state.actionUntil);
+  updateHitCandidate(net.clientId,net.playerName,state.playerLane,state.progress,
+    localDanger,localDanger&&visionContainsPlayer(),ts);
+}
+function receiveHitClaim(p){
+  const net=window.SRLNet;
+  if(!net?.isHost||!p?.targetId||state.confirmedHits.has(p.targetId)||state.roundEnding)return;
+  const player=state.remotePlayers.get(p.targetId);
+  if(!player||!player.alive||player.won||player.spectating)return;
+  const now=performance.now();
+  const movementVerified=(player.moving||player.laneMoving||player.acting)&&now<=player.dangerUntil+HIT_CONFIRM_MS;
+  if(!movementVerified)return;
+  const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):player.lane;
+  const progress=clamp(Number(p.progress)||player.progress||0,0,1);
+  if(state.obstacles.some(o=>o.type==='cover'&&o.lane===lane&&Math.abs(progress-o.progress)<=o.radius))return;
+  const bossT=Number(p.bossT)||0;
+  let sample=null,best=Infinity;
+  for(const h of state.bossHistory){
+    const d=Math.abs(h.t-bossT);
+    if(d<best){best=d;sample=h}
+  }
+  if(!sample||best>HIT_CONFIRM_MS)return;
+  const x=LANE_X[lane]*W,y=progressToY(progress)*H;
+  if(!pointInVisionAt(x,y,sample.angle,sample.half))return;
+  hostConfirmTarget(p.targetId,p.targetName||player.name,lane,progress,performance.now());
+}
+function receiveHitConfirm(p){
+  const net=window.SRLNet;
+  if(!p?.targetId||!net)return;
+  if(p.hostId&&net.room?.hostClientId&&p.hostId!==net.room.hostClientId)return;
+  const now=performance.now();
+  state.confirmedHits.add(p.targetId);
+  state.hitCandidates.delete(p.targetId);
+  if(p.targetId===net.clientId){
+    lose(p);
+    return;
+  }
+  const old=state.remotePlayers.get(p.targetId);
+  if(!old||old.alive===false)return;
+  old.alive=false;old.won=false;old.hitAt=now;old.moving=false;old.laneMoving=false;old.acting=false;old.dangerUntil=0;old.t=now;
+  old.progress=clamp(Number(p.progress)||old.progress||0,0,1);
+  old.lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):old.lane;
+  spawnShot(LANE_X[old.lane]*W,progressToY(old.progress)*H,false);
+  updateRescueButton();
+}
 
 function setupParticipants(list=[]){
   state.activeParticipants=Array.isArray(list)?list.map(p=>({id:p.id,name:String(p.name||'Player').slice(0,24),skin:p.skin||skinFor(p.id,p.name)})):[];
@@ -582,17 +810,20 @@ function setupParticipants(list=[]){
   for(const p of state.activeParticipants){
     if(p.id===me)continue;
     state.remotePlayers.set(p.id,{id:p.id,name:p.name,skin:p.skin,progress:0,lane:1,alive:true,won:false,revived:false,
-      spectating:false,rescueUsed:false,hitAt:0,movingUntil:0,t:performance.now()});
+      spectating:false,rescueUsed:false,moving:false,laneMoving:false,acting:false,dangerUntil:0,
+      hitAt:0,movingUntil:0,t:performance.now()});
   }
 }
 function resetRound(seed=0,config={}){
   state.running=false;state.alive=true;state.won=false;state.progress=0;state.comboIndex=0;state.comboDoneCount=0;
   state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=.84;state.targetY=.84;
-  state.movingUntil=0;state.laneMovingUntil=0;state.lastTs=0;state.graceUntil=0;
+  state.movingUntil=0;state.laneMovingUntil=0;state.actionUntil=0;state.lastTs=0;state.graceUntil=0;
   state.scanAngle=-.56;state.scanHalf=.20;state.scanPlan=[];state.scanIndex=0;state.scanSegmentStart=0;state.scanSegmentFrom=-.56;state.lastPattern=-1;
-  state.remoteBossAngle=-.56;state.remoteBossHalf=.20;state.remoteBossAt=0;
+  state.remoteBossAngle=-.56;state.remoteBossHalf=.20;state.remoteBossAt=0;state.lastBossSampleT=0;state.lastHitClaim=0;state.bossHistory=[];
   state.cueKind='';state.cueUntil=0;state.cueSeq=0;state.lastRemoteCueSeq=0;
   state.lastBossBroadcast=0;state.lastPlayerBroadcast=0;state.remotePlayers.clear();state.shots=[];
+  state.hitCandidates.clear();state.confirmedHits.clear();
+  state.replay.buffer=[];state.replay.frames=[];state.replay.active=false;state.replay.pending=false;state.replay.started=0;state.replay.lastCapture=0;
   state.roundSeed=Number(seed)||0;state.roundStartPerf=0;state.resultShown=false;state.hitAt=0;
   state.roundEnding=false;state.roundResult=null;state.spectating=false;state.eliminated=false;state.revivedOnce=false;
   state.rescueUsed=false;state.rescueMode=false;state.rescueTarget=null;state.botCount=Number(config.botCount||0);
@@ -644,7 +875,7 @@ function beginRound(){
 }
 function stopRound(){
   state.running=false;cancelAnimationFrame(countdownRaf);countdownOverlay.classList.remove('show');
-  resultOverlay.classList.remove('show');pad.classList.remove('danger');
+  cancelReplay();resultOverlay.classList.remove('show');pad.classList.remove('danger');
 }
 
 function pointerStart(e){
@@ -652,6 +883,8 @@ function pointerStart(e){
   const r=pad.getBoundingClientRect();
   if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
   pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
+  state.actionUntil=performance.now()+190;
+  broadcastPlayer(true);
   try{pad.setPointerCapture(e.pointerId)}catch(_){}
   e.preventDefault();
 }
@@ -696,6 +929,8 @@ function evaluateRoundEnd(){
   const racers=[...human,...bot];
   const winner=racers.find(x=>x.won);
   if(winner){
+    // Do not crown a finish while the host is still inside the 140 ms hit-validation window.
+    if(state.hitCandidates.has(winner.id))return;
     state.roundEnding=true;
     setTimeout(()=>net.finishRound(winner.id,winner.name),350);
     return;
@@ -714,14 +949,23 @@ function update(ts){
   broadcastBoss(ts);
 
   if(state.alive&&!state.won&&!state.spectating&&!state.roundEnding){
-    const moving=ts<state.movingUntil,laneMoving=ts<state.laneMovingUntil;
+    const moving=ts<state.movingUntil,laneMoving=ts<state.laneMovingUntil,acting=ts<state.actionUntil;
     state.playerY+=(state.targetY-state.playerY)*Math.min(1,dt*(moving?8.5:11));
     state.playerX+=(state.targetLaneX-state.playerX)*Math.min(1,dt*(laneMoving?11:16));
     const seen=visionContainsPlayer();pad.classList.toggle('danger',seen);laneControls?.classList.toggle('danger',seen);
-    if((moving||laneMoving)&&seen)lose();
+    if(!window.SRLNet?.isHost&&(moving||laneMoving||acting)&&seen&&state.lastBossSampleT&&ts-state.lastHitClaim>=85){
+      state.lastHitClaim=ts;
+      window.SRLNet?.broadcastHitClaim?.({
+        lane:state.playerLane,progress:state.progress,bossT:state.lastBossSampleT,
+        observedAngle:state.scanAngle,observedHalf:state.scanHalf
+      });
+    }
   }else{
     pad.classList.remove('danger');laneControls?.classList.remove('danger');
   }
+
+  captureReplayFrame(ts);
+  evaluateHostHits(ts);
   broadcastPlayer(false);evaluateRoundEnd();
   for(const [id,p] of state.remotePlayers){
     if(ts-p.t>12000&&!state.activeParticipants.some(x=>x.id===id))state.remotePlayers.delete(id);
@@ -846,13 +1090,16 @@ function drawFinish(){
   const y=H*.238;ctx.strokeStyle='rgba(242,66,77,.9)';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(W*.20,y);ctx.lineTo(W*.80,y);ctx.stroke();
 }
 function draw(){
+  const now=performance.now();
+  if(drawReplay(now))return;
   ctx.clearRect(0,0,W,H);
   drawSkyGround();drawFinish();drawVisionCone();drawObstacles();drawNpcs();drawRemotePlayers();drawBoss();drawPlayer();
-  drawShotEffects(performance.now());
+  drawShotEffects(now);
 }
 function loop(ts){update(ts);draw();if(state.running)requestAnimationFrame(loop)}
 
 function handleHostChange(info){
+  state.hitCandidates.clear();
   if(info?.isHost){
     state.scanSegmentStart=0;state.scanPlan=[];buildScanPlan();
     beep(700,.06,'triangle',.025);
@@ -869,6 +1116,8 @@ function wireNetwork(){
   net.onBossState=receiveBoss;
   net.onPlayerState=receivePlayer;
   net.onRescue=receiveRescue;
+  net.onHitClaim=receiveHitClaim;
+  net.onHitConfirm=receiveHitConfirm;
   net.onRoundResult=showRoundResult;
   net.onHostChange=handleHostChange;
   net.onResumeRound=resumeSpectatorRound;

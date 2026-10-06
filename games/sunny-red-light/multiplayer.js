@@ -108,10 +108,14 @@ const net={
   onRoomReset:null,
   onHostChange:null,
   onRescue:null,
+  onHitClaim:null,
+  onHitConfirm:null,
   onResumeRound:null,
   broadcastBoss,
   broadcastPlayer,
   broadcastRescue,
+  broadcastHitClaim,
+  broadcastHitConfirm,
   finishRound,
   startRound,
   resetMatch,
@@ -302,6 +306,14 @@ async function setupChannel(){
     .on('broadcast',{event:'rescue'},msg=>{
       const p=msg.payload||{};if(net.onRescue)net.onRescue(p);
     })
+    .on('broadcast',{event:'hit_claim'},msg=>{
+      const p=msg.payload||{};
+      if(net.onHitClaim)net.onHitClaim(p);
+    })
+    .on('broadcast',{event:'hit_confirm'},msg=>{
+      const p=msg.payload||{};
+      if(net.onHitConfirm)net.onHitConfirm(p);
+    })
     .on('broadcast',{event:'round_result'},msg=>{
       const p=msg.payload||{};
       room.matchState=p.matchState||room.matchState;
@@ -452,6 +464,20 @@ async function broadcastPlayer(payload){
 async function broadcastRescue(payload){
   if(!channelReady||!channel)return;
   try{await channel.send({type:'broadcast',event:'rescue',payload:{...payload,fromId:clientId,fromName:playerName}})}catch(e){}
+}
+async function broadcastHitClaim(payload){
+  if(isHost||!channelReady||!channel)return;
+  try{
+    await channel.send({type:'broadcast',event:'hit_claim',payload:{
+      ...payload,targetId:clientId,targetName:playerName,claimedAt:Date.now()
+    }});
+  }catch(e){}
+}
+async function broadcastHitConfirm(payload){
+  if(!isHost||!channelReady||!channel)return;
+  try{
+    await channel.send({type:'broadcast',event:'hit_confirm',payload:{...payload,hostId:clientId,confirmedAt:Date.now()}});
+  }catch(e){}
 }
 async function setSpectating(flag){localSpectator=!!flag;await trackPresence()}
 function showRoom(){
