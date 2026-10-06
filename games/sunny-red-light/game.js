@@ -28,6 +28,12 @@ const NPC_COLORS=['#ef6a7a','#5c82ff','#f0aa32','#7a63d5','#45b986','#e6763f','#
 const LANE_X=[.34,.50,.66];
 const BOT_NAMES=['Mèo Máy','Gà Máy','Hổ Máy','Voi Máy','Cá Sấu Máy'];
 const BOT_SKINS=['cat','chicken','tiger','elephant','crocodile'];
+const HIT_CONFIRM_MS=140;
+const REMOTE_DANGER_TTL=260;
+const REPLAY_BUFFER_MS=3600;
+const REPLAY_HISTORY_MS=2300;
+const REPLAY_FALL_MS=700;
+const REPLAY_TOTAL_MS=REPLAY_HISTORY_MS+REPLAY_FALL_MS;
 const SPRITE_CELL=24;
 const SPRITE_META={
   rabbit:{walkStart:0,walkCount:5,fallStart:5,fallCount:5},
@@ -46,7 +52,7 @@ let spritesReady=false;
 const state={
   running:false,alive:true,won:false,progress:0,combo:[],comboIndex:0,comboDoneCount:0,
   playerLane:1,playerX:LANE_X[1],targetLaneX:LANE_X[1],playerY:.84,targetY:.84,
-  movingUntil:0,laneMovingUntil:0,lastTs:0,graceUntil:0,
+  movingUntil:0,laneMovingUntil:0,actionUntil:0,lastTs:0,graceUntil:0,
   scanAngle:-.56,scanHalf:.20,scanPlan:[],scanIndex:0,scanSegmentStart:0,scanSegmentFrom:-.56,lastPattern:-1,
   remoteBossAngle:-.56,remoteBossHalf:.20,remoteBossAt:0,
   cueKind:'',cueUntil:0,cueSeq:0,lastRemoteCueSeq:0,
@@ -54,6 +60,8 @@ const state={
   npcs:[],remotePlayers:new Map(),obstacles:[],shots:[],
   activeParticipants:[],botCount:0,roundEnding:false,roundResult:null,
   spectating:false,eliminated:false,revivedOnce:false,rescueUsed:false,rescueMode:false,rescueTarget:null,
+  hitCandidates:new Map(),confirmedHits:new Set(),
+  replay:{buffer:[],frames:[],active:false,pending:false,started:0,lastCapture:0},
   roundSeed:0,roundStartPerf:0,resultShown:false,hitAt:0
 };
 
