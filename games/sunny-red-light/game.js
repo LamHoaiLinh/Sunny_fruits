@@ -182,6 +182,121 @@ function drawShotEffects(now){
   }
 }
 
+function captureReplayFrame(ts){
+  if(!state.running||state.spectating||state.replay.active||!state.alive||state.won)return;
+  if(ts-state.replay.lastCapture<50)return;
+  state.replay.lastCapture=ts;
+  const moving=ts<state.movingUntil||ts<state.laneMovingUntil||ts<state.actionUntil;
+  state.replay.buffer.push({
+    t:ts,angle:state.scanAngle,half:state.scanHalf,x:state.playerX,y:state.playerY,moving,
+    remotes:[...state.remotePlayers.values()].map(p=>({
+      id:p.id,name:p.name,skin:p.skin,progress:p.progress,lane:p.lane,alive:p.alive,won:p.won,
+      moving:ts<p.movingUntil
+    })),
+    bots:state.npcs.map(n=>({
+      id:n.id,name:n.name,skin:n.skin,x:n.x,y:n.y,alive:n.alive,finished:n.finished,
+      moving:ts<n.movingUntil
+    }))
+  });
+  const cutoff=ts-REPLAY_BUFFER_MS;
+  while(state.replay.buffer.length&&state.replay.buffer[0].t<cutoff)state.replay.buffer.shift();
+}
+function prepareReplayForHit(hit={}){
+  const now=performance.now(),cutoff=now-REPLAY_HISTORY_MS;
+  let frames=state.replay.buffer.filter(f=>f.t>=cutoff).map(f=>({
+    ...f,remotes:f.remotes.map(p=>({...p})),bots:f.bots.map(n=>({...n}))
+  }));
+  if(!frames.length){
+    frames=[{
+      t:now,angle:Number(hit.bossAngle)||state.scanAngle,half:Number(hit.bossHalf)||state.scanHalf,
+      x:state.playerX,y:state.playerY,moving:true,remotes:[],bots:[]
+    }];
+  }
+  frames.push({
+    t:now,angle:Number(hit.bossAngle)||state.scanAngle,half:Number(hit.bossHalf)||state.scanHalf,
+    x:state.playerX,y:state.playerY,moving:true,
+    remotes:[...state.remotePlayers.values()].map(p=>({
+      id:p.id,name:p.name,skin:p.skin,progress:p.progress,lane:p.lane,alive:p.alive,won:p.won,
+      moving:now<p.movingUntil
+    })),
+    bots:state.npcs.map(n=>({
+      id:n.id,name:n.name,skin:n.skin,x:n.x,y:n.y,alive:n.alive,finished:n.finished,
+      moving:now<n.movingUntil
+    }))
+  });
+  state.replay.frames=frames;state.replay.pending=true;state.replay.active=false;
+}
+function startReplayPlayback(){
+  if(!state.replay.pending||!state.replay.frames.length||state.roundEnding)return;
+  state.replay.pending=false;state.replay.active=true;state.replay.started=performance.now();
+  spectatorBadge.textContent='↺ 3s';spectatorBadge.classList.add('show');
+}
+function cancelReplay(){
+  state.replay.active=false;state.replay.pending=false;state.replay.frames=[];
+  spectatorBadge.textContent='👀';
+}
+function replayFrameAt(target){
+  const frames=state.replay.frames;
+  if(!frames.length)return null;
+  let best=frames[0],bestD=Math.abs(frames[0].t-target);
+  for(let i=1;i<frames.length;i++){
+    const d=Math.abs(frames[i].t-target);
+    if(d<bestD){best=frames[i];bestD=d}else if(frames[i].t>target&&d>bestD)break;
+  }
+  return best;
+}
+function drawReplayRacers(frame,falling=false,fallAt=0){
+  for(const n of frame.bots||[]){
+    const size=Math.max(36,Math.min(W,H)*.055),mode=!n.alive?'fall':(n.moving?'walk':'idle');
+    drawSpriteCharacter(n.skin||'dog',n.x*W,n.y*H,size,mode,!n.alive?fallAt:0,n.alive?1:.82);
+  }
+  for(const p of frame.remotes||[]){
+    const size=Math.max(45,Math.min(W,H)*.075),x=LANE_X[p.lane]*W,y=progressToY(p.progress)*H;
+    const mode=!p.alive?'fall':(p.moving?'walk':'idle');
+    drawSpriteCharacter(p.skin||skinFor(p.id,p.name),x,y,size,mode,!p.alive?fallAt:0,p.alive?1:.84);
+  }
+  const size=Math.max(58,Math.min(W,H)*.098),mode=falling?'fall':(frame.moving?'walk':'idle');
+  drawSpriteCharacter(localSkin(),frame.x*W,frame.y*H,size,mode,falling?fallAt:0,falling?.88:1);
+}
+function drawReplayImpact(frame,age){
+  if(age<0||age>360)return;
+  const b=bossWorld(),tx=frame.x*W,ty=frame.y*H-12,p=age/360;
+  ctx.save();
+  if(age<125){
+    const a=1-age/125;
+    ctx.globalAlpha=.82*a;ctx.strokeStyle='#ff334d';ctx.lineWidth=7;
+    ctx.beginPath();ctx.moveTo(b.x,b.y+8);ctx.lineTo(tx,ty);ctx.stroke();
+    ctx.globalAlpha=a;ctx.strokeStyle='#fff7d6';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(b.x,b.y+8);ctx.lineTo(tx,ty);ctx.stroke();
+  }
+  ctx.globalAlpha=Math.max(0,1-p)*.9;ctx.strokeStyle='#ff5b48';ctx.lineWidth=4*(1-p)+1;
+  ctx.beginPath();ctx.arc(tx,ty,8+p*30,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
+function drawReplay(now){
+  if(!state.replay.active)return false;
+  const elapsed=now-state.replay.started;
+  if(elapsed>=REPLAY_TOTAL_MS){
+    state.replay.active=false;state.replay.frames=[];spectatorBadge.textContent='👀';
+    return false;
+  }
+  const frames=state.replay.frames,first=frames[0],last=frames[frames.length-1];
+  const historySpan=Math.max(1,last.t-first.t);
+  const historyElapsed=Math.min(REPLAY_HISTORY_MS,elapsed);
+  const target=first.t+historySpan*(historyElapsed/REPLAY_HISTORY_MS);
+  const frame=replayFrameAt(target)||last;
+  const falling=elapsed>=REPLAY_HISTORY_MS,fallAt=state.replay.started+REPLAY_HISTORY_MS;
+  const oldAngle=state.scanAngle,oldHalf=state.scanHalf,oldCue=state.cueUntil;
+  state.scanAngle=frame.angle;state.scanHalf=frame.half;state.cueUntil=0;
+  ctx.clearRect(0,0,W,H);
+  drawSkyGround();drawFinish();drawVisionCone();drawObstacles();drawBoss();
+  drawReplayRacers(frame,falling,fallAt);
+  if(falling)drawReplayImpact(last,elapsed-REPLAY_HISTORY_MS);
+  ctx.save();ctx.fillStyle='rgba(20,26,42,.12)';ctx.fillRect(0,0,W,H);ctx.restore();
+  state.scanAngle=oldAngle;state.scanHalf=oldHalf;state.cueUntil=oldCue;
+  return true;
+}
+
 function comboLength(){
   if(state.progress<.32)return 3;
   if(state.progress<.82)return 4;
