@@ -340,13 +340,19 @@ function setSpectator(on,showEye=true){
   if(state.spectating)rescueBtn.classList.remove('show');
   window.SRLNet?.setSpectating?.(state.spectating);
 }
-function lose(){
+function lose(hit={}){
   if(!state.alive||state.won||state.roundEnding)return;
   state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
   state.rescueMode=false;state.rescueTarget=null;comboEl.classList.remove('rescue');rescueBtn.classList.remove('show');
+  prepareReplayForHit(hit);
   const p=playerWorld();spawnShot(p.x,p.y,true);
   broadcastPlayer(true);
-  setTimeout(()=>{if(state.eliminated&&!state.roundEnding)setSpectator(true,true)},720);
+  setTimeout(()=>{
+    if(state.eliminated&&!state.roundEnding){
+      setSpectator(true,true);
+      startReplayPlayback();
+    }
+  },720);
 }
 function win(){
   if(!state.alive||state.won||state.roundEnding)return;
@@ -587,6 +593,76 @@ function receivePlayer(p){
   updateRescueButton();
 }
 function progressToY(p){return .84-(.84-.245)*clamp(p,0,1)}
+
+function remoteCovered(p){
+  return state.obstacles.some(o=>o.type==='cover'&&o.lane===p.lane&&Math.abs(p.progress-o.progress)<=o.radius);
+}
+function remoteSeen(p){
+  if(remoteCovered(p))return false;
+  return pointInVision(LANE_X[p.lane]*W,progressToY(p.progress)*H);
+}
+function hostConfirmTarget(targetId,targetName,lane,progress,ts){
+  const net=window.SRLNet;
+  if(!net?.isHost||state.confirmedHits.has(targetId))return;
+  state.confirmedHits.add(targetId);
+  state.hitCandidates.delete(targetId);
+  const payload={
+    targetId,targetName:String(targetName||'Player').slice(0,24),
+    lane:Number(lane)||0,progress:clamp(Number(progress)||0,0,1),
+    bossAngle:state.scanAngle,bossHalf:state.scanHalf,fairnessMs:HIT_CONFIRM_MS,
+    hostId:net.clientId,hitAt:Date.now()
+  };
+  receiveHitConfirm(payload);
+  net.broadcastHitConfirm?.(payload);
+}
+function updateHitCandidate(targetId,targetName,lane,progress,danger,seen,ts){
+  if(!danger||!seen){
+    state.hitCandidates.delete(targetId);
+    return;
+  }
+  const first=state.hitCandidates.get(targetId);
+  if(!first){
+    state.hitCandidates.set(targetId,ts);
+    return;
+  }
+  if(ts-first>=HIT_CONFIRM_MS)hostConfirmTarget(targetId,targetName,lane,progress,ts);
+}
+function evaluateHostHits(ts){
+  const net=window.SRLNet;
+  if(!net?.isHost||!state.running||state.roundEnding||ts<state.graceUntil)return;
+  const localDanger=state.alive&&!state.won&&!state.spectating&&
+    (ts<state.movingUntil||ts<state.laneMovingUntil||ts<state.actionUntil);
+  updateHitCandidate(net.clientId,net.playerName,state.playerLane,state.progress,
+    localDanger,localDanger&&visionContainsPlayer(),ts);
+
+  const allowed=new Set(state.activeParticipants.map(p=>p.id));
+  for(const p of state.remotePlayers.values()){
+    if(!allowed.has(p.id)||!p.alive||p.won||p.spectating){
+      state.hitCandidates.delete(p.id);continue;
+    }
+    const danger=ts<p.dangerUntil&&(p.moving||p.laneMoving||p.acting);
+    updateHitCandidate(p.id,p.name,p.lane,p.progress,danger,danger&&remoteSeen(p),ts);
+  }
+}
+function receiveHitConfirm(p){
+  const net=window.SRLNet;
+  if(!p?.targetId||!net)return;
+  if(p.hostId&&net.room?.hostClientId&&p.hostId!==net.room.hostClientId)return;
+  const now=performance.now();
+  state.confirmedHits.add(p.targetId);
+  state.hitCandidates.delete(p.targetId);
+  if(p.targetId===net.clientId){
+    lose(p);
+    return;
+  }
+  const old=state.remotePlayers.get(p.targetId);
+  if(!old||old.alive===false)return;
+  old.alive=false;old.hitAt=now;old.moving=false;old.laneMoving=false;old.acting=false;old.dangerUntil=0;old.t=now;
+  old.progress=clamp(Number(p.progress)||old.progress||0,0,1);
+  old.lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):old.lane;
+  spawnShot(LANE_X[old.lane]*W,progressToY(old.progress)*H,false);
+  updateRescueButton();
+}
 
 function setupParticipants(list=[]){
   state.activeParticipants=Array.isArray(list)?list.map(p=>({id:p.id,name:String(p.name||'Player').slice(0,24),skin:p.skin||skinFor(p.id,p.name)})):[];
