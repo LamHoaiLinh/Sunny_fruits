@@ -568,7 +568,16 @@ function receivePlayer(p){
 }
 function progressToY(p){return .84-(.84-.245)*clamp(p,0,1)}
 
-function resetRound(seed=0){
+function setupParticipants(list=[]){
+  state.activeParticipants=Array.isArray(list)?list.map(p=>({id:p.id,name:String(p.name||'Player').slice(0,24),skin:p.skin||skinFor(p.id,p.name)})):[];
+  const me=window.SRLNet?.clientId;
+  for(const p of state.activeParticipants){
+    if(p.id===me)continue;
+    state.remotePlayers.set(p.id,{id:p.id,name:p.name,skin:p.skin,progress:0,lane:1,alive:true,won:false,revived:false,
+      spectating:false,rescueUsed:false,hitAt:0,movingUntil:0,t:performance.now()});
+  }
+}
+function resetRound(seed=0,config={}){
   state.running=false;state.alive=true;state.won=false;state.progress=0;state.comboIndex=0;state.comboDoneCount=0;
   state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=.84;state.targetY=.84;
   state.movingUntil=0;state.laneMovingUntil=0;state.lastTs=0;state.graceUntil=0;
@@ -577,37 +586,43 @@ function resetRound(seed=0){
   state.cueKind='';state.cueUntil=0;state.cueSeq=0;state.lastRemoteCueSeq=0;
   state.lastBossBroadcast=0;state.lastPlayerBroadcast=0;state.remotePlayers.clear();state.shots=[];
   state.roundSeed=Number(seed)||0;state.roundStartPerf=0;state.resultShown=false;state.hitAt=0;
+  state.roundEnding=false;state.roundResult=null;state.spectating=false;state.eliminated=false;state.revivedOnce=false;
+  state.rescueUsed=false;state.rescueMode=false;state.rescueTarget=null;state.botCount=Number(config.botCount||0);
+  gameRoot.classList.remove('spectating');spectatorBadge.classList.remove('show');rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
   progressFill.style.width='0%';resultOverlay.classList.remove('show');pad.classList.remove('danger','bad','good');
   laneButtons.forEach((b,i)=>b.classList.toggle('selected',i===1));
-  createNpcs();createObstacles(state.roundSeed);newCombo();buildScanPlan();draw();
+  setupParticipants(config.participants||[]);
+  createNpcs(state.botCount,state.roundSeed);createObstacles(state.roundSeed);newCombo();buildScanPlan();draw();
 }
 function scheduleRound(payload){
   cancelAnimationFrame(countdownRaf);
-  resetRound(payload?.seed||0);
+  resetRound(payload?.seed||0,{participants:payload?.participants||[],botCount:payload?.botCount||0});
   lobbyOverlay?.classList.remove('show');roomOverlay?.classList.remove('show');resultOverlay.classList.remove('show');
   countdownOverlay.classList.add('show');
-  const parsed=Date.parse(payload?.startAt||'');
-  const target=Number.isFinite(parsed)?parsed:Date.now()+2200;
+  const parsed=Date.parse(payload?.startAt||''),target=Number.isFinite(parsed)?parsed:Date.now()+2200;
   const tick=()=>{
     const remain=target-Date.now();
     if(remain<=0){
       countdownValue.textContent='●';
-      countdownRaf=requestAnimationFrame(()=>{
-        countdownOverlay.classList.remove('show');beginRound();
-      });
+      countdownRaf=requestAnimationFrame(()=>{countdownOverlay.classList.remove('show');beginRound()});
       return;
     }
-    countdownValue.textContent=String(Math.max(1,Math.ceil(remain/1000)));
-    countdownRaf=requestAnimationFrame(tick);
+    countdownValue.textContent=String(Math.max(1,Math.ceil(remain/1000)));countdownRaf=requestAnimationFrame(tick);
   };
   tick();
 }
+function resumeSpectatorRound(payload){
+  cancelAnimationFrame(countdownRaf);
+  resetRound(payload?.seed||0,{participants:payload?.participants||[],botCount:payload?.botCount||0});
+  lobbyOverlay?.classList.remove('show');roomOverlay?.classList.remove('show');resultOverlay.classList.remove('show');countdownOverlay.classList.remove('show');
+  state.running=true;state.roundStartPerf=performance.now();state.lastTs=0;state.alive=false;state.eliminated=false;
+  setSpectator(true,true);
+  if(window.SRLNet?.isHost){state.scanPlan=[];buildScanPlan()}
+  requestAnimationFrame(loop);
+}
 function beginRound(){
   state.running=true;state.roundStartPerf=performance.now();state.graceUntil=performance.now()+2200;state.lastTs=0;
-  if(window.SRLNet?.isHost){
-    state.scanPlan=[];buildScanPlan();
-    window.SRLNet.broadcastBoss({angle:state.scanAngle,half:state.scanHalf,cueKind:'',cueSeq:0,t:Date.now()});
-  }
+  if(window.SRLNet?.isHost){state.scanPlan=[];buildScanPlan()}
   broadcastPlayer(true);beep(620,.08,'triangle',.03);requestAnimationFrame(loop);
 }
 function stopRound(){
@@ -616,7 +631,7 @@ function stopRound(){
 }
 
 function pointerStart(e){
-  if(!state.running||!state.alive)return;
+  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   const r=pad.getBoundingClientRect();
   if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
   pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
