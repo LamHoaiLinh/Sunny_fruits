@@ -121,6 +121,7 @@ function visionContainsPlayer(){
 function dangerousNow(){return state.running&&state.alive&&visionContainsPlayer()}
 
 function applyLaneEffect(oldProgress,newProgress){
+  let extraMoveMs=0;
   for(const o of state.obstacles){
     if(o.used||o.lane!==state.playerLane)continue;
     const crossed=oldProgress<=o.progress+.012&&newProgress>=o.progress-.012;
@@ -131,10 +132,11 @@ function applyLaneEffect(oldProgress,newProgress){
       beep(1120,.09,'triangle',.032);vibrate(18);
     }else if(o.type==='mud'){
       o.used=true;
-      state.movingUntil+=120;
+      extraMoveMs=120;
       beep(220,.05,'sine',.018);
     }
   }
+  return extraMoveMs;
 }
 function inputGesture(kind){
   if(!state.running||!state.alive)return;
@@ -147,11 +149,11 @@ function inputGesture(kind){
     const oldProgress=state.progress;
     const step=state.combo.length===3?.098:state.combo.length===4?.112:.126;
     state.progress=Math.min(1,state.progress+step);
-    applyLaneEffect(oldProgress,state.progress);
+    const extraMoveMs=applyLaneEffect(oldProgress,state.progress);
     progressFill.style.width=(state.progress*100).toFixed(1)+'%';
     const finishY=.245;
     state.targetY=.84-(.84-finishY)*state.progress;
-    state.movingUntil=performance.now()+460;
+    state.movingUntil=performance.now()+460+extraMoveMs;
     beep(980,.08,'triangle',.035);
     broadcastPlayer(true);
     if(state.progress>=1)setTimeout(()=>{if(state.alive)win()},480);else newCombo();
@@ -236,7 +238,8 @@ function createObstacles(seed){
 
 function difficulty(){
   if(!state.roundStartPerf)return 0;
-  return clamp((performance.now()-state.roundStartPerf)/65000,0,1);
+  const elapsed=clamp((performance.now()-state.roundStartPerf)/120000,0,1);
+  return clamp(state.progress*.78+elapsed*.22,0,1);
 }
 function dur(base,min){return Math.max(min,base*(1-difficulty()*.22))}
 function segment(to,ms,e='inout',width=null){return{to,ms,e,width}}
@@ -336,7 +339,7 @@ function receivePlayer(p){
   if(!p||!p.clientId)return;
   state.remotePlayers.set(p.clientId,{
     id:p.clientId,name:String(p.name||'Player').slice(0,24),
-    progress:clamp(Number(p.progress)||0,0,1),lane:clamp(Number(p.lane)||1,0,2),
+    progress:clamp(Number(p.progress)||0,0,1),lane:Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):1,
     alive:p.alive!==false,won:!!p.won,t:performance.now()
   });
 }
