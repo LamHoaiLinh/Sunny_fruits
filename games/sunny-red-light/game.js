@@ -7,9 +7,14 @@ const comboEl=document.getElementById('combo');
 const pad=document.getElementById('gesturePad');
 const laneControls=document.getElementById('laneControls');
 const laneButtons=[...document.querySelectorAll('.lane-btn')];
+const gameRoot=document.getElementById('game');
 const resultOverlay=document.getElementById('resultOverlay');
 const resultIcon=document.getElementById('resultIcon');
+const resultText=document.getElementById('resultText');
+const resultScore=document.getElementById('resultScore');
 const restartBtn=document.getElementById('restartBtn');
+const spectatorBadge=document.getElementById('spectatorBadge');
+const rescueBtn=document.getElementById('rescueBtn');
 const progressFill=document.getElementById('progressFill');
 const countdownOverlay=document.getElementById('countdownOverlay');
 const countdownValue=document.getElementById('countdownValue');
@@ -21,6 +26,8 @@ const INPUTS=['up','down','left','right','tap'];
 const SYMBOL={up:'↑',down:'↓',left:'←',right:'→',tap:'●'};
 const NPC_COLORS=['#ef6a7a','#5c82ff','#f0aa32','#7a63d5','#45b986','#e6763f','#4e9ac8','#d463aa'];
 const LANE_X=[.34,.50,.66];
+const BOT_NAMES=['Mèo Máy','Gà Máy','Hổ Máy','Voi Máy','Cá Sấu Máy'];
+const BOT_SKINS=['cat','chicken','tiger','elephant','crocodile'];
 const SPRITE_CELL=24;
 const SPRITE_META={
   rabbit:{walkStart:0,walkCount:5,fallStart:5,fallCount:5},
@@ -45,6 +52,8 @@ const state={
   cueKind:'',cueUntil:0,cueSeq:0,lastRemoteCueSeq:0,
   lastBossBroadcast:0,lastPlayerBroadcast:0,
   npcs:[],remotePlayers:new Map(),obstacles:[],shots:[],
+  activeParticipants:[],botCount:0,roundEnding:false,roundResult:null,
+  spectating:false,eliminated:false,revivedOnce:false,rescueUsed:false,rescueMode:false,rescueTarget:null,
   roundSeed:0,roundStartPerf:0,resultShown:false,hitAt:0
 };
 
@@ -241,29 +250,70 @@ function applyLaneEffect(oldProgress,newProgress){
   }
   return extraMoveMs;
 }
+function makeInputCombo(n){
+  const arr=[];
+  while(arr.length<n){
+    const v=rngItem(INPUTS);
+    if(arr.length&&arr[arr.length-1]===v&&Math.random()<.65)continue;
+    arr.push(v);
+  }
+  return arr;
+}
+function findRescueTarget(){
+  const allowed=new Set(state.activeParticipants.map(p=>p.id));
+  for(const p of state.remotePlayers.values()){
+    if(allowed.has(p.id)&&!p.alive&&!p.won&&!p.revived)return p;
+  }
+  return null;
+}
+function updateRescueButton(){
+  const t=state.alive&&!state.won&&!state.spectating&&!state.rescueUsed&&!state.rescueMode?findRescueTarget():null;
+  state.rescueTarget=t?.id||null;
+  rescueBtn.classList.toggle('show',!!t);
+  rescueBtn.textContent=t?'❤️ '+String(t.name||'').slice(0,8):'❤️';
+}
+function startRescue(){
+  const t=findRescueTarget();
+  if(!t||state.rescueUsed||!state.alive||state.spectating||state.roundEnding)return;
+  state.rescueTarget=t.id;state.rescueMode=true;
+  state.combo=makeInputCombo(5);state.comboIndex=0;
+  comboEl.classList.add('rescue');rescueBtn.classList.remove('show');renderCombo();
+  beep(660,.07,'triangle',.03);vibrate(18);
+}
+function finishRescue(){
+  const target=state.remotePlayers.get(state.rescueTarget);
+  if(!target){state.rescueMode=false;comboEl.classList.remove('rescue');newCombo();return}
+  state.rescueUsed=true;state.rescueMode=false;comboEl.classList.remove('rescue');
+  state.progress=Math.max(0,state.progress-.12);
+  state.targetY=progressToY(state.progress);
+  state.playerY=Math.max(state.playerY,state.targetY);
+  progressFill.style.width=(state.progress*100).toFixed(1)+'%';
+  target.alive=true;target.revived=true;target.progress=.32;target.hitAt=0;target.movingUntil=performance.now()+420;
+  window.SRLNet?.broadcastRescue?.({targetId:target.id,targetName:target.name,progress:.32});
+  beep(1040,.11,'triangle',.04);vibrate([25,20,25]);broadcastPlayer(true);newCombo();updateRescueButton();
+}
 function inputGesture(kind){
-  if(!state.running||!state.alive)return;
+  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   if(dangerousNow())return lose();
   const expected=state.combo[state.comboIndex];
   if(kind!==expected)return resetComboWrong();
   state.comboIndex++;renderCombo();padClass('good');beep(720+state.comboIndex*65,.045,'sine',.025);vibrate(10);
   if(state.comboIndex>=state.combo.length){
+    if(state.rescueMode)return finishRescue();
     state.comboIndex=0;state.comboDoneCount++;
     const oldProgress=state.progress;
     const step=state.combo.length===3?.098:state.combo.length===4?.112:.126;
     state.progress=Math.min(1,state.progress+step);
     const extraMoveMs=applyLaneEffect(oldProgress,state.progress);
     progressFill.style.width=(state.progress*100).toFixed(1)+'%';
-    const finishY=.245;
-    state.targetY=.84-(.84-finishY)*state.progress;
+    state.targetY=progressToY(state.progress);
     state.movingUntil=performance.now()+460+extraMoveMs;
-    beep(980,.08,'triangle',.035);
-    broadcastPlayer(true);
+    beep(980,.08,'triangle',.035);broadcastPlayer(true);
     if(state.progress>=1)setTimeout(()=>{if(state.alive)win()},480);else newCombo();
   }
 }
 function changeLane(nextLane){
-  if(!state.running||!state.alive)return;
+  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   const lane=clamp(Number(nextLane)||0,0,2);
   if(lane===state.playerLane)return;
   if(dangerousNow())return lose();
@@ -274,31 +324,76 @@ function changeLane(nextLane){
   broadcastPlayer(true);
 }
 
+function setSpectator(on,showEye=true){
+  state.spectating=!!on;
+  gameRoot.classList.toggle('spectating',state.spectating);
+  spectatorBadge.classList.toggle('show',state.spectating&&showEye);
+  if(state.spectating)rescueBtn.classList.remove('show');
+  window.SRLNet?.setSpectating?.(state.spectating);
+}
 function lose(){
-  if(!state.alive||state.won)return;
-  state.alive=false;state.hitAt=performance.now();pad.classList.remove('danger');
+  if(!state.alive||state.won||state.roundEnding)return;
+  state.alive=false;state.eliminated=true;state.hitAt=performance.now();pad.classList.remove('danger');
+  state.rescueMode=false;state.rescueTarget=null;comboEl.classList.remove('rescue');rescueBtn.classList.remove('show');
   const p=playerWorld();spawnShot(p.x,p.y,true);
-  broadcastPlayer(true);showResult('💥',900);
+  broadcastPlayer(true);
+  setTimeout(()=>{if(state.eliminated&&!state.roundEnding)setSpectator(true,true)},720);
 }
 function win(){
-  if(!state.alive||state.won)return;
+  if(!state.alive||state.won||state.roundEnding)return;
   state.won=true;beep(880,.15,'triangle',.05);setTimeout(()=>beep(1180,.18,'triangle',.05),100);vibrate([35,30,35]);
-  broadcastPlayer(true);showResult('🏁⭐');
+  rescueBtn.classList.remove('show');broadcastPlayer(true);
 }
-function showResult(icon,delay=360){
-  if(state.resultShown)return;
-  state.resultShown=true;resultIcon.textContent=icon;
-  setTimeout(()=>resultOverlay.classList.add('show'),delay);
+function renderScoreBoard(scores={},names={}){
+  resultScore.innerHTML='';
+  const arr=Object.entries(scores).map(([key,val])=>({key,score:Number(val)||0,name:String(names[key]||key).slice(0,18)}))
+    .sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,'vi'));
+  for(const x of arr.slice(0,8)){
+    const chip=document.createElement('span');chip.className='score-chip';
+    chip.textContent=x.name+' '+('⭐'.repeat(Math.max(0,Math.min(2,x.score)))||'☆');
+    resultScore.appendChild(chip);
+  }
+}
+function showRoundResult(p){
+  state.running=false;state.roundEnding=true;state.roundResult=p;state.resultShown=true;
+  setSpectator(false,false);rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
+  resultIcon.textContent=p.matchState==='finished'?'🏆':'🥇';
+  resultText.textContent=(p.winnerName||'—')+(p.matchState==='finished'?'  ★★':'  R'+(p.roundNumber||''));
+  renderScoreBoard(p.scores||{},p.scoreNames||{});
+  restartBtn.style.display=window.SRLNet?.isHost?'grid':'none';
+  restartBtn.textContent=p.matchState==='finished'?'↻':'▶';
+  resultOverlay.classList.add('show');
+  beep(p.matchState==='finished'?1180:920,.14,'triangle',.045);
+}
+function receiveRescue(p){
+  if(!p?.targetId)return;
+  const now=performance.now();
+  if(p.targetId===window.SRLNet?.clientId){
+    if(!state.eliminated||state.revivedOnce||state.roundEnding)return;
+    state.revivedOnce=true;state.eliminated=false;state.alive=true;state.won=false;state.hitAt=0;
+    state.progress=clamp(Number(p.progress)||.32,.22,.42);state.targetY=progressToY(state.progress);state.playerY=state.targetY;
+    state.graceUntil=now+1600;progressFill.style.width=(state.progress*100).toFixed(1)+'%';
+    setSpectator(false,false);newCombo();beep(1050,.12,'triangle',.04);vibrate([30,20,30]);broadcastPlayer(true);
+  }else{
+    const t=state.remotePlayers.get(p.targetId);
+    if(t&&!t.revived){
+      t.revived=true;t.alive=true;t.won=false;t.hitAt=0;t.progress=clamp(Number(p.progress)||.32,.22,.42);t.movingUntil=now+420;t.t=now;
+    }
+  }
+  updateRescueButton();
 }
 
-function createNpcs(){
-  const xs=[.20,.27,.39,.61,.73,.80];
-  state.npcs=xs.map((x,i)=>({
-    x:x+rand(-.015,.015),y:rand(.72,.92),targetY:0,alive:true,finished:false,
-    movingUntil:0,nextMoveAt:performance.now()+rand(350,1500),reckless:Math.random()<.24,
-    color:NPC_COLORS[i%NPC_COLORS.length],tilt:rand(-.08,.08),skin:SKINS[i%SKINS.length],hitAt:0
-  }));
-  state.npcs.forEach(n=>n.targetY=n.y);
+function createNpcs(count=0,seed=0){
+  const r=seeded((Number(seed)||987654321)^0x6d2b79f5);
+  state.npcs=Array.from({length:Math.max(0,Math.min(5,Number(count)||0))},(_,i)=>{
+    const lane=i%3,x=LANE_X[lane]+(r()-.5)*.035,y=.78+r()*.13;
+    return {
+      id:'bot:'+i,name:BOT_NAMES[i%BOT_NAMES.length],skin:BOT_SKINS[i%BOT_SKINS.length],
+      lane,x,y,targetY:y,alive:true,finished:false,revived:false,
+      movingUntil:0,nextMoveAt:performance.now()+650+r()*950,reckless:.18+r()*.16,
+      color:NPC_COLORS[i%NPC_COLORS.length],tilt:(r()-.5)*.12,hitAt:0
+    };
+  });
 }
 function npcSeen(n){return pointInVision(n.x*W,n.y*H)}
 function updateNpcs(ts,dt){
@@ -306,7 +401,7 @@ function updateNpcs(ts,dt){
     if(!n.alive||n.finished)continue;
     const moving=ts<n.movingUntil;
     n.y+=(n.targetY-n.y)*Math.min(1,dt*(moving?7.2:9.5));
-    if(n.y<=.265){n.y=.265;n.targetY=.265;n.finished=true;continue}
+    if(n.y<=.245){n.y=.245;n.targetY=.245;n.finished=true;continue}
     if(moving&&npcSeen(n)){
       n.alive=false;n.movingUntil=0;n.hitAt=ts;
       spawnShot(n.x*W,n.y*H,false);
@@ -315,7 +410,7 @@ function updateNpcs(ts,dt){
     if(ts>=n.nextMoveAt){
       const seen=npcSeen(n),willRisk=n.reckless?Math.random()<.58:Math.random()<.12;
       if(!seen||willRisk){
-        n.targetY=Math.max(.265,n.y-rand(.020,.047));
+        n.targetY=Math.max(.245,n.y-rand(.018,.040));
         n.movingUntil=ts+rand(290,520);n.nextMoveAt=ts+rand(720,1500);
       }else n.nextMoveAt=ts+rand(320,760);
     }
@@ -418,15 +513,24 @@ function updateScannerRemote(dt){
   if(fresh){
     state.scanAngle+=normalizeAngle(state.remoteBossAngle-state.scanAngle)*Math.min(1,dt*14);
     state.scanHalf+=(state.remoteBossHalf-state.scanHalf)*Math.min(1,dt*10);
-  }else{
-    updateScannerHost(performance.now(),dt);
   }
 }
 function broadcastBoss(ts){
   const net=window.SRLNet;
-  if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<95)return;
+  if(!net||!net.isHost||!net.connected||ts-state.lastBossBroadcast<110)return;
   state.lastBossBroadcast=ts;
-  net.broadcastBoss({angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now()});
+  const snapshot={
+    angle:state.scanAngle,half:state.scanHalf,cueKind:state.cueKind,cueSeq:state.cueSeq,t:Date.now(),
+    bots:state.npcs.map(n=>({id:n.id,name:n.name,skin:n.skin,lane:n.lane,x:n.x,y:n.y,targetY:n.targetY,
+      alive:n.alive,finished:n.finished,moving:ts<n.movingUntil}))
+  };
+  net.broadcastBoss(snapshot);
+  try{
+    if(ts-(broadcastBoss.lastSaved||0)>450){
+      broadcastBoss.lastSaved=ts;
+      localStorage.setItem('srl_boss_snapshot',JSON.stringify({...snapshot,roomId:net.room?.id||'',savedAt:Date.now()}));
+    }
+  }catch(e){}
 }
 function broadcastPlayer(force=false){
   const net=window.SRLNet,now=performance.now();
@@ -434,35 +538,54 @@ function broadcastPlayer(force=false){
   state.lastPlayerBroadcast=now;
   net.broadcastPlayer({
     progress:state.progress,alive:state.alive,won:state.won,y:state.playerY,lane:state.playerLane,
-    skin:localSkin(),t:Date.now()
+    skin:localSkin(),spectating:state.spectating,revived:state.revivedOnce,rescueUsed:state.rescueUsed,t:Date.now()
   });
 }
 function receiveBoss(p){
   if(!p||!Number.isFinite(Number(p.angle)))return;
-  state.remoteBossAngle=Number(p.angle);
-  state.remoteBossHalf=clamp(Number(p.half)||.20,.12,.32);
-  state.remoteBossAt=performance.now();
+  state.remoteBossAngle=Number(p.angle);state.remoteBossHalf=clamp(Number(p.half)||.20,.12,.32);state.remoteBossAt=performance.now();
   if(Number(p.cueSeq)>state.lastRemoteCueSeq)triggerBossCue(String(p.cueKind||'dash'),Number(p.cueSeq));
+  if(Array.isArray(p.bots)){
+    const old=new Map(state.npcs.map(n=>[n.id,n])),now=performance.now();
+    state.npcs=p.bots.map((b,i)=>{
+      const prev=old.get(b.id)||{},died=prev.alive===true&&b.alive===false;
+      const n={...prev,...b,lane:Number(b.lane??i%3),x:Number(b.x??LANE_X[i%3]),y:Number(b.y??.84),
+        targetY:Number(b.targetY??b.y??.84),alive:b.alive!==false,finished:!!b.finished,
+        movingUntil:b.moving?now+180:0,hitAt:died?now:(prev.hitAt||0)};
+      if(died)spawnShot(n.x*W,n.y*H,false);
+      return n;
+    });
+  }
 }
 function receivePlayer(p){
   if(!p||!p.clientId)return;
   const now=performance.now(),old=state.remotePlayers.get(p.clientId);
   const progress=clamp(Number(p.progress)||0,0,1);
   const lane=Number.isFinite(Number(p.lane))?clamp(Number(p.lane),0,2):1;
-  const alive=p.alive!==false;
-  const moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
-  const diedNow=!!old&&old.alive&&!alive;
-  const hitAt=diedNow?now:(!alive?(old?.hitAt||now-700):0);
+  const alive=p.alive!==false,moved=!!old&&(Math.abs(progress-old.progress)>.002||lane!==old.lane);
+  const diedNow=!!old&&old.alive&&!alive,revivedNow=!!old&&!old.alive&&alive;
+  const hitAt=diedNow?now:(alive?0:(old?.hitAt||now-700));
   if(diedNow)spawnShot(LANE_X[lane]*W,progressToY(progress)*H,false);
   state.remotePlayers.set(p.clientId,{
     id:p.clientId,name:String(p.name||'Player').slice(0,24),progress,lane,alive,won:!!p.won,
-    skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),
+    skin:String(p.skin||old?.skin||skinFor(p.clientId,p.name)),spectating:!!p.spectating,
+    revived:!!p.revived||revivedNow||!!old?.revived,rescueUsed:!!p.rescueUsed,
     hitAt,movingUntil:moved?now+520:(old?.movingUntil||0),t:now
   });
+  updateRescueButton();
 }
 function progressToY(p){return .84-(.84-.245)*clamp(p,0,1)}
 
-function resetRound(seed=0){
+function setupParticipants(list=[]){
+  state.activeParticipants=Array.isArray(list)?list.map(p=>({id:p.id,name:String(p.name||'Player').slice(0,24),skin:p.skin||skinFor(p.id,p.name)})):[];
+  const me=window.SRLNet?.clientId;
+  for(const p of state.activeParticipants){
+    if(p.id===me)continue;
+    state.remotePlayers.set(p.id,{id:p.id,name:p.name,skin:p.skin,progress:0,lane:1,alive:true,won:false,revived:false,
+      spectating:false,rescueUsed:false,hitAt:0,movingUntil:0,t:performance.now()});
+  }
+}
+function resetRound(seed=0,config={}){
   state.running=false;state.alive=true;state.won=false;state.progress=0;state.comboIndex=0;state.comboDoneCount=0;
   state.playerLane=1;state.playerX=LANE_X[1];state.targetLaneX=LANE_X[1];state.playerY=.84;state.targetY=.84;
   state.movingUntil=0;state.laneMovingUntil=0;state.lastTs=0;state.graceUntil=0;
@@ -471,37 +594,52 @@ function resetRound(seed=0){
   state.cueKind='';state.cueUntil=0;state.cueSeq=0;state.lastRemoteCueSeq=0;
   state.lastBossBroadcast=0;state.lastPlayerBroadcast=0;state.remotePlayers.clear();state.shots=[];
   state.roundSeed=Number(seed)||0;state.roundStartPerf=0;state.resultShown=false;state.hitAt=0;
+  state.roundEnding=false;state.roundResult=null;state.spectating=false;state.eliminated=false;state.revivedOnce=false;
+  state.rescueUsed=false;state.rescueMode=false;state.rescueTarget=null;state.botCount=Number(config.botCount||0);
+  gameRoot.classList.remove('spectating');spectatorBadge.classList.remove('show');rescueBtn.classList.remove('show');comboEl.classList.remove('rescue');
   progressFill.style.width='0%';resultOverlay.classList.remove('show');pad.classList.remove('danger','bad','good');
   laneButtons.forEach((b,i)=>b.classList.toggle('selected',i===1));
-  createNpcs();createObstacles(state.roundSeed);newCombo();buildScanPlan();draw();
+  setupParticipants(config.participants||[]);
+  createNpcs(state.botCount,state.roundSeed);createObstacles(state.roundSeed);newCombo();buildScanPlan();draw();
 }
 function scheduleRound(payload){
   cancelAnimationFrame(countdownRaf);
-  resetRound(payload?.seed||0);
+  resetRound(payload?.seed||0,{participants:payload?.participants||[],botCount:payload?.botCount||0});
   lobbyOverlay?.classList.remove('show');roomOverlay?.classList.remove('show');resultOverlay.classList.remove('show');
   countdownOverlay.classList.add('show');
-  const parsed=Date.parse(payload?.startAt||'');
-  const target=Number.isFinite(parsed)?parsed:Date.now()+2200;
+  const parsed=Date.parse(payload?.startAt||''),target=Number.isFinite(parsed)?parsed:Date.now()+2200;
   const tick=()=>{
     const remain=target-Date.now();
     if(remain<=0){
       countdownValue.textContent='●';
-      countdownRaf=requestAnimationFrame(()=>{
-        countdownOverlay.classList.remove('show');beginRound();
-      });
+      countdownRaf=requestAnimationFrame(()=>{countdownOverlay.classList.remove('show');beginRound()});
       return;
     }
-    countdownValue.textContent=String(Math.max(1,Math.ceil(remain/1000)));
-    countdownRaf=requestAnimationFrame(tick);
+    countdownValue.textContent=String(Math.max(1,Math.ceil(remain/1000)));countdownRaf=requestAnimationFrame(tick);
   };
   tick();
 }
+function resumeSpectatorRound(payload){
+  cancelAnimationFrame(countdownRaf);
+  resetRound(payload?.seed||0,{participants:payload?.participants||[],botCount:payload?.botCount||0});
+  lobbyOverlay?.classList.remove('show');roomOverlay?.classList.remove('show');resultOverlay.classList.remove('show');countdownOverlay.classList.remove('show');
+  state.running=true;state.roundStartPerf=performance.now();state.lastTs=0;state.alive=false;state.eliminated=false;
+  setSpectator(true,true);broadcastPlayer(true);
+  if(window.SRLNet?.isHost){
+    try{
+      const snap=JSON.parse(localStorage.getItem('srl_boss_snapshot')||'null');
+      if(snap&&snap.roomId===window.SRLNet.room?.id&&Date.now()-Number(snap.savedAt||0)<20000){
+        state.scanAngle=Number(snap.angle)||state.scanAngle;state.scanHalf=clamp(Number(snap.half)||state.scanHalf,.12,.32);
+        state.cueKind=String(snap.cueKind||'');state.cueSeq=Number(snap.cueSeq||0);
+      }
+    }catch(e){}
+    state.scanPlan=[];buildScanPlan();
+  }
+  requestAnimationFrame(loop);
+}
 function beginRound(){
   state.running=true;state.roundStartPerf=performance.now();state.graceUntil=performance.now()+2200;state.lastTs=0;
-  if(window.SRLNet?.isHost){
-    state.scanPlan=[];buildScanPlan();
-    window.SRLNet.broadcastBoss({angle:state.scanAngle,half:state.scanHalf,cueKind:'',cueSeq:0,t:Date.now()});
-  }
+  if(window.SRLNet?.isHost){state.scanPlan=[];buildScanPlan()}
   broadcastPlayer(true);beep(620,.08,'triangle',.03);requestAnimationFrame(loop);
 }
 function stopRound(){
@@ -510,7 +648,7 @@ function stopRound(){
 }
 
 function pointerStart(e){
-  if(!state.running||!state.alive)return;
+  if(!state.running||!state.alive||state.won||state.spectating||state.roundEnding)return;
   const r=pad.getBoundingClientRect();
   if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
   pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now()};
@@ -532,22 +670,51 @@ pad.addEventListener('contextmenu',e=>e.preventDefault());
 pad.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inputGesture('tap')}});
 
 laneButtons.forEach((b,i)=>b.addEventListener('click',()=>changeLane(i)));
+rescueBtn.addEventListener('click',startRescue);
 
 restartBtn.addEventListener('click',async()=>{
-  stopRound();
-  await window.SRLNet?.backToRoom?.();
-  resetRound();
+  if(!window.SRLNet?.isHost)return;
+  resultOverlay.classList.remove('show');
+  if(window.SRLNet.matchState==='finished')await window.SRLNet.resetMatch();
+  else await window.SRLNet.startRound();
 });
 
+function npcProgress(n){return clamp((.84-n.y)/(.84-.245),0,1)}
+function evaluateRoundEnd(){
+  const net=window.SRLNet;
+  if(!net?.isHost||state.roundEnding||!state.running)return;
+  const human=[];
+  const present=new Set((net.getParticipants?.()||[]).map(p=>p.client_id||p.id));
+  for(const p of state.activeParticipants){
+    if(p.id===net.clientId)human.push({id:p.id,name:p.name,progress:state.progress,alive:state.alive,won:state.won});
+    else{
+      const r=state.remotePlayers.get(p.id),stale=!present.has(p.id)&&r&&(performance.now()-r.t>9000);
+      human.push({id:p.id,name:p.name,progress:r?.progress||0,alive:stale?false:(r?.alive!==false),won:!!r?.won});
+    }
+  }
+  const bot=state.npcs.map(n=>({id:n.id,name:n.name,progress:npcProgress(n),alive:n.alive,won:n.finished}));
+  const racers=[...human,...bot];
+  const winner=racers.find(x=>x.won);
+  if(winner){
+    state.roundEnding=true;
+    setTimeout(()=>net.finishRound(winner.id,winner.name),350);
+    return;
+  }
+  if(racers.length&&racers.every(x=>!x.alive)){
+    const best=[...racers].sort((a,b)=>b.progress-a.progress)[0];
+    state.roundEnding=true;
+    setTimeout(()=>net.finishRound(best.id,best.name),450);
+  }
+}
 function update(ts){
   const dt=Math.min(.04,(ts-(state.lastTs||ts))/1000);state.lastTs=ts;
   if(!state.running)return;
   if(window.SRLNet?.isHost)updateScannerHost(ts,dt);else updateScannerRemote(dt);
-  broadcastBoss(ts);updateNpcs(ts,dt);
+  if(window.SRLNet?.isHost)updateNpcs(ts,dt);
+  broadcastBoss(ts);
 
-  if(state.alive&&!state.won){
-    const moving=ts<state.movingUntil;
-    const laneMoving=ts<state.laneMovingUntil;
+  if(state.alive&&!state.won&&!state.spectating&&!state.roundEnding){
+    const moving=ts<state.movingUntil,laneMoving=ts<state.laneMovingUntil;
     state.playerY+=(state.targetY-state.playerY)*Math.min(1,dt*(moving?8.5:11));
     state.playerX+=(state.targetLaneX-state.playerX)*Math.min(1,dt*(laneMoving?11:16));
     const seen=visionContainsPlayer();pad.classList.toggle('danger',seen);laneControls?.classList.toggle('danger',seen);
@@ -555,10 +722,11 @@ function update(ts){
   }else{
     pad.classList.remove('danger');laneControls?.classList.remove('danger');
   }
-  broadcastPlayer(false);
-  for(const [id,p] of state.remotePlayers)if(ts-p.t>4500)state.remotePlayers.delete(id);
+  broadcastPlayer(false);evaluateRoundEnd();
+  for(const [id,p] of state.remotePlayers){
+    if(ts-p.t>12000&&!state.activeParticipants.some(x=>x.id===id))state.remotePlayers.delete(id);
+  }
 }
-
 function roundedRect(x,y,w,h,r,fill){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill()}
 function drawSkyGround(){
   const horizon=H*.35;
@@ -655,6 +823,7 @@ function drawRemotePlayer(p){
 }
 function drawRemotePlayers(){for(const p of state.remotePlayers.values())drawRemotePlayer(p)}
 function drawPlayer(){
+  if(state.spectating&&!state.eliminated)return;
   const p=playerWorld(),danger=state.running&&state.alive&&visionContainsPlayer(),now=performance.now();
   const size=Math.max(58,Math.min(W,H)*.098);
   ctx.save();
@@ -683,13 +852,29 @@ function draw(){
 }
 function loop(ts){update(ts);draw();if(state.running)requestAnimationFrame(loop)}
 
+function handleHostChange(info){
+  if(info?.isHost){
+    state.scanSegmentStart=0;state.scanPlan=[];buildScanPlan();
+    beep(700,.06,'triangle',.025);
+  }
+  if(state.roundResult)restartBtn.style.display=window.SRLNet?.isHost?'grid':'none';
+}
+function handleRoomReset(){
+  stopRound();resetRound();resultOverlay.classList.remove('show');
+}
 function wireNetwork(){
   const net=window.SRLNet;
   if(!net)return setTimeout(wireNetwork,50);
   net.onRoundStart=scheduleRound;
   net.onBossState=receiveBoss;
   net.onPlayerState=receivePlayer;
-  net.onRoomReset=()=>{stopRound();resetRound()};
+  net.onRescue=receiveRescue;
+  net.onRoundResult=showRoundResult;
+  net.onHostChange=handleHostChange;
+  net.onResumeRound=resumeSpectatorRound;
+  net.onRoomReset=handleRoomReset;
+  const pending=net.consumePendingResume?.();
+  if(pending)resumeSpectatorRound(pending);
 }
 wireNetwork();
 resetRound();
