@@ -4,23 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#fff0f6">
-<title>Sunny Maze – Tô đường mê cung</title>
+<title>Sunny Maze – 30 màn mê cung</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <main class="page">
   <header class="top">
     <a class="back" href="../../index.html" aria-label="Về Sunny Game Hub">← Hub</a>
-    <div class="heading"><div class="eyebrow">SUNNY GAME</div><h1>MÊ CUNG KỲ THÚ</h1><p>Chạm vào bi xanh rồi quét ngón tay tìm đường đến ngôi sao!</p></div>
-    <button id="newMaze" class="new" type="button">Mê cung mới ↻</button>
+    <div class="heading"><div class="eyebrow">SUNNY GAME</div><h1>MÊ CUNG KỲ THÚ</h1><p>Vuốt từ bi xanh đến ngôi sao. Mỗi màn sẽ khó hơn một chút!</p></div>
+    <button id="newMaze" class="new" type="button">Tạo mê cung mới ↻</button>
   </header>
   <section class="game" aria-label="Trò chơi mê cung">
-    <div class="hud"><span class="status" id="status" aria-live="polite">Đặt tay lên bi xanh để bắt đầu</span><span class="steps" id="steps">0 bước</span></div>
-    <div class="board-wrap"><canvas id="maze" tabindex="0" aria-label="Mê cung. Vuốt từ bi xanh đến ngôi sao.">Trình duyệt không hỗ trợ Canvas.</canvas>
-      <div id="win" class="win hidden" role="status"><div class="win-card"><div class="star">★</div><h2>Sunny tìm được đường rồi!</h2><p>Con đã đến đích.</p><button id="playAgain" type="button">Chơi mê cung mới</button></div></div>
+    <div class="level-panel">
+      <label for="levelSelect">Chọn màn chơi</label>
+      <div class="level-controls">
+        <button id="prevLevel" class="arrow" type="button" aria-label="Màn trước">‹</button>
+        <select id="levelSelect" aria-label="Chọn màn mê cung"></select>
+        <button id="nextLevel" class="arrow" type="button" aria-label="Màn tiếp theo">›</button>
+      </div>
+      <div class="level-meta"><span id="levelDescription">Màn 1 • Rất dễ</span><span id="progress">Đã hoàn thành 0/30</span></div>
+      <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
     </div>
-    <div class="tips"><span class="dot blue"></span> Bắt đầu <span class="dot green"></span> Đích đến <span class="line-swatch"></span> Đường Sunny đã đi</div>
-    <p class="note">Vuốt theo hành lang. Gặp tường thì đường đi sẽ dừng lại. Có thể quét ngược để quay lại ô trước.</p>
+    <div class="hud"><span class="status" id="status" aria-live="polite">Chạm vào bi xanh để bắt đầu</span><span class="steps" id="steps">0 bước</span></div>
+    <div class="board-wrap"><canvas id="maze" tabindex="0" aria-label="Mê cung. Vuốt từ bi xanh đến ngôi sao.">Trình duyệt không hỗ trợ Canvas.</canvas>
+      <div id="win" class="win hidden" role="status"><div class="win-card"><div class="star">★</div><h2>Sunny tìm được đường rồi!</h2><p id="winText">Con đã đến đích.</p><button id="playAgain" type="button">Chơi lại màn này</button><button id="continue" class="continue" type="button">Sang màn tiếp theo →</button></div></div>
+    </div>
+    <div class="tips"><span class="dot blue"></span> Bắt đầu <span class="dot green"></span> Đích đến <span class="line-swatch"></span> Đường đã đi</div>
+    <p class="note">Chạm đúng vào bi xanh rồi vuốt theo hành lang. Gặp tường thì đường đi sẽ dừng lại. Có thể quay lại ô trước để sửa đường.</p>
   </section>
 </main>
 <script src="maze.js"></script>
