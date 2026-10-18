@@ -335,3 +335,9 @@ textarea {
 #sd-preset{background:linear-gradient(135deg,#ffb978,#f6a3bf);color:#583448;outline:2px solid #fff}
 .sd-fig img{object-fit:contain}
 @media(max-width:600px){.sp-level-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.sp-level{padding:12px 5px;min-height:135px}.sp-level-emoji{font-size:36px}.sp-level strong{font-size:14px}.sp-level small{font-size:12px}}
+
+/* Sunny Mouse difference puzzle: compact 10-stage pagination for 55 levels */
+.sp-page-toolbar{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 18px}
+.sp-page-toolbar strong{font-weight:800;color:#49627a;font-size:15px;min-width:140px;text-align:center}
+.sp-page-toolbar button{padding:9px 14px}
+@media(max-width:480px){.sp-page-toolbar{gap:6px}.sp-page-toolbar strong{order:-1;flex-basis:100%}.sp-page-toolbar button{flex:1 1 42%;font-size:13px}}
