@@ -17,30 +17,37 @@ const GAMES = [
 const root = document.getElementById('root');
 let currentCleanup = null;
 
-function renderHome() {
+// Every Sunny Mouse game is a first-level navigation item.
+// Direct launch avoids showing the old Kids Focus intermediate game grid.
+const gameId = new URLSearchParams(window.location.search).get('game');
+
+function returnToSunnyMouse() {
   if (currentCleanup) { currentCleanup(); currentCleanup = null; }
-  root.innerHTML = `
-    <section class="game-grid">
-      ${GAMES.map(g => `
-        <button class="card" data-game="${g.id}" style="background:${g.color}">
-          <div class="icon">${g.icon}</div>
-          <h2>${g.name}</h2>
-          <p>${g.desc}</p>
-        </button>`).join('')}
-    </section>`;
-  root.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', () => openGame(card.dataset.game));
-  });
+  window.location.assign('../index.html');
 }
 
 function openGame(id) {
-  const g = GAMES.find(x => x.id === id);
-  if (!g) return;
+  const selected = GAMES.find(game => game.id === id);
+  if (!selected) { returnToSunnyMouse(); return; }
   if (currentCleanup) { currentCleanup(); currentCleanup = null; }
   root.innerHTML = '';
-  currentCleanup = g.create(root, renderHome) || null;
+  document.title = 'Sunny Mouse · ' + document.querySelector('[data-sunny-game="' + id + '"]')?.textContent?.trim();
+  document.querySelectorAll('[data-sunny-game]').forEach(link => {
+    const isActive=link.dataset.sunnyGame===id;
+    link.classList.toggle('active',isActive);
+    if (isActive) link.setAttribute('aria-current','page');
+    else link.removeAttribute('aria-current');
+  });
+  // The callbacks formerly returned to an intermediate Kids Focus grid.
+  // Return to the top-level Sunny Mouse menu instead; gameplay remains intact.
+  currentCleanup = selected.create(root, returnToSunnyMouse) || null;
   window.scrollTo({ top: 0 });
 }
 
-document.getElementById('btn-home').addEventListener('click', renderHome);
-renderHome();
+document.getElementById('btn-home').addEventListener('click', event => {
+  event.preventDefault();
+  returnToSunnyMouse();
+});
+
+if (GAMES.some(game => game.id === gameId)) openGame(gameId);
+else returnToSunnyMouse();
