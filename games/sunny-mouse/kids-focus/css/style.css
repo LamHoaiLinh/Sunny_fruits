@@ -306,3 +306,19 @@ textarea {
   .card p { font-size: 12px; }
   .game-topbar h2 { font-size: 16px; }
 }
+
+/* Sunny Mouse: sequential 46-stage progress */
+.sh-level.sh-locked:disabled{
+  opacity:.53;filter:saturate(.5);cursor:not-allowed;
+  border:2px dashed #cad5df;box-shadow:none;background:#e9edf1;
+}
+.sh-level.sh-locked:disabled:active{transform:none}
+.sh-level.sh-locked .lv-name{color:#74828e}
+.sh-level.sh-locked .lv-stars{font-size:12px;letter-spacing:0;color:#778696}
+.sh-level:not(:disabled):focus-visible{outline:3px solid #1976d2;outline-offset:3px}
+.sh-level:not(:disabled){border:2px solid #81c784}
+@media(max-width:520px){
+ .sh-levels{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .sh-level{padding:12px 7px}
+ .sh-level .lv-name{font-size:15px}
+}
