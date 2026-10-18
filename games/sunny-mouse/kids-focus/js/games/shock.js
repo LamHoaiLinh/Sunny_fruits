@@ -270,6 +270,7 @@ export function create(container, onExit) {
         </div>
         <div class="sh-menu">
           <p class="sh-story">🐝 小蜜蜂要把花蜜送回蜂窝，路上有<b>带电的蜘蛛网</b>！按住小蜜蜂，沿着花路<b>慢慢滑</b>，碰到紫色的边就会被电到哦～</p>
+          <p class="center muted" style="margin:8px 0;font-weight:800">Đã mở đến màn ${unlocked+1} / ${LEVELS.length}. Thắng màn trước để mở màn tiếp theo.</p>
           <div class="sh-levels" id="sh-levels">
             ${LEVELS.map((lv, i) => {
               const st=levelsStars[lv.id]||0,locked=i>unlocked;
@@ -278,7 +279,7 @@ export function create(container, onExit) {
                 aria-label="${locked?'Màn '+(i+1)+' chưa mở':'Màn '+(i+1)+' '+lv.name}">
                 <div class="lv-no">Màn ${i+1} / ${LEVELS.length}</div>
                 <div class="lv-name">${locked?'🔒 ':''}${lv.name}</div>
-                <div class="lv-stars">${locked?'Thắng màn trước để mở':('⭐'.repeat(st)+'☆'.repeat(3-st))}</div>
+                <div class="lv-stars">${locked?(st>0?('⭐'.repeat(st)+'☆'.repeat(3-st)+' · Chờ màn trước'):'Thắng màn trước để mở'):('⭐'.repeat(st)+'☆'.repeat(3-st))}</div>
               </button>`;
             }).join('')}
           </div>
