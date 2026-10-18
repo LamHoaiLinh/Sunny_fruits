@@ -54,3 +54,9 @@ Mở `games/sunny-mouse/index.html` từ Sunny Hub trên GitHub Pages. Các file
 - Khi thắng, game mở nút sang màn kế; khi hết giờ, hiện thông báo và nút thử lại. Tiến độ được giữ ở khóa cũ `sunny_mouse_v1` trong `localStorage`.
 - Tận dụng nguyên bản 15 tệp ảnh cá và 6 nền biển đã sao chép từ GCompris; không dùng hình, âm thanh mới, không gọi API.
 - **Kiểm thử tự động:** 24 cấu hình khó dần; đủ 21/21 ảnh cục bộ; mô phỏng bắt hết cá ở màn 27/40/41/50; thử hết giờ ở màn 50; kiểm tra không còn vòng lặp khung hình hoặc sự kiện sau khi thoát màn; kiểm tra cú pháp JavaScript. Chưa kiểm thử tương tác thực tế bằng Chrome/Safari.
+
+## Điều chỉnh thời gian Bắt cá — 18/10/2026
+- Màn 1–26 không có đồng hồ đếm ngược, vẫn không giới hạn thời gian.
+- Tất cả 24 màn có đếm ngược (27–50) **tăng thời gian lên 200% so với trước**, trên cả máy tính và điện thoại. Quy tắc thiết bị di động vẫn giữ nguyên rồi mới nhân đôi.
+- Ví dụ trên máy tính: màn 27 từ 130 lên 260 giây; màn 50 từ 51,2 lên 102,4 giây. Trên điện thoại, màn 50 từ 63 lên 126 giây.
+- Không điều chỉnh số cá, kích thước, vận tốc, cơ chế né chuột, phạt nhấp hụt hay dữ liệu tiến độ. Đã kiểm tra 48 cấu hình thời gian (24 màn × 2 loại thiết bị) và tất cả đạt.
