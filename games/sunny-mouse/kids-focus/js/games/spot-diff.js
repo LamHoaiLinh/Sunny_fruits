@@ -2,6 +2,7 @@ import { isTap, onPointerDrag } from '../touch.js';
 import { AI_INFO, PROMPT_PRESETS, buildImageUrl, loadImage } from '../ai.js';
 import { addImage, listImages, deleteImage } from '../storage.js';
 import { ding, buzz, win } from '../sound.js';
+import { PRESET_LEVELS, presetScene } from './spot-presets.js';
 
 export const id = 'spot-diff';
 export const name = '找不同';
@@ -28,6 +29,60 @@ export function create(container, onExit) {
   const onCleanup = (fn) => cleanups.push(fn);
   const q = (rootEl, sel) => rootEl.querySelector(sel);
 
+  // Five offline spot-the-difference pairs, with stored sequential progress.
+  const presetKey='sunny_spot_presets_v1';
+  function presetWins() {
+    try {
+      const data=JSON.parse(localStorage.getItem(presetKey)||'{}');
+      return (data&&typeof data==='object'&&!Array.isArray(data))?data:{};
+    } catch { return {}; }
+  }
+  function unlockedPresetIndex() {
+    const wins=presetWins();
+    let i=0;
+    while(i<PRESET_LEVELS.length-1&&wins[PRESET_LEVELS[i].id]===true)i++;
+    return i;
+  }
+  function markPresetComplete(i) {
+    const wins=presetWins();
+    wins[PRESET_LEVELS[i].id]=true;
+    try { localStorage.setItem(presetKey,JSON.stringify(wins)); } catch { /* private browsing */ }
+  }
+  function renderPresets() {
+    const unlocked=unlockedPresetIndex(),wins=presetWins();
+    const root=setScreen(`
+      <div class="game-page">
+        <div class="game-topbar">
+          <button class="btn btn-secondary" id="sp-back">← Trở lại</button>
+          <h2>🔍 Bé tìm điểm khác nhau · 5 màn</h2>
+        </div>
+        <p class="center muted">Quan sát hai hình. Nhấp chuột hoặc khoanh tròn vào hình khác nhau. Không giới hạn thời gian.</p>
+        <div class="sp-level-grid">
+        ${PRESET_LEVELS.map((item,i)=>`
+          <button class="sp-level" data-preset="${i}" ${i>unlocked?'disabled aria-disabled="true"':''}>
+            <div class="sp-level-emoji">${['🌷','🏖️','🐮','🦉','🚀'][i]}</div>
+            <strong>Màn ${i+1} · ${item.title}</strong>
+            <small>${item.desc} · ${wins[item.id]?'✅ Đã hoàn thành':i>unlocked?'🔒 Thắng màn trước để mở':'▶ Chơi ngay'}</small>
+          </button>`).join('')}
+        </div>
+      </div>`);
+    q(root,'#sp-back').addEventListener('click',renderMenu);
+    root.querySelectorAll('[data-preset]').forEach(el=>el.addEventListener('click',()=>{
+      const i=Number(el.dataset.preset);if(i<=unlockedPresetIndex())startPreset(i);
+    }));
+  }
+  async function startPreset(i) {
+    if(!Number.isInteger(i)||i<0||i>=PRESET_LEVELS.length||i>unlockedPresetIndex()){
+      toast('Hãy thắng màn trước để mở khóa!');return;
+    }
+    const scene=presetScene(i);
+    setScreen('<div class="game-page"><p class="center muted">Đang mở tranh minh họa…</p></div>');
+    try {
+      const img=await loadImage(scene.original,{crossOrigin:false});
+      startGame(img,{iw:scene.iw,ih:scene.ih,diffs:scene.diffs,dataUrl:scene.modified,presetIdx:i});
+    } catch { toast('Không mở được tranh, hãy thử lại.');renderPresets(); }
+  }
+
   // ---------- 工具 ----------
   function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
@@ -51,6 +106,7 @@ export function create(container, onExit) {
           <p class="sd-intro">选一张图片开始找不同：可以用自己的照片，也可以用免费 AI 生成专属图片。<br>
             上传图片时选择类型：<b>普通单图</b>（自动生成几处不同）或<b>现成的找不同图</b>（左右/上下并排，保持原样找）。直接<b>点击</b>或<b>画圈</b>标记即可。</p>
           <div class="sd-actions">
+            <button class="btn btn-primary" id="sd-preset">🎮 5 màn có sẵn · Chơi ngay</button>
             <button class="btn btn-primary" id="sd-upload">📷 上传图片</button>
             <button class="btn btn-primary" id="sd-gallery">🖼️ 我的图库</button>
             <button class="btn btn-primary" id="sd-ai">✨ AI 生成</button>
@@ -60,6 +116,7 @@ export function create(container, onExit) {
       </div>`);
     q(root, '[data-action="exit"]').addEventListener('click', onExit);
 
+    q(root, '#sd-preset').addEventListener('click', renderPresets);
     const fileInput = q(root, '#sd-file');
     q(root, '#sd-upload').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', async (e) => {
@@ -598,13 +655,14 @@ export function create(container, onExit) {
   }
 
   // ---------- 开始游戏 ----------
-  function startGame(img) {
-    const prepared = prepareGame(img);
+  function startGame(img, preset=null) {
+    const prepared = preset || prepareGame(img);
+    const diffCount=prepared.diffs.length;
     const root = setScreen(`
       <div class="game-page">
         <div class="game-topbar">
           <button class="btn btn-secondary" id="sd-back">← 返回</button>
-          <h2>🔍 找出 <b id="sd-found">0</b> / ${DIFF_COUNT} 处不同</h2>
+          <h2>🔍 ${preset?'Màn '+(preset.presetIdx+1)+' · ':''}Tìm <b id="sd-found">0</b> / ${diffCount} điểm khác nhau</h2>
           <button class="btn" id="sd-hint">💡 提示</button>
         </div>
         <div class="sd-images">
@@ -647,7 +705,7 @@ export function create(container, onExit) {
     const timer = setInterval(() => { game.seconds++; timeEl.textContent = game.seconds; }, 1000);
     onCleanup(() => clearInterval(timer));
 
-    q(root, '#sd-back').addEventListener('click', renderMenu);
+    q(root, '#sd-back').addEventListener('click', preset?renderPresets:renderMenu);
     q(root, '#sd-hint').addEventListener('click', useHint);
 
     [game.wrapA, game.wrapB].forEach(wrap => {
@@ -703,14 +761,14 @@ export function create(container, onExit) {
         ding();
         foundEl.textContent = game.found.size;
         redrawOverlays();
-        if (game.found.size >= DIFF_COUNT) showWin();
+        if (game.found.size >= diffCount) showWin();
       } else {
         buzz();
       }
     }
 
     function useHint() {
-      if (game.found.size >= DIFF_COUNT || hintTimer) return;
+      if (game.found.size >= diffCount || hintTimer) return;
       game.hints++;
       hintIndex = game.diffs.findIndex((d, i) => !game.found.has(i));
       if (hintIndex < 0) return;
@@ -767,6 +825,7 @@ export function create(container, onExit) {
     }
 
     function showWin() {
+      if(preset)markPresetComplete(preset.presetIdx);
       win();
       const stars = Math.max(1, 3 - game.hints);
       const overlay = document.createElement('div');
@@ -777,14 +836,17 @@ export function create(container, onExit) {
           <p>用时 <b>${game.seconds}</b> 秒 · 提示 <b>${game.hints}</b> 次</p>
           <p class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</p>
           <div class="modal-actions">
-            <button class="btn btn-secondary" id="sd-new">🖼️ 换一张</button>
-            <button class="btn btn-primary" id="sd-again">🔄 再玩一次</button>
+            <button class="btn btn-secondary" id="sd-new">${preset?'🗺️ Chọn màn':'🖼️ 换一张'}</button>
+            <button class="btn btn-primary" id="sd-again">🔄 Chơi lại</button>
+            ${preset&&preset.presetIdx<PRESET_LEVELS.length-1?'<button class="btn btn-primary" id="sd-preset-next">➡️ Màn tiếp theo</button>':''}
           </div>
         </div>`;
       container.appendChild(overlay);
       onCleanup(() => overlay.remove());
-      q(overlay, '#sd-new').addEventListener('click', () => { overlay.remove(); renderMenu(); });
-      q(overlay, '#sd-again').addEventListener('click', () => { overlay.remove(); startGame(img); });
+      q(overlay, '#sd-new').addEventListener('click', () => { overlay.remove(); preset?renderPresets():renderMenu(); });
+      q(overlay, '#sd-again').addEventListener('click', () => { overlay.remove(); preset?startPreset(preset.presetIdx):startGame(img); });
+      const next=q(overlay,'#sd-preset-next');
+      if(next)next.addEventListener('click',()=>{overlay.remove();startPreset(preset.presetIdx+1);});
     }
   }
 
