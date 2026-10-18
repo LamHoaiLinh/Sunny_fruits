@@ -36,3 +36,11 @@
 - Dữ liệu sao cũ (`kids-shock-levels`) được chuyển sang `kids-shock-levels-v2` theo mã gốc ổn định cho từng tuyến. Sao đã đạt vẫn thuộc đúng tuyến cũ sau khi sắp xếp; thứ tự mở khóa áp dụng theo lộ trình mới.
 - Giữ cơ chế tia điện dao động rộng để tạo khoảng vượt, trạm an toàn, hồi phục 1,4 giây sau va chạm, tính sao và hình vẽ gốc.
 - Kiểm tra tự động đã bao gồm cú pháp JavaScript, 46 cấp không trùng ID, 20 tuyến mới nằm trong khung vẽ, chuỗi 45 lần mở màn liên tiếp và chuyển thành tích cũ. Chưa xác minh trò chơi thực tế trên từng thiết bị.
+
+## 5 màn Tìm điểm khác nhau có sẵn — 18/10/2026
+- Trò **Tìm điểm khác nhau** có nút **“5 màn có sẵn · Chơi ngay”**. Không cần tạo AI, tải ảnh hay kết nối mạng bổ sung.
+- 5 tranh SVG nguyên bản do Sunny Mouse tạo theo chủ đề: Vườn hoa của thỏ (2 khác biệt), Bãi biển vui vẻ (3), Nông trại đáng yêu (3), Rừng xanh kỳ diệu (4), Du hành vũ trụ (5).
+- Mỗi tranh gồm **hai hình A/B khác nhau tại các đối tượng có tọa độ đáp án cố định**. Giữ nguyên cơ chế nhấp/khoanh, gợi ý và chấm kết quả của game Kids Focus; số đáp án thay đổi theo từng màn.
+- Khóa màn tiếp theo cho tới khi hoàn thành màn trước; ghi nhớ thành tích cục bộ qua `localStorage` (`sunny_spot_presets_v1`). Có nút chơi lại, chọn màn hoặc sang màn tiếp theo.
+- Tệp hình và đáp án: `js/games/spot-presets.js`; mục Tìm điểm khác nhau gốc (ảnh tải lên, bộ sưu tập và AI) vẫn hoạt động. Tất cả tranh SVG được đóng gói trực tiếp, không cần tải từ nguồn ngoài.
+- Đã kiểm tra cú pháp JS, SVG A/B không trùng nhau, 5 danh sách đáp án, vị trí đáp án trong tranh không chồng lên nhau và tiến độ mở khóa đủ 5 màn. **Chưa kiểm thử trực tiếp trên trình duyệt Windows/iOS.**
