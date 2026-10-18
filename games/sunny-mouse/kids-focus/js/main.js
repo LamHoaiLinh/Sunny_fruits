@@ -41,6 +41,11 @@ function openGame(id) {
   // The callbacks formerly returned to an intermediate Kids Focus grid.
   // Return to the top-level Sunny Mouse menu instead; gameplay remains intact.
   currentCleanup = selected.create(root, returnToSunnyMouse) || null;
+  // In the small-screen horizontal tab strip, keep the selected game in view.
+  const nav = document.querySelector('.sunny-flat-nav');
+  const active = document.querySelector('[data-sunny-game="' + id + '"]');
+  if(nav && active && nav.scrollWidth > nav.clientWidth)
+    nav.scrollLeft = Math.max(0,active.offsetLeft - nav.offsetLeft - (nav.clientWidth-active.offsetWidth)/2);
   window.scrollTo({ top: 0 });
 }
 
