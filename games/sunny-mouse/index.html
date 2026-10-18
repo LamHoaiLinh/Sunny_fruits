@@ -54,7 +54,7 @@ button[disabled]{opacity:.5;cursor:default}
 </nav>
 <section class="panel">
 <div class="toolbar">
-<div class="group"><button id="prev" aria-label="Màn trước">◀</button><strong id="levelText">Màn 1 / 6</strong><button id="next" aria-label="Màn sau">▶</button><button id="restart">↻ Chơi lại</button></div>
+<div class="group"><button id="prev" aria-label="Màn trước">◀</button><strong id="levelText">Màn 1 / 26</strong><button id="next" aria-label="Màn sau">▶</button><button id="restart">↻ Chơi lại</button></div>
 <div class="group"><button id="sound" aria-pressed="true">🔊 Âm thanh</button><button id="repeat">▶ Nghe hướng dẫn</button></div>
 </div>
 <div id="instruction" aria-live="polite">Chọn bài tập để bắt đầu</div>
@@ -83,6 +83,7 @@ const $=id=>document.getElementById(id);
 const area=$("surface"),feedback=$("feedback"),instruction=$("instruction");
 const storageKey="sunny_mouse_v1";
 let state={};try{state=JSON.parse(localStorage.getItem(storageKey)||"{}")||{}}catch(_){}
+const MAX_LEVEL=26;
 let mode="move",level=1,clean=[],raf=0,won=false,muted=false,miss=0;
 const desc={
  move:"Rê con trỏ tới các ngôi sao sáng. Trên điện thoại, kéo ngón tay.",
@@ -97,101 +98,187 @@ function clear(){clean.forEach(f=>f());clean=[];cancelAnimationFrame(raf);raf=0;
 function audio(file){if(muted)return;try{const a=new Audio(S(file));a.volume=.4;a.play().catch(()=>{})}catch(_){}}
 function speak(text,lang="vi-VN"){if(muted||!("speechSynthesis"in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=.8;speechSynthesis.speak(u)}catch(_){}}
 function message(t){feedback.textContent=t}
-function complete(){if(won)return;won=true;audio("win.wav");$("win").classList.add("show");$("continue").textContent=level===6?"Chơi lại từ màn 1 →":"Màn tiếp theo →"}
-function setup(m,l){$("repeat").onclick=defaultSpeak;clear();mode=m;level=Math.max(1,Math.min(6,l));save();$("levelText").textContent="Màn "+level+" / 6";instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
-const spots=[[.2,.25],[.74,.7],[.76,.21],[.26,.73],[.49,.5],[.13,.52],[.86,.48],[.49,.16],[.5,.82]];
+function complete(){if(won)return;won=true;audio("win.wav");$("win").classList.add("show");$("continue").textContent=level===MAX_LEVEL?"Chơi lại từ màn 1 →":"Màn tiếp theo →"}
+function setup(m,l){$("repeat").onclick=defaultSpeak;clear();mode=m;level=Math.max(1,Math.min(MAX_LEVEL,l));save();$("levelText").textContent="Màn "+level+" / "+MAX_LEVEL;instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
+
 function startMove(){
  area.style.background="linear-gradient(140deg,#e9faff,#fef2db)";
- const duck=document.createElement("img");duck.className="duck";duck.src=A("colors","blue_duck.svg");duck.alt="Chú vịt xanh";area.append(duck);
- const num=Math.min(2+level,8),left=new Set();
- for(let i=0;i<num;i++){const star=document.createElement("img");star.className="star-target";star.src=C("bonus/star_good.svg");star.alt="Ngôi sao";star.style.left="calc("+(spots[i][0]*100)+"% - 35px)";star.style.top="calc("+(spots[i][1]*100)+"% - 35px)";star.dataset.i=i;area.append(star);left.add(i)}
- function move(e){if(won)return;if(e.pointerType==="touch"&&e.type==="pointermove"&&e.buttons===0)return;
- const b=area.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
- duck.style.left=(x-duck.offsetWidth/2)+"px";duck.style.top=(y-duck.offsetHeight/2)+"px";
- for(let i of [...left]){const p=spots[i],dx=x-p[0]*b.width,dy=y-p[1]*b.height;if(Math.hypot(dx,dy)<45){left.delete(i);const el=area.querySelector('[data-i="'+i+'"]');el?.remove();audio("bleep.wav");message("Đã chạm "+(num-left.size)+"/"+num+" ngôi sao!");}}
- if(!left.size)complete()
+ const duck=document.createElement("img");duck.className="duck";duck.src=A("colors","blue_duck.svg");duck.alt="Chú vịt xanh";duck.style.pointerEvents="none";area.append(duck);
+ // 26 levels: add one target every three rounds; targets become smaller only gradually.
+ const num=Math.min(10,2+Math.floor((level+1)/3));
+ const slots=[];
+ for(let row=0;row<4;row++)for(let col=0;col<4;col++)
+  slots.push([.13+.74*col/3,.14+.72*row/3]);
+ let seed=level*7919+101;
+ function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
+ for(let i=slots.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]]}
+ const targets=slots.slice(0,num),left=new Set(targets.map((_,i)=>i));
+ const diameter=Math.max(53,84-Math.floor((level-1)/2)*2);
+ for(let i=0;i<num;i++){
+  const star=document.createElement("img");star.className="star-target";star.src=C("bonus/star_good.svg");star.alt="Ngôi sao "+(i+1);
+  star.style.width=diameter+"px";star.style.height=diameter+"px";
+  star.style.left="calc("+(targets[i][0]*100)+"% - "+diameter/2+"px)";
+  star.style.top="calc("+(targets[i][1]*100)+"% - "+diameter/2+"px)";
+  star.style.pointerEvents="none";star.dataset.i=i;area.append(star)
+ }
+ function move(e){
+  if(won)return;
+  const b=area.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
+  duck.style.left=(x-duck.offsetWidth/2)+"px";duck.style.top=(y-duck.offsetHeight/2)+"px";
+  const radius=Math.max(35,53-Math.floor((level-1)/3)*2);
+  for(const i of [...left]){
+   const p=targets[i],dx=x-p[0]*b.width,dy=y-p[1]*b.height;
+   if(Math.hypot(dx,dy)<radius){left.delete(i);area.querySelector('[data-i="'+i+'"]')?.remove();audio("bleep.wav");message("Đã chạm "+(num-left.size)+"/"+num+" ngôi sao!")}
+  }
+  if(!left.size)complete()
  }
  on(area,"pointermove",move);on(area,"pointerdown",move);
  speak("Di chuyển chuột tới từng ngôi sao nhé!");
 }
 function startFish(){
- const cfg=[5,7,10,12,15,18],n=cfg[level-1],names=["f01.webp","f02.webp","f03.webp","f04.webp","f05.webp","f06.webp","f07.webp","f08.webp","f09.webp","f10.webp","f11.webp","f12.webp","cichlid1.webp","discus2.webp","blueking2.webp"];
- area.style.background="center / cover no-repeat url('"+A("clickgame","sea"+level+".webp")+"'), #c9eeff";
+ const n=5+Math.floor((level-1)/2),names=["f01.webp","f02.webp","f03.webp","f04.webp","f05.webp","f06.webp","f07.webp","f08.webp","f09.webp","f10.webp","f11.webp","f12.webp","cichlid1.webp","discus2.webp","blueking2.webp"];
+ area.style.background="center / cover no-repeat url('"+A("clickgame","sea"+(1+(level-1)%6)+".webp")+"'), #c9eeff";
  let alive=n,fish=[],last=0;message("Bắt "+n+" con cá!");
  const b=area.getBoundingClientRect();
- for(let i=0;i<n;i++){let el=document.createElement("div");el.className="fish";const w=Math.max(56,Math.min(102,116-level*7)),h=w*.65;el.style.width=w+"px";el.style.height=h+"px";el.style.backgroundImage="url('"+A("clickgame",names[(i*3+level)%names.length])+"')";
- const f={el,x:Math.random()*Math.max(1,b.width-w),y:20+Math.random()*Math.max(1,b.height-h-45),vx:(.035+level*.01+Math.random()*.045)*(Math.random()<.5?-1:1),vy:(Math.random()-.5)*.05,w,h,frame:i%2};
- el.style.backgroundPosition=f.frame?"100% 0":"0 0";el.style.transform="translate("+f.x+"px,"+f.y+"px)";
- on(el,"pointerdown",e=>{if(won)return;e.preventDefault();if(!f.el.isConnected)return;f.el.remove();alive--;audio("drip.wav");message("Còn "+alive+" con cá");if(alive===0)complete()});
- area.append(el);fish.push(f)}
- function tick(t){if(won)return;const dt=Math.min(45,t-last||16);last=t;const r=area.getBoundingClientRect();
- for(const f of fish){if(!f.el.isConnected)continue;f.x+=f.vx*dt;f.y+=f.vy*dt;
- if(f.x<0||f.x>r.width-f.w){f.vx*=-1;f.x=Math.min(Math.max(f.x,0),Math.max(0,r.width-f.w))}
- if(f.y<10||f.y>r.height-f.h){f.vy*=-1;f.y=Math.min(Math.max(f.y,10),Math.max(10,r.height-f.h))}
- f.el.style.transform="translate("+f.x+"px,"+f.y+"px) scaleX("+(f.vx<0?-1:1)+")";}raf=requestAnimationFrame(tick)}
+ for(let i=0;i<n;i++){
+  const el=document.createElement("div");el.className="fish";
+  const w=Math.max(59,102-Math.floor((level-1)*1.5)),h=w*.65;
+  el.style.width=w+"px";el.style.height=h+"px";el.style.backgroundImage="url('"+A("clickgame",names[(i*3+level)%names.length])+"')";
+  const f={el,x:Math.random()*Math.max(1,b.width-w),y:20+Math.random()*Math.max(1,b.height-h-45),vx:(.035+level*.002+Math.random()*.035)*(Math.random()<.5?-1:1),vy:(Math.random()-.5)*.045,w,h,frame:i%2};
+  el.style.backgroundPosition=f.frame?"100% 0":"0 0";el.style.transform="translate("+f.x+"px,"+f.y+"px)";
+  on(el,"pointerdown",e=>{if(won)return;e.preventDefault();if(!f.el.isConnected)return;f.el.remove();alive--;audio("drip.wav");message("Còn "+alive+" con cá");if(!alive)complete()});
+  area.append(el);fish.push(f)
+ }
+ function tick(t){
+  if(won)return;const dt=Math.min(45,t-last||16);last=t;const r=area.getBoundingClientRect();
+  for(const f of fish){if(!f.el.isConnected)continue;f.x+=f.vx*dt;f.y+=f.vy*dt;
+   if(f.x<0||f.x>r.width-f.w){f.vx*=-1;f.x=Math.min(Math.max(f.x,0),Math.max(0,r.width-f.w))}
+   if(f.y<10||f.y>r.height-f.h){f.vy*=-1;f.y=Math.min(Math.max(f.y,10),Math.max(10,r.height-f.h))}
+   f.el.style.transform="translate("+f.x+"px,"+f.y+"px) scaleX("+(f.vx<0?-1:1)+")"
+  }
+  raf=requestAnimationFrame(tick)
+ }
  raf=requestAnimationFrame(tick);
  speak("Nhấp chuột vào các chú cá!");
 }
 function startErase(){
  const names=["kitten.webp","butterfly.webp","penguin.webp","giraffe.webp","dolphin.webp","red_panda.webp"];
- area.style.background="center / cover no-repeat url('"+A("erase",names[level-1])+"'), #f0e8de";
- const cols=level<3?5:level<5?7:9,rows=level<3?4:level<5?6:7;
+ area.style.background="center / cover no-repeat url('"+A("erase",names[(level-1)%names.length])+"'), #f0e8de";
+ // Smoothly increase the grid rather than jumping from 20 to 42 to 63 tiles.
+ const cols=5+Math.floor((level-1)/5),rows=4+Math.floor((level-1)/7);
  let left=cols*rows;
  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
- const el=document.createElement("button");el.type="button";el.className="tile";
- el.style.left=(x*100/cols)+"%";el.style.top=(y*100/rows)+"%";
- el.style.width=(100/cols+.3)+"%";el.style.height=(100/rows+.3)+"%";
- el.style.backgroundImage="url('"+A("erase","transparent_square"+(level%3===0?"_yellow":level%3===1?"":"_green")+".svg")+"')";
- el.setAttribute("aria-label","Gỡ ô che ảnh");
- function hit(){if(!el.isConnected||won)return;el.remove();left--;if(left%4===0)audio("smudge.wav");if(!left)complete()}
- on(el,"pointerdown",e=>{e.preventDefault();hit()});
- on(el,"pointerenter",e=>{if(e.pointerType==="mouse"||e.buttons)hit()});area.append(el)
+  const el=document.createElement("button");el.type="button";el.className="tile";
+  el.style.left=(x*100/cols)+"%";el.style.top=(y*100/rows)+"%";
+  el.style.width=(100/cols+.3)+"%";el.style.height=(100/rows+.3)+"%";
+  el.style.backgroundImage="url('"+A("erase","transparent_square"+(level%3===0?"_yellow":level%3===1?"":"_green")+".svg")+"')";
+  el.setAttribute("aria-label","Gỡ ô che ảnh");
+  function hit(){if(!el.isConnected||won)return;el.remove();left--;if(left%4===0)audio("smudge.wav");if(!left)complete()}
+  on(el,"pointerdown",e=>{e.preventDefault();hit()});
+  on(el,"pointerenter",e=>{if(e.pointerType==="mouse"||e.buttons)hit()});area.append(el)
  }
- on(area,"pointermove",e=>{if(e.pointerType==="touch"&&e.buttons===0)return;const hit=document.elementFromPoint(e.clientX,e.clientY);if(hit&&hit.classList.contains("tile"))hit.dispatchEvent(new PointerEvent("pointerenter",{pointerType:e.pointerType,buttons:e.buttons}))});
+ on(area,"pointermove",e=>{
+  if(e.pointerType==="touch"&&e.buttons===0)return;
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  if(el&&el.classList.contains("tile"))el.dispatchEvent(new PointerEvent("pointerenter",{pointerType:e.pointerType,buttons:e.buttons}))
+ });
  speak("Rê chuột để khám phá bức tranh!");
 }
 function startDots(){
  area.style.background="#fdf8ed";
- const data=(typeof window.get==="function"?window.get():[]),items=data.length?data:[
- {imageName1:"dn_fond1.svg",coordinates:[[267,121],[349,369],[139,216],[397,214],[190,369],[267,121]]},
- {imageName1:"house1.svg",coordinates:[[306,360],[412,360],[413,175],[356,120],[272,40],[119,177],[120,361],[253,361],[306,360]]}];
- const shape=items[Math.min(level-1,items.length-1)],pts=shape.coordinates.slice();
- const limit=[6,8,10,15,22,32][level-1],count=Math.min(pts.length,limit);
- // The original SVG artwork and the original point data are loaded without modification.
+ const data=typeof window.get==="function"?window.get():[];
+ if(!Array.isArray(data)||!data.length){message("Không tải được dữ liệu nối điểm. Hãy tải lại trang.");return}
+ // Upstream repeats first coordinate at the end to close the shape.
+ // For numbered click targets this closing coordinate MUST be removed: otherwise the last number overlays #1.
+ function normalize(raw){
+  const pts=raw.coordinates.map(p=>[Number(p[0]),Number(p[1])]);
+  if(pts.length>1&&Math.hypot(pts[0][0]-pts[pts.length-1][0],pts[0][1]-pts[pts.length-1][1])<1)pts.pop();
+  const result=[];for(const p of pts)
+   if(Number.isFinite(p[0])&&Number.isFinite(p[1])&&result.every(q=>Math.hypot(p[0]-q[0],p[1]-q[1])>=30))result.push(p);
+  return {...raw,points:result}
+ }
+ const desired=Math.min(23,3+Math.floor((level-1)*.8));
+ const eligible=data.map(normalize).filter(shape=>shape.points.length>=desired);
+ if(!eligible.length){message("Màn chơi này chưa có đủ điểm. Hãy chọn màn khác.");return}
+ const shape=eligible[level<=3?0:(level*7+Math.floor(level/4))%eligible.length],pts=shape.points.slice(0,desired);
  const NS="http://www.w3.org/2000/svg",svg=document.createElementNS(NS,"svg");
- svg.setAttribute("viewBox","0 0 520 550");svg.setAttribute("preserveAspectRatio","xMidYMid meet");svg.style.cssText="width:100%;height:100%;display:block;background:#fffefa";area.append(svg);
- const bg=document.createElementNS(NS,"image");bg.setAttribute("href",A("number_sequence",shape.imageName1));bg.setAttribute("width","520");bg.setAttribute("height","550");bg.setAttribute("opacity",".54");svg.append(bg);
- let idx=0,prev=null;
- for(let i=0;i<count;i++){const [x,y]=pts[i];const g=document.createElementNS(NS,"g");const c=document.createElementNS(NS,"circle");c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",level<4?"16":"12");c.setAttribute("fill","#f9d4e5");c.setAttribute("stroke","#aa5790");c.setAttribute("stroke-width","3");c.classList.add("dot");const txt=document.createElementNS(NS,"text");txt.setAttribute("x",x);txt.setAttribute("y",y+5);txt.setAttribute("fill","#643756");txt.setAttribute("font-size","17");txt.setAttribute("font-weight","bold");txt.setAttribute("text-anchor","middle");txt.style.pointerEvents="none";txt.textContent=i+1;
- g.append(c,txt);svg.append(g);on(g,"pointerdown",e=>{e.preventDefault();if(won||i!==idx){if(!won)message("Hãy chọn số "+(idx+1));return}c.setAttribute("fill","#83d9a1");if(prev){const line=document.createElementNS(NS,"line");line.setAttribute("x1",prev[0]);line.setAttribute("y1",prev[1]);line.setAttribute("x2",x);line.setAttribute("y2",y);line.setAttribute("stroke","#69ade0");line.setAttribute("stroke-width","7");line.setAttribute("stroke-linecap","round");svg.insertBefore(line,bg.nextSibling)}prev=[x,y];idx++;audio("audioclick.wav");message("Đã nối "+idx+"/"+count+" điểm");if(idx===count)complete()})}
- speak("Nhấp vào các chấm theo thứ tự một, hai, ba!");
+ svg.setAttribute("viewBox","0 0 520 550");svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+ svg.style.cssText="width:100%;height:100%;display:block;background:#fffefa;touch-action:none";
+ svg.setAttribute("aria-label","Nối "+pts.length+" điểm. Bắt đầu từ số 1.");area.append(svg);
+ const bg=document.createElementNS(NS,"image");bg.setAttribute("href",A("number_sequence",shape.imageName1));bg.setAttribute("width","520");bg.setAttribute("height","550");bg.setAttribute("opacity",".38");bg.style.pointerEvents="none";svg.append(bg);
+ const lines=document.createElementNS(NS,"g");lines.style.pointerEvents="none";svg.append(lines);
+ const nodes=[];
+ for(let i=0;i<pts.length;i++){
+  const [x,y]=pts[i],g=document.createElementNS(NS,"g"),c=document.createElementNS(NS,"circle"),txt=document.createElementNS(NS,"text");
+  c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r","15");c.setAttribute("fill","#f9d4e5");c.setAttribute("stroke","#aa5790");c.setAttribute("stroke-width","3");
+  txt.setAttribute("x",x);txt.setAttribute("y",y+5.7);txt.setAttribute("fill","#643756");txt.setAttribute("font-size","20");txt.setAttribute("font-weight","bold");txt.setAttribute("text-anchor","middle");
+  txt.textContent=i+1;g.append(c,txt);g.style.pointerEvents="none";svg.append(g);nodes.push({c,txt})
+ }
+ let idx=0;
+ function highlight(){
+  nodes.forEach(({c,txt},i)=>{
+   c.setAttribute("fill",i<idx?"#8cdda8":i===idx?"#ffe267":"#f9d4e5");
+   c.setAttribute("stroke",i===idx?"#e19c04":"#aa5790");
+   c.setAttribute("r",i===idx?"19":"15");
+   txt.setAttribute("font-size",i===idx?"23":"20");
+  })
+ }
+ highlight();message("Hãy chọn số 1");
+ // Listen on whole SVG and use only the CURRENT numbered target for collision testing.
+ // This also prevents near-by numbers stealing clicks on narrow phones.
+ on(svg,"pointerdown",e=>{
+  if(won||idx>=pts.length)return;
+  e.preventDefault();
+  const p=svg.createSVGPoint();p.x=pts[idx][0];p.y=pts[idx][1];
+  const screenPoint=p.matrixTransform(svg.getScreenCTM());
+  const radius=e.pointerType==="touch"?31:Math.max(19,32-Math.floor(level/4));
+  if(Math.hypot(e.clientX-screenPoint.x,e.clientY-screenPoint.y)>radius){message("Hãy chọn số "+(idx+1));return}
+  if(idx){const line=document.createElementNS(NS,"line");line.setAttribute("x1",pts[idx-1][0]);line.setAttribute("y1",pts[idx-1][1]);line.setAttribute("x2",pts[idx][0]);line.setAttribute("y2",pts[idx][1]);line.setAttribute("stroke","#47a1e2");line.setAttribute("stroke-width","6");line.setAttribute("stroke-linecap","round");lines.append(line)}
+  idx++;audio("audioclick.wav");highlight();
+  message(idx===pts.length?"Con đã nối xong!":"Giỏi lắm! Bây giờ chọn số "+(idx+1));
+  if(idx===pts.length)complete();
+ });
+ speak("Nhấp vào số một, rồi lần lượt nối hai, ba nhé!");
 }
 function startCircle(){
  area.style.background="linear-gradient(135deg,#fff4df,#f0faff)";
  const animals=[["kitten.webp","con mèo","cat"],["horse.webp","con ngựa","horse"],["bee.webp","con ong","bee"],["butterfly.webp","con bướm","butterfly"],["dolphin.webp","cá heo","dolphin"],["penguin.webp","chim cánh cụt","penguin"]];
- const target=(level-1)%animals.length,order=[target,(target+1)%animals.length,(target+2)%animals.length].sort((a,b)=>(a*5+level)%7-(b*5+level)%7);
+ const target=(level-1)%animals.length;
+ // Two large choices first; three, then four smaller choices after enough practice.
+ const choiceCount=level<=6?2:level<=16?3:4;
+ const order=Array.from({length:choiceCount},(_,i)=>(target+i)%animals.length);
+ let seed=level*3701;for(let i=order.length-1;i>0;i--){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const j=seed%(i+1);[order[i],order[j]]=[order[j],order[i]]}
  const row=document.createElement("div");row.className="animal-row";area.append(row);
  let correct;
- for(let i of order){const item=document.createElement("div");item.className="animal";const img=document.createElement("img");img.src=A("erase",animals[i][0]);img.alt=animals[i][1];const label=document.createElement("span");label.textContent=animals[i][1];item.append(img,label);row.append(item);if(i===target)correct=item}
+ for(const i of order){
+  const item=document.createElement("div");item.className="animal";item.style.width=(choiceCount===2?"42%":choiceCount===3?"30%":"23%");
+  const img=document.createElement("img");img.src=A("erase",animals[i][0]);img.alt=animals[i][1];
+  const label=document.createElement("span");label.textContent=animals[i][1];item.append(img,label);row.append(item);if(i===target)correct=item
+ }
  const cv=document.createElement("canvas");cv.id="drawLayer";area.append(cv);
- const ctx=cv.getContext("2d");let path=[],drawing=false;
+ const ctx=cv.getContext("2d");let path=[],drawing=false,timeout=0;
  function resize(){const r=area.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
- resize();on(window,"resize",resize);
+ resize();on(window,"resize",resize);clean.push(()=>clearTimeout(timeout));
  const pt=e=>{const r=area.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
  function paint(color="#3289dc"){ctx.clearRect(0,0,cv.width,cv.height);if(path.length<2)return;ctx.beginPath();ctx.moveTo(...path[0]);for(let i=1;i<path.length;i++)ctx.lineTo(...path[i]);ctx.strokeStyle=color;ctx.lineWidth=7;ctx.lineJoin="round";ctx.lineCap="round";ctx.stroke()}
  function contains(p,poly){let yes=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])yes=!yes}return yes}
  function check(){
- if(path.length<14)return false;
- const r=area.getBoundingClientRect(),b=correct.getBoundingClientRect(),cx=b.left-r.left+b.width/2,cy=b.top-r.top+b.height/2;
- const points=[[cx,cy],[cx-b.width*.23,cy],[cx+b.width*.23,cy],[cx,cy-b.height*.23],[cx,cy+b.height*.23]];
- const close=Math.hypot(path[0][0]-path[path.length-1][0],path[0][1]-path[path.length-1][1])<Math.max(75,b.width*.55);
- const right=points.every(p=>contains(p,path));
- const others=[...row.children].filter(el=>el!==correct).some(el=>{const o=el.getBoundingClientRect();return contains([o.left-r.left+o.width/2,o.top-r.top+o.height/2],path)});
- return close&&right&&!others
+  if(path.length<12)return false;
+  const r=area.getBoundingClientRect(),b=correct.getBoundingClientRect(),cx=b.left-r.left+b.width/2,cy=b.top-r.top+b.height/2;
+  const fraction=level<=8?.13:level<=17?.18:.23;
+  const points=[[cx,cy],[cx-b.width*fraction,cy],[cx+b.width*fraction,cy],[cx,cy-b.height*fraction],[cx,cy+b.height*fraction]];
+  const close=Math.hypot(path[0][0]-path[path.length-1][0],path[0][1]-path[path.length-1][1])<Math.max(level<=8?105:75,b.width*(level<=8?.8:.55));
+  const right=points.every(p=>contains(p,path));
+  const others=[...row.children].filter(el=>el!==correct).some(el=>{const o=el.getBoundingClientRect();return contains([o.left-r.left+o.width/2,o.top-r.top+o.height/2],path)});
+  return close&&right&&!others
  }
- on(cv,"pointerdown",e=>{e.preventDefault();if(won)return;drawing=true;path=[pt(e)];cv.setPointerCapture(e.pointerId);paint()});
+ on(cv,"pointerdown",e=>{e.preventDefault();if(won)return;clearTimeout(timeout);drawing=true;path=[pt(e)];cv.setPointerCapture(e.pointerId);paint()});
  on(cv,"pointermove",e=>{if(!drawing||won)return;path.push(pt(e));paint()});
- function end(e){if(!drawing||won)return;drawing=false;path.push(pt(e));if(check()){paint("#3bb981");message("Khoanh đúng rồi!");complete()}else{miss++;paint("#e66b7d");message("Thử lại nhé! Hãy đi quanh hình và nối đầu với cuối.");setTimeout(()=>{if(!won){path=[];ctx.clearRect(0,0,cv.width,cv.height)}},900)}}
+ function end(e){
+  if(!drawing||won)return;drawing=false;path.push(pt(e));
+  if(check()){paint("#3bb981");message("Khoanh đúng rồi!");complete()}
+  else{miss++;paint("#e66b7d");message("Thử lại nhé! Hãy đi quanh hình và nối đầu với cuối.");timeout=setTimeout(()=>{if(!won){path=[];ctx.clearRect(0,0,cv.width,cv.height)}},950)}
+ }
  on(cv,"pointerup",end);on(cv,"pointercancel",()=>{drawing=false;path=[];ctx.clearRect(0,0,cv.width,cv.height)});
  const intro="Hãy khoanh tròn "+animals[target][1]+".";
  instruction.textContent=intro+" Giữ chuột trái khi vẽ.";speak("Find the "+animals[target][2],"en-US");
@@ -201,7 +288,7 @@ document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",(
 $("prev").onclick=()=>setup(mode,level-1);
 $("next").onclick=()=>setup(mode,level+1);
 $("restart").onclick=()=>setup(mode,level);
-$("continue").onclick=()=>setup(mode,level===6?1:level+1);
+$("continue").onclick=()=>setup(mode,level===MAX_LEVEL?1:level+1);
 $("sound").onclick=()=>{muted=!muted;$("sound").textContent=muted?"🔇 Tắt tiếng":"🔊 Âm thanh";$("sound").setAttribute("aria-pressed",String(!muted));if(muted&&"speechSynthesis"in window)speechSynthesis.cancel()};
 function defaultSpeak(){speak(desc[mode])}
 $("repeat").onclick=defaultSpeak;
