@@ -29,7 +29,7 @@ button[disabled]{opacity:.5;cursor:default}
 .win-card{max-width:400px;width:100%;text-align:center;background:white;border:3px solid #ffe3ef;border-radius:25px;padding:24px;box-shadow:0 15px 35px #7b3e6e35}
 .win-card h2{margin:8px 0;color:#db5391}.win-card .star{font-size:58px}
 #animalWord{font-size:20px;font-weight:900}
-.fish{position:absolute;background-repeat:no-repeat;background-size:200% 100%;cursor:pointer;touch-action:none;filter:drop-shadow(1px 3px 3px #20427040)}
+.fish{left:0;top:0;position:absolute;background-repeat:no-repeat;background-size:200% 100%;cursor:pointer;touch-action:none;filter:drop-shadow(1px 3px 3px #20427040)}
 .star-target{position:absolute;width:clamp(58px,9vw,88px);height:clamp(58px,9vw,88px);object-fit:contain;pointer-events:none}
 .duck{width:clamp(65px,11vw,95px);height:clamp(65px,11vw,95px);position:absolute;pointer-events:none;filter:drop-shadow(0 8px 7px #2223)}
 .tile{position:absolute;border:1px solid #fff8;border-radius:7px;padding:0;background-position:center;background-size:100% 100%;touch-action:none;cursor:pointer}
@@ -63,7 +63,7 @@ button[disabled]{opacity:.5;cursor:default}
 </div>
 <div id="feedback" aria-live="polite"></div>
 <div id="guide">Máy tính: dùng chuột thật. Điện thoại: chạm và kéo bằng ngón tay. Tiến độ lưu trên từng thiết bị.</div>
-<div id="dataInfo"></div>
+<div id="dataInfo">Tài nguyên và dữ liệu bài tập gốc: <a href="https://github.com/gcompris/GCompris-qt" target="_blank" rel="noopener">GCompris</a> · <a href="SOURCE.md">Mã nguồn và giấy phép</a>. Bản web dành riêng cho Sunny, chưa phải toàn bộ GCompris.</div>
 </section>
 </main>
 <script src="upstream/src/activities/clickanddraw/clickanddraw_dataset.js"></script>
@@ -75,7 +75,7 @@ button[disabled]{opacity:.5;cursor:default}
 (()=>{
 "use strict";
 const REV="e261a949a9965f14d3c642b2698b43042f338357";
-const ROOT="https://raw.githubusercontent.com/gcompris/GCompris-qt/"+REV+"/src/";
+const ROOT="./upstream/src/";
 const A=(activity,file)=>ROOT+"activities/"+activity+"/resource/"+file;
 const S=(file)=>ROOT+"core/resource/sounds/"+file;
 const C=(file)=>ROOT+"core/resource/"+file;
