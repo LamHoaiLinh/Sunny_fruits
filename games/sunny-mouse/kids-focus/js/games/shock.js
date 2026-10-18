@@ -12,7 +12,8 @@ const RING_R = 13;
 const MARGIN = 2;          // 边缘容差
 const FAST_SPEED = 380;    // 超过这个速度就提醒"慢一点"
 const SHOCK_TIME = 1.0;    // 被电后的动画时长（秒）
-const bestKey = 'kids-shock-levels';
+const bestKey = 'kids-shock-levels-v2';
+const legacyBestKey = 'kids-shock-levels';
 const skinKey = 'kids-shock-skin';
 
 const SKINS = [
@@ -218,13 +219,31 @@ export function create(container, onExit) {
   let levelsStars = loadStars();
 
   function loadStars() {
-    try { return JSON.parse(localStorage.getItem(bestKey) || '{}'); } catch { return {}; }
+    try {
+      const current=JSON.parse(localStorage.getItem(bestKey)||"null");
+      if(current&&typeof current==="object"&&!Array.isArray(current)){
+        const safe={};
+        for(const [id,stars] of Object.entries(current))
+          if(LEVELS.some(l=>l.id===id)&&Number.isInteger(stars)&&stars>=1&&stars<=3)safe[id]=stars;
+        return safe;
+      }
+      const old=JSON.parse(localStorage.getItem(legacyBestKey)||"{}"),migrated={};
+      if(old&&typeof old==="object"&&!Array.isArray(old))
+        for(const [k,stars] of Object.entries(old)){
+          const i=Number(k),route=OLD_LEVELS[i];
+          if(Number.isInteger(i)&&String(i)===k&&route&&Number.isInteger(stars)&&stars>=1&&stars<=3)
+            migrated[route.id]=stars;
+        }
+      localStorage.setItem(bestKey,JSON.stringify(migrated));
+      return migrated;
+    }catch{return {};}
   }
-  function saveStars() {
-    try { localStorage.setItem(bestKey, JSON.stringify(levelsStars)); } catch { /* noop */ }
-  }
-  function totalStars() {
-    return LEVELS.reduce((s, lv, i) => s + (levelsStars[i] || 0), 0);
+  function saveStars(){try{localStorage.setItem(bestKey,JSON.stringify(levelsStars));}catch{}}
+  function totalStars(){return LEVELS.reduce((n,l)=>n+(levelsStars[l.id]||0),0);}
+  function highestUnlockedIndex(){
+    let i=0;
+    while(i<LEVELS.length-1&&(levelsStars[LEVELS[i].id]||0)>0)i++;
+    return i;
   }
   function loadSkin() {
     const s = localStorage.getItem(skinKey);
@@ -241,6 +260,7 @@ export function create(container, onExit) {
   // ---------- 主菜单 ----------
   function renderMenu() {
     const total = totalStars();
+    const unlocked=highestUnlockedIndex();
     const root = setScreen(`
       <div class="game-page">
         <div class="game-topbar">
@@ -252,11 +272,13 @@ export function create(container, onExit) {
           <p class="sh-story">🐝 小蜜蜂要把花蜜送回蜂窝，路上有<b>带电的蜘蛛网</b>！按住小蜜蜂，沿着花路<b>慢慢滑</b>，碰到紫色的边就会被电到哦～</p>
           <div class="sh-levels" id="sh-levels">
             ${LEVELS.map((lv, i) => {
-              const st = levelsStars[i] || 0;
-              return `<button class="sh-level" data-i="${i}">
-                <div class="lv-no">第 ${i + 1} 关</div>
-                <div class="lv-name">${lv.name}</div>
-                <div class="lv-stars">${'⭐'.repeat(st)}${'☆'.repeat(3 - st)}</div>
+              const st=levelsStars[lv.id]||0,locked=i>unlocked;
+              return `<button class="sh-level${locked?' sh-locked':''}" data-i="${i}"
+                ${locked?'disabled aria-disabled="true"':''}
+                aria-label="${locked?'Màn '+(i+1)+' chưa mở':'Màn '+(i+1)+' '+lv.name}">
+                <div class="lv-no">Màn ${i+1} / ${LEVELS.length}</div>
+                <div class="lv-name">${locked?'🔒 ':''}${lv.name}</div>
+                <div class="lv-stars">${locked?'Thắng màn trước để mở':('⭐'.repeat(st)+'☆'.repeat(3-st))}</div>
               </button>`;
             }).join('')}
           </div>
@@ -274,7 +296,7 @@ export function create(container, onExit) {
         </div>
       </div>`);
     q(root, '[data-action="exit"]').addEventListener('click', onExit);
-    root.querySelectorAll('.sh-level').forEach(b => b.addEventListener('click', () => startLevelScreen(Number(b.dataset.i))));
+    root.querySelectorAll('.sh-level').forEach(b => b.addEventListener('click', () => { const i=Number(b.dataset.i); if(i<=highestUnlockedIndex())startLevelScreen(i); }));
     root.querySelectorAll('.sh-skin').forEach(b => b.addEventListener('click', () => {
       const k = SKINS.find(x => x.id === b.dataset.id);
       if (total < k.need) { toast(`再收集 ${k.need - total} 颗星就能解锁啦`); return; }
@@ -285,6 +307,7 @@ export function create(container, onExit) {
 
   // ---------- 关卡画面 ----------
   function startLevelScreen(idx) {
+    if(!Number.isInteger(idx)||idx<0||idx>=LEVELS.length||idx>highestUnlockedIndex()){toast('Thắng màn trước để mở màn này!');return;}
     levelIdx = idx;
     level = LEVELS[idx];
     pts = level.gen();
@@ -685,9 +708,9 @@ export function create(container, onExit) {
     state = 'done';
     const sec = Math.round(time);
     const stars = shocks === 0 ? 3 : shocks <= 2 ? 2 : 1;
-    const old = levelsStars[levelIdx] || 0;
+    const old = levelsStars[level.id] || 0;
     if (stars > old) {
-      levelsStars[levelIdx] = stars;
+      levelsStars[level.id] = stars;
       saveStars();
     }
     const total = totalStars();
@@ -703,12 +726,14 @@ export function create(container, onExit) {
         <div class="modal-actions">
           <button class="btn btn-secondary" id="sh-menu">🗺️ 选关</button>
           <button class="btn btn-primary" id="sh-again">🔄 再来一次</button>
+          ${levelIdx<LEVELS.length-1?'<button class="btn btn-primary" id="sh-next">➡️ Màn tiếp theo</button>':''}
         </div>
       </div>`;
     container.appendChild(overlay);
     onCleanup(() => overlay.remove());
     q(overlay, '#sh-menu').addEventListener('click', () => { overlay.remove(); renderMenu(); });
     q(overlay, '#sh-again').addEventListener('click', () => { overlay.remove(); startLevelScreen(levelIdx); });
+    const next=q(overlay,'#sh-next');if(next)next.addEventListener('click',()=>{overlay.remove();startLevelScreen(levelIdx+1);});
   }
 
   function clamp(v, a, b) {
