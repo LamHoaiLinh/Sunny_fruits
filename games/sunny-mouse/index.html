@@ -12,6 +12,10 @@ header{max-width:1150px;margin:auto;padding:12px 14px;display:flex;align-items:c
 a{color:#9b3f70;font-weight:800}h1{margin:0;color:#dd5094;font-size:clamp(23px,4vw,35px)}
 small{color:#765e70}main{max-width:1150px;margin:auto;padding:0 12px 35px}
 .modes{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.modes a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+ font:inherit;font-weight:800;border:2px solid #f9cce0;background:#fff;border-radius:16px;
+ padding:10px 13px;color:#874365;touch-action:manipulation}
+.modes a.active{background:#ee79ac;color:#fff;border-color:#ee79ac}
 button{font:inherit;font-weight:800;border:2px solid #f9cce0;background:#fff;border-radius:16px;padding:10px 13px;cursor:pointer;color:#874365;touch-action:manipulation}
 button:focus-visible,a:focus-visible{outline:3px solid #3599d9;outline-offset:2px}
 button.active,.primary{background:#ee79ac;color:white;border-color:#ee79ac}
@@ -50,7 +54,7 @@ button[disabled]{opacity:.5;cursor:default}
 #vocabToggle{font-size:14px;padding:7px 12px;background:#fffdf8}
 @media(max-width:650px){.vocab-panel{padding:8px 10px;gap:8px}.vocab-details{gap:6px}#vocabToggle{font-size:12px;padding:7px 9px}}
 
-@media(max-width:650px){header{padding:10px}main{padding:0 6px 15px}.modes{gap:5px}.modes button{flex:1 1 28%;font-size:12px;padding:9px 5px}#surface{height:min(55vh,475px);min-height:340px}.panel{padding:8px}.toolbar{gap:5px}.toolbar button{padding:7px 9px}.animal-row{gap:4px;padding:20px 5px}.animal{width:32%;border-width:2px}.animal span{font-size:11px}.animal img{height:130px}}
+@media(max-width:650px){header{padding:10px}main{padding:0 6px 15px}.modes{gap:5px}.modes button,.modes a{flex:1 1 28%;font-size:12px;padding:9px 5px}#surface{height:min(55vh,475px);min-height:340px}.panel{padding:8px}.toolbar{gap:5px}.toolbar button{padding:7px 9px}.animal-row{gap:4px;padding:20px 5px}.animal{width:32%;border-width:2px}.animal span{font-size:11px}.animal img{height:130px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -61,7 +65,12 @@ button[disabled]{opacity:.5;cursor:default}
 <button data-mode="move">1. Rê chuột</button><button data-mode="fish">2. Bắt cá</button>
 <button data-mode="erase">3. Khám phá</button><button data-mode="dots">4. Nối điểm</button>
 <button data-mode="circle">5. Khoanh tròn</button>
-<button id="kidsFocusLaunch" type="button">6. Bé luyện tập trung</button>
+<a href="kids-focus/index.html?game=spot-diff">6. Tìm điểm khác nhau</a>
+<a href="kids-focus/index.html?game=color-match">7. Phân biệt màu</a>
+<a href="kids-focus/index.html?game=maze">8. Mê cung</a>
+<a href="kids-focus/index.html?game=obstacle">9. Vượt chướng ngại</a>
+<a href="kids-focus/index.html?game=shock">10. Đường đi an toàn</a>
+<a href="kids-focus/index.html?game=schulte">11. Bảng số Schulte</a>
 </nav>
 <section class="panel">
 <div class="toolbar">
@@ -514,7 +523,6 @@ function startCircle(){
  instruction.textContent=intro+" Giữ chuột trái khi vẽ.";speak("Find the "+animals[target][2],"en-US");
  $("repeat").onclick=()=>speak("Find the "+animals[target][2],"en-US");
 }
-$("kidsFocusLaunch").onclick=()=>{ window.location.assign("kids-focus/index.html"); };
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ $("repeat").onclick=defaultSpeak;setup(b.dataset.mode,state[b.dataset.mode]?.level||1)}));
 $("prev").onclick=()=>setup(mode,level-1);
 $("next").onclick=()=>setup(mode,level+1);
@@ -524,7 +532,10 @@ $("sound").onclick=()=>{};
 if("speechSynthesis"in window)try{speechSynthesis.cancel()}catch(_){};
 function defaultSpeak(){speak(desc[mode])}
 $("repeat").onclick=defaultSpeak;
-setup("move",state.move?.level||1);
+// Deep links from the other six games return directly to the selected tab.
+const requestedMode=new URLSearchParams(window.location.search).get("mode");
+const initialMode=["move","fish","erase","dots","circle"].includes(requestedMode)?requestedMode:"move";
+setup(initialMode,state[initialMode]?.level||1);
 })();
 </script>
 </body>
