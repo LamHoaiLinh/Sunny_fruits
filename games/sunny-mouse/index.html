@@ -61,6 +61,7 @@ button[disabled]{opacity:.5;cursor:default}
 <button data-mode="move">1. Rê chuột</button><button data-mode="fish">2. Bắt cá</button>
 <button data-mode="erase">3. Khám phá</button><button data-mode="dots">4. Nối điểm</button>
 <button data-mode="circle">5. Khoanh tròn</button>
+<button id="kidsFocusLaunch" type="button">6. Bé luyện tập trung</button>
 </nav>
 <section class="panel">
 <div class="toolbar">
@@ -461,6 +462,7 @@ function startCircle(){
  instruction.textContent=intro+" Giữ chuột trái khi vẽ.";speak("Find the "+animals[target][2],"en-US");
  $("repeat").onclick=()=>speak("Find the "+animals[target][2],"en-US");
 }
+$("kidsFocusLaunch").onclick=()=>{ window.location.assign("kids-focus/index.html"); };
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ $("repeat").onclick=defaultSpeak;setup(b.dataset.mode,state[b.dataset.mode]?.level||1)}));
 $("prev").onclick=()=>setup(mode,level-1);
 $("next").onclick=()=>setup(mode,level+1);
