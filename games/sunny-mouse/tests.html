@@ -15,6 +15,7 @@ document.getElementById("run").onclick=async()=>{
  d.getElementById("sound").click();
  for(const mode of modes){
   d.querySelector('[data-mode="'+mode+'"]').click();
+  for(let reset=0;reset<26;reset++)d.getElementById("prev").click();
   for(let lv=1;lv<=26;lv++){
    if(lv>1)d.getElementById("next").click();
    check(d.getElementById("levelText").textContent==="Màn "+lv+" / 26",mode+" level label "+lv);
@@ -40,6 +41,7 @@ document.getElementById("run").onclick=async()=>{
   }
  }
  d.querySelector('[data-mode="dots"]').click();
+ for(let reset=0;reset<26;reset++)d.getElementById("prev").click();
  const svg=d.querySelector("#surface svg");
  for(let i=0;i<3;i++){
   const txt=svg.querySelectorAll("text")[i],pt=svg.createSVGPoint();
