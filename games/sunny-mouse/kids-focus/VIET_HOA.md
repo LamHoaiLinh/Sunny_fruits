@@ -21,3 +21,10 @@
 - **Đường đi an toàn:** giữ nguyên 6 màn cũ, thêm 20 màn (tổng 26) với các đường cong không tự cắt, tăng độ uốn từ từ. Độ rộng tối thiểu 50, số tia điện tối đa 5; cơ chế trạm an toàn, tính sao và chọn màn vẫn giữ nguyên.
 - Đã sửa lỗi hiệu năng có sẵn ở Đường đi an toàn: mỗi lần chỉ có một chuỗi `requestAnimationFrame` để tránh giật hoặc tăng tải CPU.
 - Kiểm tra bằng mã: 72 lần sinh mê cung thông suốt, toàn bộ 26 tuyến đường nằm trong khung chơi và dữ liệu JS hợp lệ. **Chưa kiểm thử thao tác thực tế trên các thiết bị.**
+
+## Sửa lỗi tia điện chặn đường — 18/10/2026
+- 22/26 màn có tia điện. Trước đây biên độ của tia chỉ bằng 26% độ rộng lối đi (khoảng 13–25 đơn vị), thấp hơn tổng bán kính va chạm 27 đơn vị nên tia điện có thể chặn hoàn toàn đường đi.
+- Mỗi tia hiện di chuyển ngang tối thiểu **90 đơn vị**, tốc độ dao động **0,68–0,88 rad/giây**, bắt đầu ở vị trí ngoài lối đi. Ngay cả ở vận tốc cao nhất, khoảng thời gian tia điện rời trục đi (dư thêm 5 đơn vị) tối thiểu khoảng **2,74 giây**.
+- Trạm an toàn bảo vệ khi nhân vật đứng sát tâm trạm; sau khi bị điện giật, nhân vật có **1,4 giây** miễn va chạm điện để rời trạm, không bị giật liên tiếp.
+- Kiểm tra mã nguồn bằng **1.068 kịch bản** phát sinh vị trí, vận tốc và pha ngẫu nhiên của nhiều tia trên cả 26 tuyến. Khoảng trống an toàn ngắn nhất đo được **2,77 giây** trong các kịch bản thử; không có trường hợp nào dưới 2 giây.
+- Không đổi ảnh, luật tính sao, số màn hoặc hình dáng tuyến đường. Chưa có kiểm thử tương tác trực tiếp trên thiết bị thực.
