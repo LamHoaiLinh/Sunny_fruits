@@ -55,7 +55,7 @@ button[disabled]{opacity:.5;cursor:default}
 <section class="panel">
 <div class="toolbar">
 <div class="group"><button id="prev" aria-label="Màn trước">◀</button><strong id="levelText">Màn 1 / 26</strong><button id="next" aria-label="Màn sau">▶</button><button id="restart">↻ Chơi lại</button></div>
-<div class="group"><button id="sound" aria-pressed="true">🔊 Âm thanh</button><button id="repeat">▶ Nghe hướng dẫn</button></div>
+<div class="group"><button id="sound" hidden aria-pressed="false">🔇 Đã tắt âm</button><button id="repeat" hidden>▶ Nghe hướng dẫn</button></div>
 </div>
 <div id="instruction" aria-live="polite">Chọn bài tập để bắt đầu</div>
 <div id="surface" aria-label="Khu vực chơi">
@@ -76,6 +76,7 @@ button[disabled]{opacity:.5;cursor:default}
 "use strict";
 const REV="e261a949a9965f14d3c642b2698b43042f338357";
 const ROOT="./upstream/src/";
+const ANIMAL_ROOT="./assets/animals/";
 const A=(activity,file)=>ROOT+"activities/"+activity+"/resource/"+file;
 const S=(file)=>ROOT+"core/resource/sounds/"+file;
 const C=(file)=>ROOT+"core/resource/"+file;
@@ -84,19 +85,19 @@ const area=$("surface"),feedback=$("feedback"),instruction=$("instruction");
 const storageKey="sunny_mouse_v1";
 let state={};try{state=JSON.parse(localStorage.getItem(storageKey)||"{}")||{}}catch(_){}
 const MAX_LEVEL=26;
-let mode="move",level=1,clean=[],raf=0,won=false,muted=false,miss=0;
+let mode="move",level=1,clean=[],raf=0,won=false,muted=true,miss=0;
 const desc={
  move:"Rê con trỏ tới các ngôi sao sáng. Trên điện thoại, kéo ngón tay.",
  fish:"Nhấp vào từng chú cá đang bơi. Trên điện thoại, chạm vào cá.",
  erase:"Di chuyển chuột qua các ô màu để khám phá bức ảnh. Trên điện thoại, vuốt ngón tay.",
  dots:"Nhấp lần lượt vào các chấm theo số thứ tự.",
- circle:"Nghe tên con vật rồi giữ chuột trái và khoanh quanh đúng hình. Điện thoại: vẽ bằng ngón tay."
+ circle:"Xem tên con vật rồi giữ chuột trái và khoanh quanh đúng hình. Điện thoại: vẽ bằng ngón tay."
 };
 function save(){state[mode]={level};try{localStorage.setItem(storageKey,JSON.stringify(state))}catch(_){}}
 function on(el,type,fn,opts){el.addEventListener(type,fn,opts);clean.push(()=>el.removeEventListener(type,fn,opts))}
 function clear(){clean.forEach(f=>f());clean=[];cancelAnimationFrame(raf);raf=0;won=false;miss=0;area.querySelectorAll(":scope > :not(#win)").forEach(x=>x.remove());$("win").classList.remove("show");feedback.textContent=""}
-function audio(file){if(muted)return;try{const a=new Audio(S(file));a.volume=.4;a.play().catch(()=>{})}catch(_){}}
-function speak(text,lang="vi-VN"){if(muted||!("speechSynthesis"in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=.8;speechSynthesis.speak(u)}catch(_){}}
+function audio(file){/* Sunny Mouse runs entirely without sounds. */}
+function speak(text,lang="vi-VN"){/* Voice narration disabled on request. */}
 function message(t){feedback.textContent=t}
 function complete(){if(won)return;won=true;audio("win.wav");$("win").classList.add("show");$("continue").textContent=level===MAX_LEVEL?"Chơi lại từ màn 1 →":"Màn tiếp theo →"}
 function setup(m,l){$("repeat").onclick=defaultSpeak;clear();mode=m;level=Math.max(1,Math.min(MAX_LEVEL,l));save();$("levelText").textContent="Màn "+level+" / "+MAX_LEVEL;instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
@@ -162,8 +163,14 @@ function startFish(){
  speak("Nhấp chuột vào các chú cá!");
 }
 function startErase(){
- const names=["kitten.webp","butterfly.webp","penguin.webp","giraffe.webp","dolphin.webp","red_panda.webp"];
- area.style.background="center / cover no-repeat url('"+A("erase",names[(level-1)%names.length])+"'), #f0e8de";
+ const original=["kitten.webp","butterfly.webp","penguin.webp","giraffe.webp","dolphin.webp","red_panda.webp"];
+ const fallback=A("erase",original[(level-1)%original.length]);
+ // Show the original image until the new unique background has loaded successfully.
+ const currentLevel=level,background=ANIMAL_ROOT+"animal"+String(level).padStart(2,"0")+".webp";
+ area.style.background="center / cover no-repeat url('"+fallback+"'), #f0e8de";
+ const picture=new Image();
+ picture.onload=()=>{if(mode==="erase"&&level===currentLevel){area.style.background="center / cover no-repeat url('"+background+"'), #f0e8de"}};
+ picture.src=background;
  // Smoothly increase the grid rather than jumping from 20 to 42 to 63 tiles.
  const cols=5+Math.floor((level-1)/5),rows=4+Math.floor((level-1)/7);
  let left=cols*rows;
@@ -289,7 +296,8 @@ $("prev").onclick=()=>setup(mode,level-1);
 $("next").onclick=()=>setup(mode,level+1);
 $("restart").onclick=()=>setup(mode,level);
 $("continue").onclick=()=>setup(mode,level===MAX_LEVEL?1:level+1);
-$("sound").onclick=()=>{muted=!muted;$("sound").textContent=muted?"🔇 Tắt tiếng":"🔊 Âm thanh";$("sound").setAttribute("aria-pressed",String(!muted));if(muted&&"speechSynthesis"in window)speechSynthesis.cancel()};
+$("sound").onclick=()=>{};
+if("speechSynthesis"in window)try{speechSynthesis.cancel()}catch(_){};
 function defaultSpeak(){speak(desc[mode])}
 $("repeat").onclick=defaultSpeak;
 setup("move",state.move?.level||1);
