@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sunny Mouse – kiểm tra 130 màn</title>
+<style>body{font:16px Arial,sans-serif;margin:20px;background:#fff8fb;color:#472942}button{padding:12px 18px;font-size:18px}pre{white-space:pre-wrap;background:#fff;padding:16px;border:1px solid #ddaacc}iframe{width:min(100%,1100px);height:780px;border:2px solid #ddd;border-radius:12px}</style>
+</head><body><h1>Sunny Mouse – Kiểm tra 130 màn</h1><p>Kiểm tra sau khi trang được tải trên GitHub Pages. Không sửa dữ liệu game gốc.</p>
+<button id="run">Chạy kiểm tra</button><pre id="log">Sẵn sàng.</pre><iframe id="game" src="index.html" title="Sunny Mouse thử nghiệm"></iframe>
+<script>
+const frame=document.getElementById("game"),log=document.getElementById("log");let loaded=false;
+frame.addEventListener("load",()=>loaded=true);
+document.getElementById("run").onclick=async()=>{
+ if(!loaded){log.textContent="Chờ trang Sunny Mouse tải xong rồi thử lại.";return}
+ const d=frame.contentDocument,w=frame.contentWindow,fail=[],modes=["move","fish","erase","dots","circle"];
+ const check=(ok,s)=>{if(!ok)fail.push(s)};
+ let tested=0,missingAssets=[];
+ d.getElementById("sound").click();
+ for(const mode of modes){
+  d.querySelector('[data-mode="'+mode+'"]').click();
+  for(let lv=1;lv<=26;lv++){
+   if(lv>1)d.getElementById("next").click();
+   check(d.getElementById("levelText").textContent==="Màn "+lv+" / 26",mode+" level label "+lv);
+   const area=d.getElementById("surface");
+   if(mode==="move")check(area.querySelectorAll(".star-target").length===Math.min(10,2+Math.floor((lv+1)/3)),"Rê chuột màn "+lv);
+   if(mode==="fish")check(area.querySelectorAll(".fish").length===5+Math.floor((lv-1)/2),"Bắt cá màn "+lv);
+   if(mode==="erase")check(area.querySelectorAll(".tile").length===(5+Math.floor((lv-1)/5))*(4+Math.floor((lv-1)/7)),"Khám phá màn "+lv);
+   if(mode==="dots"){
+    const texts=Array.from(area.querySelectorAll("svg text")).map(n=>n.textContent);
+    const expected=Math.min(23,3+Math.floor((lv-1)*.8));
+    check(texts.length===expected,"Nối điểm thiếu nút màn "+lv+" ("+texts.length+"/"+expected+")");
+    check(texts[0]==="1"&&new Set(texts).size===texts.length,"Nối điểm trùng/thiếu số 1 màn "+lv);
+    const circles=[...area.querySelectorAll("svg circle")];
+    check(circles[0]?.getAttribute("fill")==="#ffe267","Số 1 chưa nổi bật màn "+lv);
+    const images=[...area.querySelectorAll("svg image")];
+    for(const image of images){if(!image.getAttribute("href"))fail.push("Mất nguồn hình nối điểm "+lv)}
+   }
+   if(mode==="circle"){
+    const n=lv<=6?2:lv<=16?3:4;
+    check(area.querySelectorAll(".animal").length===n,"Khoanh tròn màn "+lv);
+   }
+   tested++;
+  }
+ }
+ d.querySelector('[data-mode="dots"]').click();
+ const svg=d.querySelector("#surface svg");
+ for(let i=0;i<3;i++){
+  const txt=svg.querySelectorAll("text")[i],pt=svg.createSVGPoint();
+  pt.x=Number(txt.getAttribute("x"));pt.y=Number(txt.getAttribute("y"))-5.7;
+  const p=pt.matrixTransform(svg.getScreenCTM());
+  svg.dispatchEvent(new w.PointerEvent("pointerdown",{bubbles:true,pointerType:"mouse",clientX:p.x,clientY:p.y,buttons:1}));
+ }
+ check(d.getElementById("win").classList.contains("show"),"Không nối được 1 → 2 → 3 ở màn 1");
+ const images=[...d.querySelectorAll("img")];for(const img of images){if(!img.complete||img.naturalWidth===0)missingAssets.push(img.src)}
+ log.textContent="Đã kiểm tra "+tested+"/130 màn.\n"+
+ (fail.length?"CÓ "+fail.length+" LỖI:\n"+fail.join("\n"):"ĐẠT: 130 màn, số 1 không bị đè, nối 1 → 2 → 3 thành công.")+
+ (missingAssets.length?"\nẢnh tải chưa xong hoặc lỗi: "+missingAssets.join("\n"):"");
+};
+</script></body></html>
