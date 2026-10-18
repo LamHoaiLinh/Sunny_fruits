@@ -40,6 +40,16 @@ button[disabled]{opacity:.5;cursor:default}
 #drawLayer{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;z-index:3}
 .dot{cursor:pointer}
 #dataInfo{font-size:12px;color:#806778;margin-top:8px}
+/* Từ vựng tiếng Anh cho 26 màn Khám phá; hiển thị ngoài khung chơi để không che ô hình. */
+#vocabPanel[hidden],#vocabDetails[hidden]{display:none!important}
+.vocab-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;margin:0 0 10px;background:#fff3d9;border:1px solid #f6d99b;border-radius:14px}
+.vocab-details{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#vocabEnglish{font-size:clamp(22px,3.5vw,30px);font-weight:900;color:#9c3d6e}
+#vocabIPA{font-size:clamp(17px,2.3vw,22px);font-weight:700;color:#514362}
+#vocabVietnamese{font-size:clamp(14px,2vw,18px);color:#665668}
+#vocabToggle{font-size:14px;padding:7px 12px;background:#fffdf8}
+@media(max-width:650px){.vocab-panel{padding:8px 10px;gap:8px}.vocab-details{gap:6px}#vocabToggle{font-size:12px;padding:7px 9px}}
+
 @media(max-width:650px){header{padding:10px}main{padding:0 6px 15px}.modes{gap:5px}.modes button{flex:1 1 28%;font-size:12px;padding:9px 5px}#surface{height:min(55vh,475px);min-height:340px}.panel{padding:8px}.toolbar{gap:5px}.toolbar button{padding:7px 9px}.animal-row{gap:4px;padding:20px 5px}.animal{width:32%;border-width:2px}.animal span{font-size:11px}.animal img{height:130px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -58,6 +68,10 @@ button[disabled]{opacity:.5;cursor:default}
 <div class="group"><button id="sound" hidden aria-pressed="false">🔇 Đã tắt âm</button><button id="repeat" hidden>▶ Nghe hướng dẫn</button></div>
 </div>
 <div id="instruction" aria-live="polite">Chọn bài tập để bắt đầu</div>
+<div id="vocabPanel" class="vocab-panel" hidden aria-label="Từ vựng tiếng Anh">
+<div id="vocabDetails" class="vocab-details"><span id="vocabEnglish" lang="en"></span><span id="vocabIPA" aria-label="Phiên âm IPA"></span><span id="vocabVietnamese" lang="vi"></span></div>
+<button id="vocabToggle" type="button" aria-controls="vocabDetails" aria-expanded="true">Ẩn từ vựng</button>
+</div>
 <div id="surface" aria-label="Khu vực chơi">
 <div id="win" role="status"><div class="win-card"><div class="star">🌟</div><h2>Sunny giỏi quá!</h2><p>Con đã hoàn thành màn chơi.</p><button id="continue" class="primary">Màn tiếp theo →</button></div></div>
 </div>
@@ -85,6 +99,161 @@ const area=$("surface"),feedback=$("feedback"),instruction=$("instruction");
 const storageKey="sunny_mouse_v1";
 let state={};try{state=JSON.parse(localStorage.getItem(storageKey)||"{}")||{}}catch(_){}
 const MAX_LEVEL=26;
+// Vocabulary follows animal01.webp → animal26.webp exactly (US English IPA). No audio.
+const ANIMAL_VOCAB=[
+ {
+  "en": "giraffe",
+  "ipa": "/dʒəˈræf/",
+  "vi": "Hươu cao cổ"
+ },
+ {
+  "en": "horse",
+  "ipa": "/hɔːrs/",
+  "vi": "Ngựa"
+ },
+ {
+  "en": "bee",
+  "ipa": "/biː/",
+  "vi": "Ong"
+ },
+ {
+  "en": "kitten",
+  "ipa": "/ˈkɪtən/",
+  "vi": "Mèo con"
+ },
+ {
+  "en": "penguin",
+  "ipa": "/ˈpeŋɡwɪn/",
+  "vi": "Chim cánh cụt"
+ },
+ {
+  "en": "red panda",
+  "ipa": "/ˌred ˈpændə/",
+  "vi": "Gấu trúc đỏ"
+ },
+ {
+  "en": "dolphin",
+  "ipa": "/ˈdɑːlfɪn/",
+  "vi": "Cá heo"
+ },
+ {
+  "en": "butterfly",
+  "ipa": "/ˈbʌtərflaɪ/",
+  "vi": "Bướm"
+ },
+ {
+  "en": "alpaca",
+  "ipa": "/ælˈpækə/",
+  "vi": "Lạc đà Alpaca"
+ },
+ {
+  "en": "calf",
+  "ipa": "/kæf/",
+  "vi": "Bê con"
+ },
+ {
+  "en": "lion cub",
+  "ipa": "/ˈlaɪən kʌb/",
+  "vi": "Sư tử con"
+ },
+ {
+  "en": "rabbit",
+  "ipa": "/ˈræbɪt/",
+  "vi": "Thỏ"
+ },
+ {
+  "en": "zebra",
+  "ipa": "/ˈziːbrə/",
+  "vi": "Ngựa vằn"
+ },
+ {
+  "en": "tiger cub",
+  "ipa": "/ˈtaɪɡər kʌb/",
+  "vi": "Hổ con"
+ },
+ {
+  "en": "panda",
+  "ipa": "/ˈpændə/",
+  "vi": "Gấu trúc"
+ },
+ {
+  "en": "koala",
+  "ipa": "/koʊˈɑːlə/",
+  "vi": "Gấu túi Koala"
+ },
+ {
+  "en": "owl",
+  "ipa": "/aʊl/",
+  "vi": "Cú mèo"
+ },
+ {
+  "en": "elephant",
+  "ipa": "/ˈelɪfənt/",
+  "vi": "Voi"
+ },
+ {
+  "en": "fox",
+  "ipa": "/fɑːks/",
+  "vi": "Cáo"
+ },
+ {
+  "en": "monkey",
+  "ipa": "/ˈmʌŋki/",
+  "vi": "Khỉ"
+ },
+ {
+  "en": "fawn",
+  "ipa": "/fɔːn/",
+  "vi": "Nai con"
+ },
+ {
+  "en": "squirrel",
+  "ipa": "/ˈskwɝːəl/",
+  "vi": "Sóc"
+ },
+ {
+  "en": "seal",
+  "ipa": "/siːl/",
+  "vi": "Hải cẩu"
+ },
+ {
+  "en": "polar bear cub",
+  "ipa": "/ˈpoʊlər ber kʌb/",
+  "vi": "Gấu Bắc Cực con"
+ },
+ {
+  "en": "flamingo",
+  "ipa": "/fləˈmɪŋɡoʊ/",
+  "vi": "Hồng hạc"
+ },
+ {
+  "en": "hippo",
+  "ipa": "/ˈhɪpoʊ/",
+  "vi": "Hà mã"
+ }
+];
+const vocabVisibleKey="sunny_mouse_vocab_visible";
+let vocabVisible=true;
+try{vocabVisible=localStorage.getItem(vocabVisibleKey)!=="false"}catch(_){}
+function refreshVocabVisibility(){
+ $("vocabDetails").hidden=!vocabVisible;
+ $("vocabToggle").textContent=vocabVisible?"Ẩn từ vựng":"Hiện từ vựng";
+ $("vocabToggle").setAttribute("aria-expanded",String(vocabVisible));
+}
+function showVocabForLevel(){
+ const word=ANIMAL_VOCAB[level-1];
+ if(!word){throw Error("Missing vocabulary for level "+level)}
+ $("vocabEnglish").textContent=word.en.charAt(0).toUpperCase()+word.en.slice(1);
+ $("vocabIPA").textContent=word.ipa;
+ $("vocabVietnamese").textContent="— "+word.vi;
+ refreshVocabVisibility();
+}
+$("vocabToggle").onclick=()=>{
+ vocabVisible=!vocabVisible;
+ try{localStorage.setItem(vocabVisibleKey,String(vocabVisible))}catch(_){}
+ refreshVocabVisibility();
+};
+
 let mode="move",level=1,clean=[],raf=0,won=false,muted=true,miss=0;
 const desc={
  move:"Rê con trỏ tới các ngôi sao sáng. Trên điện thoại, kéo ngón tay.",
@@ -100,7 +269,7 @@ function audio(file){/* Sunny Mouse runs entirely without sounds. */}
 function speak(text,lang="vi-VN"){/* Voice narration disabled on request. */}
 function message(t){feedback.textContent=t}
 function complete(){if(won)return;won=true;audio("win.wav");$("win").classList.add("show");$("continue").textContent=level===MAX_LEVEL?"Chơi lại từ màn 1 →":"Màn tiếp theo →"}
-function setup(m,l){$("repeat").onclick=defaultSpeak;clear();mode=m;level=Math.max(1,Math.min(MAX_LEVEL,l));save();$("levelText").textContent="Màn "+level+" / "+MAX_LEVEL;instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
+function setup(m,l){$("repeat").onclick=defaultSpeak;clear();mode=m;level=Math.max(1,Math.min(MAX_LEVEL,l));$("vocabPanel").hidden=m!=="erase";save();$("levelText").textContent="Màn "+level+" / "+MAX_LEVEL;instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
 
 function startMove(){
  area.style.background="linear-gradient(140deg,#e9faff,#fef2db)";
@@ -163,6 +332,7 @@ function startFish(){
  speak("Nhấp chuột vào các chú cá!");
 }
 function startErase(){
+ showVocabForLevel();
  const original=["kitten.webp","butterfly.webp","penguin.webp","giraffe.webp","dolphin.webp","red_panda.webp"];
  const fallback=A("erase",original[(level-1)%original.length]);
  // Show the original image until the new unique background has loaded successfully.
