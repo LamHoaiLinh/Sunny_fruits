@@ -175,6 +175,7 @@ export function create(container, onExit) {
   let speedSmooth = 0;
   let progress = 0;
   let shocks = 0;
+  let shockGrace = 0; // Brief recovery after a shock, preventing immediate repeated hits.
   let fastFrames = 0;
   let steadyAccum = 0;
   let steadyShow = 0;
@@ -319,6 +320,7 @@ export function create(container, onExit) {
     speedSmooth = 0;
     progress = 0;
     shocks = 0;
+    shockGrace = 0;
     fastFrames = 0;
     steadyAccum = 0;
     steadyShow = 0;
@@ -334,13 +336,20 @@ export function create(container, onExit) {
     const segs = pts.length - 1;
     for (let i = 0; i < count; i++) {
       const seg = Math.floor((i + 0.5) * segs / count);
+      // The player's circle (RING_R=13) collides with a spark of radius 14
+      // if they are under 27px apart. The old amplitude (width * .26)
+      // was at most 25px: sparks could NEVER leave the centerline clear.
+      // Move 90+px to either side, slower, yielding >2.5 s safe windows.
+      const sparkRadius = 14;
+      const amplitude = Math.max(90, level.width * 1.65);
       list.push({
         seg,
-        t: 0.15 + Math.random() * 0.7,
-        amp: level.width * 0.26,
-        phase: Math.random() * Math.PI * 2,
-        speed: 1.2 + Math.random() * 0.8,
-        r: 14,
+        t: 0.30 + Math.random() * 0.4,
+        amp: amplitude,
+        // Start safely outside the path, alternate travel directions.
+        phase: (i % 2 ? -1 : 1) * (Math.PI / 2 + (Math.random() - .5) * .18),
+        speed: 0.68 + Math.random() * 0.20,
+        r: sparkRadius,
       });
     }
     return list;
@@ -400,6 +409,7 @@ export function create(container, onExit) {
         ring.y = cp.y;
         lastRing = { x: ring.x, y: ring.y };
         speedSmooth = 0;
+        shockGrace = 1.4;
         state = 'play';
       }
       return;
@@ -426,10 +436,19 @@ export function create(container, onExit) {
     const limit = level.width / 2 - RING_R - MARGIN;
     if (n.d > limit) { triggerShock(); return; }
 
-    // 移动电荷
-    for (const s of sparks) {
-      const pos = sparkPos(s, time);
-      if (Math.hypot(ring.x - pos.x, ring.y - pos.y) < RING_R + s.r) { triggerShock(); return; }
+    // Electricity may hit the player only outside checkpoints and after
+    // the post-shock recovery window. A marked checkpoint is genuinely safe.
+    shockGrace = Math.max(0, shockGrace - 0.016);
+    const safeStation = checkpoints[checkpointIdx];
+    const restingAtSafeStation = safeStation
+      && Math.hypot(ring.x - safeStation.x, ring.y - safeStation.y) <= RING_R + 6;
+    if (shockGrace <= 0 && !restingAtSafeStation) {
+      for (const s of sparks) {
+        const pos = sparkPos(s, time);
+        if (Math.hypot(ring.x - pos.x, ring.y - pos.y) < RING_R + s.r) {
+          triggerShock(); return;
+        }
+      }
     }
 
     // 进度与检查点
