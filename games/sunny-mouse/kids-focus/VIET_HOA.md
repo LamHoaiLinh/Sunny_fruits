@@ -44,3 +44,16 @@
 - Khóa màn tiếp theo cho tới khi hoàn thành màn trước; ghi nhớ thành tích cục bộ qua `localStorage` (`sunny_spot_presets_v1`). Có nút chơi lại, chọn màn hoặc sang màn tiếp theo.
 - Tệp hình và đáp án: `js/games/spot-presets.js`; mục Tìm điểm khác nhau gốc (ảnh tải lên, bộ sưu tập và AI) vẫn hoạt động. Tất cả tranh SVG được đóng gói trực tiếp, không cần tải từ nguồn ngoài.
 - Đã kiểm tra cú pháp JS, SVG A/B không trùng nhau, 5 danh sách đáp án, vị trí đáp án trong tranh không chồng lên nhau và tiến độ mở khóa đủ 5 màn. **Chưa kiểm thử trực tiếp trên trình duyệt Windows/iOS.**
+
+## Mở rộng Tìm điểm khác nhau thành 55 màn (18/10/2026)
+- Giữ nguyên **5 màn đầu tiên**, kể cả hình SVG, đáp án và ID dùng để lưu tiến độ.
+- Bổ sung **50 màn** có **50 tên cảnh khác nhau**, chia theo 10 chủ đề luân phiên: vườn cổ tích, đại dương, thành phố, nông trại, không gian, tuyết, khu vui chơi, động vật, đảo nhiệt đới và khám phá kỳ diệu.
+- Mỗi màn có **hai hình SVG riêng A/B** vẽ tại chỗ, các thay đổi nằm tại vị trí đồ vật xác định sẵn; không dùng AI hoặc ảnh từ máy chủ ngoài.
+- Độ khó của 50 màn tăng theo **5 nhóm, mỗi nhóm 10 màn**: 5 → 6 → 7 → 8 → 9 điểm khác nhau, đồng thời vùng nhận biết giảm từ bán kính 35 xuống 29 đơn vị, số vật trang trí tăng nhẹ.
+- Tổng có **55 màn** và 367 vị trí khác biệt (17 từ 5 màn ban đầu + 350 từ 50 màn mới).
+- **Khóa tuần tự**: chỉ chơi được màn 1 và những màn đã thắng; thắng màn N sẽ mở N+1. Giữ nguyên khóa `sunny_spot_presets_v1` trong `localStorage`, không làm mất 5 màn đã hoàn thành.
+- Màn chọn cấp chia **6 trang**, mỗi trang tối đa 10 màn; tự mở tại trang chứa màn cao nhất được mở khóa. Nút chuyển nhóm không làm mất tiến độ.
+- Các chức năng cũ: khoanh hoặc nhấp, gợi ý, tải ảnh gia đình, bộ sưu tập và AI vẫn giữ nguyên.
+- Nguồn: `js/games/spot-presets.js` (5 màn gốc + tổng hợp), `js/games/spot-presets-extra.js` (50 màn và bộ vẽ SVG), `js/games/spot-diff.js` (giao diện và khóa).
+- Kiểm thử mã: 55/55 SVG A/B khác nhau và tạo lại ổn định; tọa độ đáp án không trùng, vượt khung hoặc nằm quá gần nhau; mở khóa tuần tự từ màn 1 đến 55; khôi phục tiến độ 5 màn cũ; cú pháp JavaScript đạt.
+- **Chưa kiểm thử thao tác thực tế trên Chrome Windows/Safari iOS.**
