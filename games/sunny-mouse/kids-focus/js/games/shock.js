@@ -95,6 +95,35 @@ const LEVELS = [
   }));
 
 
+
+/* Progressive learning track. The original 26 routes have stable legacy IDs. */
+const OLD_LEVELS = LEVELS.map((lv,i)=>({...lv,id:"legacy-"+i,originalIndex:i}));
+const ADDED_NAMES = ["Bước chân đầu tiên","Đường hoa dịu dàng","Thảm cỏ ban mai","Con đường lấp lánh","Làn gió đầu mùa","Giọt sương nhỏ","Vườn quả ngọt","Bờ hồ tĩnh lặng","Dải mây uốn lượn","Con đường màu nắng","Khúc hát đồng quê","Suối nhỏ quanh co","Lối rẽ vườn xuân","Đồi xanh nhấp nhô","Đường vòng kỳ diệu","Nắng mai trên đỉnh","Vòng cung mùa hạ","Cánh đồng ánh sao","Chinh phục tia chớp","Hành trình vững vàng"];
+const ADDED_WIDTHS = [92,88,84,80,74,72,70,68,66,64,62,62,61,60,59,58,57,56,56,55];
+function gentleRoute(i) {
+ const points=[],amp=22+i*3,turns=.7+i*.05,phase=i*.22;
+ for(let j=0;j<=100;j++){
+  const t=j/100;
+  points.push({x:60+700*t,y:250+amp*Math.sin(2*Math.PI*turns*t+phase)+(3+i*.35)*Math.sin(Math.PI*turns*t-phase*.5)});
+ }
+ return points;
+}
+const ADDED_LEVELS=ADDED_NAMES.map((name,i)=>({
+ id:"added-"+i,name,width:ADDED_WIDTHS[i],
+ sparks:i<4?0:i<11?1:i<18?2:3,
+ par:24+i*3,gen:()=>gentleRoute(i)
+}));
+const sortedByDifficulty=xs=>xs.slice().sort((a,b)=>b.width-a.width||a.gen().length-b.gen().length||a.name.localeCompare(b.name));
+const curriculum=[
+ ADDED_LEVELS[0],ADDED_LEVELS[1],OLD_LEVELS[0],ADDED_LEVELS[2],
+ ADDED_LEVELS[3],OLD_LEVELS[1],OLD_LEVELS[2],OLD_LEVELS[3],
+ ...ADDED_LEVELS.slice(4,11),
+ ...ADDED_LEVELS.slice(11,18),
+ ...sortedByDifficulty([...OLD_LEVELS.filter(x=>x.sparks===3),...ADDED_LEVELS.slice(18)]),
+ ...sortedByDifficulty(OLD_LEVELS.filter(x=>x.sparks===4)),
+ ...sortedByDifficulty(OLD_LEVELS.filter(x=>x.sparks===5))
+];
+LEVELS.splice(0,LEVELS.length,...curriculum);
 // ---------- 路径几何（导出供测试） ----------
 function buildPath(points) {
   const cum = [0];
