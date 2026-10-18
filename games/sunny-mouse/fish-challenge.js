@@ -13,6 +13,9 @@ function rules(level,mobile){
      width:57-Math.floor(k*1.35),speed:130+k*9,time:130-k*3.3,
      dodge:level>=35?.6:0,zigzag:level>=32?.5:0,burst:level>=38?.5:0,missPenalty:0};
  if(mobile){x.width=Math.max(33,x.width+5);x.speed=Math.round(x.speed*.77);x.time=Math.round(x.time*1.24)}
+ // Double the original time limit on desktop and mobile alike.
+ // Levels 1–26 have no timer and remain unlimited in the parent game.
+ x.time*=2;
  return x;
 }
 function launch(args){
