@@ -1,3 +1,4 @@
+import { EXTRA_LEVELS, extraScene } from "./spot-presets-extra.js";
 /* Sunny Mouse: five original, ready-to-play SVG picture pairs.
    No AI/network required. Answer coordinates belong to explicit changed objects. */
 const W=600,H=400;
@@ -77,9 +78,15 @@ const LEVELS=[
 {id:"forest",title:"Rừng xanh kỳ diệu",desc:"4 điểm vừa",spots:[[199,111,42],[430,331,43],[132,304,42],[488,156,43]],art:forest},
 {id:"space",title:"Du hành vũ trụ",desc:"5 điểm vừa",spots:[[108,105,49],[285,97,41],[475,142,42],[357,332,43],[145,315,42]],art:space}
 ];
-export const PRESET_LEVELS=LEVELS.map(({id,title,desc,spots})=>({id,title,desc,spots}));
+// IDs and the first five SVG illustrations remain unchanged, preserving saved progress.
+export const PRESET_LEVELS=[
+ ...LEVELS.map(({id,title,desc,spots})=>({id,title,desc,spots})),
+ ...EXTRA_LEVELS
+];
 export function presetScene(i){
- const level=LEVELS[i];if(!level)throw Error("Không tồn tại màn: "+i);
+ if(!Number.isInteger(i)||i<0||i>=PRESET_LEVELS.length)throw Error("Không tồn tại màn: "+i);
+ if(i>=LEVELS.length)return extraScene(i-LEVELS.length);
+ const level=LEVELS[i];
  return {iw:W,ih:H,diffs:level.spots.map(([x,y,r])=>({x,y,r})),
   original:encode(level.art(false)),modified:encode(level.art(true)),title:level.title,id:level.id};
 }
