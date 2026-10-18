@@ -57,3 +57,12 @@
 - Nguồn: `js/games/spot-presets.js` (5 màn gốc + tổng hợp), `js/games/spot-presets-extra.js` (50 màn và bộ vẽ SVG), `js/games/spot-diff.js` (giao diện và khóa).
 - Kiểm thử mã: 55/55 SVG A/B khác nhau và tạo lại ổn định; tọa độ đáp án không trùng, vượt khung hoặc nằm quá gần nhau; mở khóa tuần tự từ màn 1 đến 55; khôi phục tiến độ 5 màn cũ; cú pháp JavaScript đạt.
 - **Chưa kiểm thử thao tác thực tế trên Chrome Windows/Safari iOS.**
+
+## Gộp giao diện 11 trò thành một cấp (18/10/2026)
+- Trang `games/sunny-mouse/index.html` hiển thị trực tiếp **11 lựa chọn ngang cấp**: 5 trò Sunny Mouse gốc và 6 trò Kids Focus; không còn nút cấp trung gian “Bé luyện tập trung”.
+- 6 trò Kids Focus được mở bằng đường dẫn `kids-focus/index.html?game=<id>` và trình khởi chạy trong `js/main.js` mở trực tiếp đúng module. Đường dẫn Kids Focus cũ không chỉ định trò tự quay về Sunny Mouse.
+- Ở từng màn chơi Kids Focus, thanh chọn 11 trò vẫn hiển thị để chuyển trực tiếp giữa các trò. Điện thoại có thể cuộn ngang; tab hiện tại tự đưa vào vùng nhìn thấy.
+- Nút quay lại hoặc nút Trang chủ của mỗi mini-game trở về Sunny Mouse, không qua trang chọn trò trung gian.
+- Với 5 trò gốc, hỗ trợ đường dẫn `../index.html?mode=move|fish|erase|dots|circle` để quay lại đúng trò đã chọn.
+- Không thay đổi mã chơi, hình ảnh, số màn hoặc khóa lưu tiến độ của bất cứ mini-game nào.
+- Kiểm tra mô phỏng: cả 6 đường dẫn mở đúng game, nút quay lại dọn tác vụ và về Sunny Mouse; hai thanh điều hướng đều có 11 trò; các liên kết 5+6 trò trùng khớp. Chưa kiểm thử trực tiếp trình duyệt và bản GitHub Pages.
