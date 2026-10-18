@@ -3,19 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="儿童专注力训练营：找不同、找相近颜色、走迷宫、过障碍、防触电、舒尔特方格，免费触摸屏小游戏">
-  <title>🧠 专注力训练营</title>
+  <meta name="description" content="11 trò luyện chuột và tập trung cho bé Sunny, chơi trực tiếp từng trò.">
+  <title>Sunny Mouse · Bé luyện tập trung</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
   <link rel="stylesheet" href="css/style.css">
-  <style>.topbar{flex-wrap:wrap}.sf-back{font-size:14px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center}.footer a{color:#0277bd}@media(max-width:600px){.topbar h1{font-size:17px}.topbar-spacer{display:none}}</style>
+  <style>
+    .topbar{flex-wrap:wrap}.sf-back{font-size:14px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center}
+    .footer a{color:#0277bd}.topbar h1{font-family:"Trebuchet MS",Arial,sans-serif;color:#dd5094}
+    .sunny-flat-nav{max-width:1150px;margin:12px auto;display:flex;flex-wrap:wrap;gap:8px;padding:0 12px}
+    .sunny-flat-nav a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+      background:#fff;color:#874365;border:2px solid #f9cce0;border-radius:16px;padding:10px 13px;
+      font-family:"Trebuchet MS",Arial,sans-serif;font-weight:800;font-size:15px}
+    .sunny-flat-nav a.active{background:#ee79ac;color:#fff;border-color:#ee79ac}
+    .sunny-flat-nav a:focus-visible{outline:3px solid #3599d9;outline-offset:2px}
+    @media(max-width:650px){.topbar h1{font-size:17px}.topbar-spacer{display:none}
+      .sunny-flat-nav{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;
+        scrollbar-width:thin;scroll-snap-type:x proximity;padding-bottom:7px}
+      .sunny-flat-nav a{flex:0 0 auto;font-size:12px;padding:9px 10px;scroll-snap-align:start}}
+  </style>
 </head>
 <body>
   <header class="topbar">
     <a class="btn btn-ghost sf-back" href="../index.html">← SUNNY MOUSE</a>
-    <button class="btn btn-ghost" id="btn-home">🏠 首页</button>
-    <h1>🧠 专注力训练营</h1>
+    <button class="btn btn-ghost" id="btn-home">🏠 Sunny Mouse</button>
+    <h1>🐭 SUNNY MOUSE</h1>
     <span class="topbar-spacer"></span>
   </header>
+  <nav class="sunny-flat-nav" aria-label="11 trò chơi Sunny Mouse">
+    <a href="../index.html?mode=move">1. Rê chuột</a>
+    <a href="../index.html?mode=fish">2. Bắt cá</a>
+    <a href="../index.html?mode=erase">3. Khám phá</a>
+    <a href="../index.html?mode=dots">4. Nối điểm</a>
+    <a href="../index.html?mode=circle">5. Khoanh tròn</a>
+    <a href="?game=spot-diff" data-sunny-game="spot-diff">6. Tìm điểm khác nhau</a>
+    <a href="?game=color-match" data-sunny-game="color-match">7. Phân biệt màu</a>
+    <a href="?game=maze" data-sunny-game="maze">8. Mê cung</a>
+    <a href="?game=obstacle" data-sunny-game="obstacle">9. Vượt chướng ngại</a>
+    <a href="?game=shock" data-sunny-game="shock">10. Đường đi an toàn</a>
+    <a href="?game=schulte" data-sunny-game="schulte">11. Bảng số Schulte</a>
+  </nav>
   <main id="root"></main>
   <footer class="footer">
     <p>🌟 全部游戏免费 · 支持触摸屏与鼠标 · AI 找不同使用免费开源模型 FLUX（Pollinations 提供）</p>
