@@ -71,6 +71,29 @@ const LEVELS = [
   { name: '雷暴窄道', width: 54, sparks: 3, par: 70, gen: lv5 },
   { name: '星光螺旋', width: 50, sparks: 4, par: 90, gen: lv6 },
 ];
+  // 20 new routes, following the original six. Strictly increasing x keeps
+  // routes free of self-crossings while amplitude and turns grow gently.
+  function practiceRoute(i) {
+    const points = [], turns = 1.2 + i * .055, amplitude = 50 + i * 2.1;
+    const phase = i * .37, detail = 8 + (i % 4) * 2;
+    for (let j = 0; j <= 100; j++) {
+      const t = j / 100;
+      points.push({
+        x: 60 + 700 * t,
+        y: 250 + amplitude * Math.sin(2 * Math.PI * turns * t + phase)
+          + detail * Math.sin(Math.PI * turns * t - phase * .5)
+      });
+    }
+    return points;
+  }
+
+  const EXTRA_ROUTE_NAMES = ["Đường hoa nắng sớm","Bờ suối êm đềm","Đồng cỏ ngập nắng","Gió qua đồi nhỏ","Cầu vồng uốn lượn","Vườn mây xanh","Lối quanh đồi","Hồ sen vòng nhẹ","Đường hạt nắng","Rặng thông bình yên","Cánh đồng bướm","Khúc quanh suối","Vòng cung ánh sáng","Đường hoa rực rỡ","Thung lũng xanh","Dòng sông mềm mại","Nhịp cầu lượn sóng","Vườn sao lấp lánh","Đường dài kiên nhẫn","Chặng cuối tỏa sáng"];
+  EXTRA_ROUTE_NAMES.forEach((name, i) => LEVELS.push({
+    name, width: Math.max(50, 56 - Math.floor(i / 3)),
+    sparks: Math.min(5, 3 + Math.floor(i / 6)),
+    par: 95 + i * 3, gen: () => practiceRoute(i)
+  }));
+
 
 // ---------- 路径几何（导出供测试） ----------
 function buildPath(points) {
@@ -365,7 +388,7 @@ export function create(container, onExit) {
       updateProgress();
     }
     draw();
-    raf = requestAnimationFrame(frame);
+    // The outer loop schedules the next animation frame only once.
   }
 
   function updateProgress() {
