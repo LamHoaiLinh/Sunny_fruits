@@ -170,6 +170,8 @@
     ["图片", "ảnh"],
     ["已删除", "Đã xóa"]
   ];
+  // Extra Vietnamese labels and phrases used inside nested markup.
+  phrases.push(...[["现成的找不同图","Ảnh tìm điểm khác nhau có sẵn"],["找出 <b id=\"sd-found\">","Tìm <b id=\"sd-found\">"],["这张图是哪种？","Đây là loại ảnh nào?"],["🏅 专注力小奖状","🏅 Bằng khen bé tập trung"],["再玩一次","Chơi lại"],["处不同","điểm khác nhau"],["太棒了！全部找到！","Tuyệt vời! Bé đã tìm đủ!"],["的那一个！"," nhé!"],["跳了","Đã đi"],["最佳","Kỷ lục"],[" 分"," điểm"],["点击","nhấp"],["画圈","khoanh tròn"],["或"," hoặc "],["标记即可。"," là xong."],["免费 · 无需 Key","Miễn phí · không cần API key"],["图片","ảnh"]]);
   phrases.sort((a,b) => b[0].length - a[0].length);
   const hasHan = /[\u3400-\u9fff]/;
   const translate = value => {
