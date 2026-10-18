@@ -28,3 +28,11 @@
 - Trạm an toàn bảo vệ khi nhân vật đứng sát tâm trạm; sau khi bị điện giật, nhân vật có **1,4 giây** miễn va chạm điện để rời trạm, không bị giật liên tiếp.
 - Kiểm tra mã nguồn bằng **1.068 kịch bản** phát sinh vị trí, vận tốc và pha ngẫu nhiên của nhiều tia trên cả 26 tuyến. Khoảng trống an toàn ngắn nhất đo được **2,77 giây** trong các kịch bản thử; không có trường hợp nào dưới 2 giây.
 - Không đổi ảnh, luật tính sao, số màn hoặc hình dáng tuyến đường. Chưa có kiểm thử tương tác trực tiếp trên thiết bị thực.
+
+## Lộ trình 46 màn Đường đi an toàn (18/10/2026)
+- Từ 26 lên **46 màn**, thêm 20 đường mềm mới, giữ lại 26 đường gốc. Sắp xếp theo thứ tự tăng độ khó.
+- Chia sáu nhóm: **8 màn không tia điện; 7 màn có 1 tia; 7 màn có 2 tia; 9 màn có 3 tia; 7 màn có 4 tia; 8 màn có 5 tia**. Đường và chiều rộng được điều chỉnh cho trẻ nhỏ.
+- **Chỉ mở màn N+1 sau khi thắng màn N**. Nút màn khóa bị vô hiệu; khi thắng xuất hiện nút chuyển sang màn kế tiếp.
+- Dữ liệu sao cũ (`kids-shock-levels`) được chuyển sang `kids-shock-levels-v2` theo mã gốc ổn định cho từng tuyến. Sao đã đạt vẫn thuộc đúng tuyến cũ sau khi sắp xếp; thứ tự mở khóa áp dụng theo lộ trình mới.
+- Giữ cơ chế tia điện dao động rộng để tạo khoảng vượt, trạm an toàn, hồi phục 1,4 giây sau va chạm, tính sao và hình vẽ gốc.
+- Kiểm tra tự động đã bao gồm cú pháp JavaScript, 46 cấp không trùng ID, 20 tuyến mới nằm trong khung vẽ, chuỗi 45 lần mở màn liên tiếp và chuyển thành tích cũ. Chưa xác minh trò chơi thực tế trên từng thiết bị.
