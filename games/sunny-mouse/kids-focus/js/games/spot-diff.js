@@ -29,7 +29,7 @@ export function create(container, onExit) {
   const onCleanup = (fn) => cleanups.push(fn);
   const q = (rootEl, sel) => rootEl.querySelector(sel);
 
-  // Five offline spot-the-difference pairs, with stored sequential progress.
+  // Fifty-five offline illustration pairs, with the same sequential saved progress.
   const presetKey='sunny_spot_presets_v1';
   function presetWins() {
     try {
@@ -48,27 +48,46 @@ export function create(container, onExit) {
     wins[PRESET_LEVELS[i].id]=true;
     try { localStorage.setItem(presetKey,JSON.stringify(wins)); } catch { /* private browsing */ }
   }
-  function renderPresets() {
+  const PRESET_PAGE_SIZE=10;
+  function renderPresets(page) {
     const unlocked=unlockedPresetIndex(),wins=presetWins();
+    const maxPage=Math.ceil(PRESET_LEVELS.length/PRESET_PAGE_SIZE)-1;
+    const currentPage=Number.isInteger(page)?Math.max(0,Math.min(maxPage,page)):Math.floor(unlocked/PRESET_PAGE_SIZE);
+    const first=currentPage*PRESET_PAGE_SIZE;
+    const last=Math.min(PRESET_LEVELS.length,first+PRESET_PAGE_SIZE);
+    const completed=PRESET_LEVELS.filter(item=>wins[item.id]===true).length;
     const root=setScreen(`
       <div class="game-page">
         <div class="game-topbar">
           <button class="btn btn-secondary" id="sp-back">← Trở lại</button>
-          <h2>🔍 Bé tìm điểm khác nhau · 5 màn</h2>
+          <h2>🔍 Bé tìm điểm khác nhau · ${PRESET_LEVELS.length} màn</h2>
         </div>
-        <p class="center muted">Quan sát hai hình. Nhấp chuột hoặc khoanh tròn vào hình khác nhau. Không giới hạn thời gian.</p>
+        <p class="center muted">Nhấp hoặc khoanh những chỗ khác nhau giữa hai hình. Không giới hạn thời gian.</p>
+        <p class="center muted"><b>Đã thắng ${completed}/${PRESET_LEVELS.length} màn</b> · Đã mở tới màn ${unlocked+1}.
+          Hoàn thành màn trước để mở màn kế tiếp.</p>
+        <div class="sp-page-toolbar" aria-label="Chọn nhóm màn chơi">
+          <button class="btn btn-secondary" id="sp-prev" ${currentPage===0?'disabled':''}>◀ Nhóm trước</button>
+          <strong>Màn ${first+1}–${last} / ${PRESET_LEVELS.length}</strong>
+          <button class="btn btn-secondary" id="sp-next" ${currentPage===maxPage?'disabled':''}>Nhóm tiếp ▶</button>
+        </div>
         <div class="sp-level-grid">
-        ${PRESET_LEVELS.map((item,i)=>`
-          <button class="sp-level" data-preset="${i}" ${i>unlocked?'disabled aria-disabled="true"':''}>
-            <div class="sp-level-emoji">${['🌷','🏖️','🐮','🦉','🚀'][i]}</div>
-            <strong>Màn ${i+1} · ${item.title}</strong>
-            <small>${item.desc} · ${wins[item.id]?'✅ Đã hoàn thành':i>unlocked?'🔒 Thắng màn trước để mở':'▶ Chơi ngay'}</small>
-          </button>`).join('')}
+          ${PRESET_LEVELS.slice(first,last).map((item,offset)=>{
+            const i=first+offset,locked=i>unlocked;
+            const icon=item.emoji||['🌷','🏖️','🐮','🦉','🚀'][i]||'🔎';
+            return `<button class="sp-level" data-preset="${i}" ${locked?'disabled aria-disabled="true"':''}>
+              <div class="sp-level-emoji">${icon}</div>
+              <strong>Màn ${i+1} · ${item.title}</strong>
+              <small>${item.desc} · ${wins[item.id]?'✅ Đã thắng':locked?'🔒 Thắng màn trước để mở':'▶ Chơi ngay'}</small>
+            </button>`;
+          }).join('')}
         </div>
       </div>`);
     q(root,'#sp-back').addEventListener('click',renderMenu);
+    q(root,'#sp-prev').addEventListener('click',()=>renderPresets(currentPage-1));
+    q(root,'#sp-next').addEventListener('click',()=>renderPresets(currentPage+1));
     root.querySelectorAll('[data-preset]').forEach(el=>el.addEventListener('click',()=>{
-      const i=Number(el.dataset.preset);if(i<=unlockedPresetIndex())startPreset(i);
+      const i=Number(el.dataset.preset);
+      if(i<=unlockedPresetIndex())startPreset(i);
     }));
   }
   async function startPreset(i) {
@@ -106,7 +125,7 @@ export function create(container, onExit) {
           <p class="sd-intro">选一张图片开始找不同：可以用自己的照片，也可以用免费 AI 生成专属图片。<br>
             上传图片时选择类型：<b>普通单图</b>（自动生成几处不同）或<b>现成的找不同图</b>（左右/上下并排，保持原样找）。直接<b>点击</b>或<b>画圈</b>标记即可。</p>
           <div class="sd-actions">
-            <button class="btn btn-primary" id="sd-preset">🎮 5 màn có sẵn · Chơi ngay</button>
+            <button class="btn btn-primary" id="sd-preset">🎮 55 màn có sẵn · Chơi ngay</button>
             <button class="btn btn-primary" id="sd-upload">📷 上传图片</button>
             <button class="btn btn-primary" id="sd-gallery">🖼️ 我的图库</button>
             <button class="btn btn-primary" id="sd-ai">✨ AI 生成</button>
@@ -116,7 +135,7 @@ export function create(container, onExit) {
       </div>`);
     q(root, '[data-action="exit"]').addEventListener('click', onExit);
 
-    q(root, '#sd-preset').addEventListener('click', renderPresets);
+    q(root, '#sd-preset').addEventListener('click', () => renderPresets());
     const fileInput = q(root, '#sd-file');
     q(root, '#sd-upload').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', async (e) => {
