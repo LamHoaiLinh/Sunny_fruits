@@ -66,7 +66,7 @@ button[disabled]{opacity:.5;cursor:default}
 <div id="dataInfo"></div>
 </section>
 </main>
-<script src="https://raw.githubusercontent.com/gcompris/GCompris-qt/e261a949a9965f14d3c642b2698b43042f338357/src/activities/clickanddraw/clickanddraw_dataset.js"></script>
+<script src="upstream/src/activities/clickanddraw/clickanddraw_dataset.js"></script>
 <script>
 /* Sunny Mouse: web interaction adapter. Original GCompris assets/code are not modified.
  * Source and licenses: https://github.com/gcompris/GCompris-qt
@@ -98,7 +98,7 @@ function audio(file){if(muted)return;try{const a=new Audio(S(file));a.volume=.4;
 function speak(text,lang="vi-VN"){if(muted||!("speechSynthesis"in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=.8;speechSynthesis.speak(u)}catch(_){}}
 function message(t){feedback.textContent=t}
 function complete(){if(won)return;won=true;audio("win.wav");$("win").classList.add("show");$("continue").textContent=level===6?"Chơi lại từ màn 1 →":"Màn tiếp theo →"}
-function setup(m,l){clear();mode=m;level=Math.max(1,Math.min(6,l));save();$("levelText").textContent="Màn "+level+" / 6";instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
+function setup(m,l){$("repeat").onclick=defaultSpeak;clear();mode=m;level=Math.max(1,Math.min(6,l));save();$("levelText").textContent="Màn "+level+" / 6";instruction.textContent=desc[mode];document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));message("");({move:startMove,fish:startFish,erase:startErase,dots:startDots,circle:startCircle})[mode]()}
 const spots=[[.2,.25],[.74,.7],[.76,.21],[.26,.73],[.49,.5],[.13,.52],[.86,.48],[.49,.16],[.5,.82]];
 function startMove(){
  area.style.background="linear-gradient(140deg,#e9faff,#fef2db)";
@@ -205,7 +205,6 @@ $("continue").onclick=()=>setup(mode,level===6?1:level+1);
 $("sound").onclick=()=>{muted=!muted;$("sound").textContent=muted?"🔇 Tắt tiếng":"🔊 Âm thanh";$("sound").setAttribute("aria-pressed",String(!muted));if(muted&&"speechSynthesis"in window)speechSynthesis.cancel()};
 function defaultSpeak(){speak(desc[mode])}
 $("repeat").onclick=defaultSpeak;
-const oldSetup=setup;
 setup("move",state.move?.level||1);
 })();
 </script>
