@@ -37,3 +37,10 @@ Mở `games/sunny-mouse/index.html` từ Sunny Hub trên GitHub Pages. Các file
 - Bắt cá: thêm cá từng hai cấp và tăng vận tốc nhẹ. Rê chuột: số sao tăng từng ba cấp.
 - Khoanh tròn: bắt đầu hai hình lớn, lên ba hình và sau đó bốn hình, mức kiểm tra đường bao tăng dần.
 - Trình tự kiểm thử có tại `tests.html` (chạy trên cùng domain GitHub Pages để truy cập iframe). Dữ liệu gốc trong thư mục `upstream/` không chỉnh sửa.
+
+## Cập nhật 18/10/2026 – 26 ảnh nền mới và chế độ không âm thanh
+- 26 ảnh tự tạo bổ sung riêng cho mục **Khám phá** ở `assets/animals/animal01.webp` đến `animal26.webp` (mỗi màn một con vật khác nhau).
+- Ảnh tải trực tiếp từ repo Sunny Fruits ở dạng WebP 1152 × 768, tổng dung lượng khoảng 2,8 MB.
+- Đã tắt **mọi âm thanh hiệu ứng và giọng đọc** trong Sunny Mouse; các nút âm thanh/nghe hướng dẫn được ẩn.
+- Nguồn hình/âm thanh GCompris ở `upstream/` **giữ nguyên**; trò Khám phá vẫn có hình dự phòng cũ nếu tải ảnh mới bị lỗi.
+- Theo thứ tự 26 màn: hươu cao cổ, ngựa, ong, mèo, chim cánh cụt, gấu trúc đỏ, cá heo, bướm, alpaca, bê, sư tử, thỏ, ngựa vằn, hổ, gấu trúc, koala, cú, voi, cáo, khỉ, hươu con, sóc, hải cẩu, gấu Bắc Cực, hồng hạc, hà mã.
